@@ -1,0 +1,3 @@
+cd content-os-front
+npm run type-check
+npm run test:run
