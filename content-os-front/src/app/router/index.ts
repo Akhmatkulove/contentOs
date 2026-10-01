@@ -6,6 +6,7 @@ import {
   OnboardingProfileStep,
   OnboardingReviewStep,
   OnboardingRoleStep,
+  OnboardingStatusPage,
 } from '@/pages/onboarding'
 import { SignupPage } from '@/pages/signup'
 import AuthLayout from '../layouts/AuthLayout.vue'
@@ -30,6 +31,7 @@ export const router = createRouter({
         { path: 'role', name: 'onboarding-role', component: OnboardingRoleStep },
         { path: 'profile', name: 'onboarding-profile', component: OnboardingProfileStep },
         { path: 'review', name: 'onboarding-review', component: OnboardingReviewStep },
+        { path: 'status', name: 'onboarding-status', component: OnboardingStatusPage },
       ],
     },
     {
