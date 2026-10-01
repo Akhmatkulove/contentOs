@@ -45,6 +45,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     # None у тех, кто вошёл только через Google.
     password_hash: Mapped[str | None]
+    # Постоянный id аккаунта Google (claim `sub`); email в Google может смениться.
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
     email_verified: Mapped[bool] = mapped_column(default=False)
     role: Mapped[Role | None] = mapped_column(_string_enum(Role, "role"))
     status: Mapped[Status] = mapped_column(

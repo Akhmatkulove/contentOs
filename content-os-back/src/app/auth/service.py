@@ -9,6 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
+from app.auth.google import GoogleError, GoogleProfile
 from app.auth.models import User, UserSession
 from app.core.config import Settings
 
@@ -82,6 +83,33 @@ async def resolve_session(
 
 async def delete_session(db: AsyncSession, token: str) -> None:
     await db.execute(delete(UserSession).where(UserSession.id == _session_id(token)))
+
+
+async def sign_in_with_google(db: AsyncSession, profile: GoogleProfile) -> User:
+    """Находит, привязывает или создаёт пользователя по профилю Google. Коммитит вызывающий."""
+    user = await db.scalar(select(User).where(User.google_sub == profile.sub))
+    if user is not None:
+        return user
+    if not profile.email_verified:
+        raise GoogleError("Google account email is not verified")
+
+    user = await db.scalar(select(User).where(User.email == profile.email))
+    if user is None:
+        user = User(email=profile.email, google_sub=profile.sub, email_verified=True)
+        db.add(user)
+        await db.flush()
+        return user
+
+    if user.google_sub is not None:
+        raise GoogleError("Email is linked to another Google account")
+    if not user.email_verified:
+        # Аккаунт с паролем мог завести кто угодно на чужой email. Владелец почты,
+        # подтверждённый Google, забирает аккаунт: пароль и все сессии сбрасываются.
+        user.password_hash = None
+        await db.execute(delete(UserSession).where(UserSession.user_id == user.id))
+    user.google_sub = profile.sub
+    user.email_verified = True
+    return user
 
 
 def set_session_cookie(response: Response, token: str, settings: Settings) -> None:

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     environment: Literal["local", "test", "production"] = "local"
     database_url: PostgresDsn
+    # Адрес фронта: туда возвращаем после входа через Google. API доступен под ним же (/api).
+    app_url: str = "http://localhost:5173"
     # Origin'ы, с которых браузер может слать изменяющие запросы (защита от CSRF).
     allowed_origins: list[str] = ["http://localhost:5173"]
     session_ttl_days: int = 30
@@ -22,6 +24,10 @@ class Settings(BaseSettings):
     # Чат, куда приходят заявки, и единственный, кто может их одобрять.
     telegram_chat_id: int | None = None
     telegram_admin_id: int | None = None
+
+    # Вход через Google. Без них кнопка входа отвечает 404.
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
 
     @property
     def docs_enabled(self) -> bool:
