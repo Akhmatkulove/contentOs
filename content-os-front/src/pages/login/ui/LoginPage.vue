@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { VInput, VPasswordInput } from '@/shared/ui/input'
 import billboardUrl from './assets/billboard.png'
 import googleUrl from './assets/google.svg'
 import logoMarkUrl from './assets/logo-mark.svg'
 import logoTextUrl from './assets/logo-text.svg'
+
+const email = ref('')
+const password = ref('')
 </script>
 
 <template>
@@ -39,20 +44,22 @@ import logoTextUrl from './assets/logo-text.svg'
 
         <form class="flex flex-col gap-5 lg:gap-7" @submit.prevent>
           <div class="flex flex-col gap-4 lg:gap-5">
-            <label class="flex flex-col gap-2">
-              <span class="text-p3 font-medium text-neutral-600">Email</span>
-              <input type="email" name="email" autocomplete="email" placeholder="you@domain.com" />
-            </label>
+            <VInput
+              v-model="email"
+              label="Email"
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="you@domain.com"
+            />
 
-            <label class="flex flex-col gap-2">
-              <span class="text-p3 font-medium text-neutral-600">Password</span>
-              <input
-                type="password"
-                name="password"
-                autocomplete="current-password"
-                placeholder="Enter your password"
-              />
-            </label>
+            <VPasswordInput
+              v-model="password"
+              label="Password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+            />
 
             <div class="flex h-5 items-center justify-end">
               <a href="#" class="text-p3 font-medium text-violet-400">Forgot password?</a>
