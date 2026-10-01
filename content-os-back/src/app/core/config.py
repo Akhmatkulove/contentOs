@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Annotated, Literal
 
 from fastapi import Depends, Request
-from pydantic import PostgresDsn
+from pydantic import PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,8 +15,20 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:5173"]
     session_ttl_days: int = 30
 
+    # Заявки на проверку. Без этих настроек сообщения не отправляются,
+    # а одобрять можно через dev-эндпоинт (не в production).
+    telegram_bot_token: SecretStr | None = None
+    telegram_webhook_secret: SecretStr | None = None
+    # Чат, куда приходят заявки, и единственный, кто может их одобрять.
+    telegram_chat_id: int | None = None
+    telegram_admin_id: int | None = None
+
     @property
     def docs_enabled(self) -> bool:
+        return self.environment != "production"
+
+    @property
+    def dev_endpoints_enabled(self) -> bool:
         return self.environment != "production"
 
     @property

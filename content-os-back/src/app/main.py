@@ -9,6 +9,8 @@ from app.core.csrf import origin_check
 from app.core.db import create_engine, create_sessionmaker
 from app.health.router import router as health_router
 from app.onboarding.router import router as onboarding_router
+from app.review.router import dev_router as review_dev_router
+from app.review.router import router as review_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -35,6 +37,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(health_router)
     api.include_router(auth_router)
     api.include_router(onboarding_router)
+    api.include_router(review_router)
+    if settings.dev_endpoints_enabled:
+        api.include_router(review_dev_router)
     app.include_router(api)
 
     return app

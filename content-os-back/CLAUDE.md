@@ -17,6 +17,8 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 src/app/main.py        create_app(): фабрика приложения, все роутеры под /api
 src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf
 src/app/auth/          пользователи, сессии, signup/login/logout/me, зависимости доступа
+src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
+src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
 tests/                 pytest, по файлу на фичу: tests/test_<feature>.py
