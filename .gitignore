@@ -34,4 +34,12 @@ coverage/
 .vite/
 .eslintcache
 
-# Backend: add stack-specific entries here
+# Python / backend
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

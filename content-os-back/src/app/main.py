@@ -1,0 +1,33 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import APIRouter, FastAPI
+
+from app.core.config import Settings, get_settings
+from app.core.db import create_engine, create_sessionmaker
+from app.health.router import router as health_router
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        engine = create_engine(str(settings.database_url))
+        app.state.sessionmaker = create_sessionmaker(engine)
+        yield
+        await engine.dispose()
+
+    app = FastAPI(
+        title="ContentOS API",
+        lifespan=lifespan,
+        docs_url="/api/docs" if settings.docs_enabled else None,
+        openapi_url="/api/openapi.json" if settings.docs_enabled else None,
+        redoc_url=None,
+    )
+
+    api = APIRouter(prefix="/api")
+    api.include_router(health_router)
+    app.include_router(api)
+
+    return app
