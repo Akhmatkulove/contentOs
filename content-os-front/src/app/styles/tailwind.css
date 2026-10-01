@@ -5,6 +5,26 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+ * Pretendard, only the weights the design uses (Medium, SemiBold),
+ * subset to Latin + Cyrillic. Files live in public/fonts/pretendard.
+ */
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/pretendard/Pretendard-Medium.subset.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/pretendard/Pretendard-SemiBold.subset.woff2') format('woff2');
+}
+
+/*
  * Primitive color tokens — mirror of the Figma "Colors" collection
  * (Creator Lab Web). Names map 1:1: Primary/Violet400 → violet-400.
  * The default Tailwind palette is reset so only design-system colors exist.
@@ -66,4 +86,40 @@
   --color-green-200: #d0e15f;
   --color-green-300: #92a326;
   --color-green-400: #3d5437;
+
+  /*
+   * Typography — Figma "Web Design" text styles. Each text-* sets size,
+   * line-height and letter-spacing; headings also set their weight.
+   * Body styles come in Medium and SemiBold: add font-medium / font-semibold.
+   * CAPS variants: add uppercase.
+   */
+  --font-sans: 'Pretendard', ui-sans-serif, system-ui, sans-serif;
+
+  --font-weight-*: initial;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --text-*: initial;
+
+  --text-h3: 2rem; /* 32/36 */
+  --text-h3--line-height: 2.25rem;
+  --text-h3--letter-spacing: -0.03em;
+  --text-h3--font-weight: 600;
+
+  --text-h4: 1.5rem; /* 24/28 */
+  --text-h4--line-height: 1.75rem;
+  --text-h4--letter-spacing: -0.04em;
+  --text-h4--font-weight: 600;
+
+  --text-p1: 1rem; /* 16/20 */
+  --text-p1--line-height: 1.25rem;
+  --text-p1--letter-spacing: -0.03em;
+
+  --text-p2: 0.875rem; /* 14/18 */
+  --text-p2--line-height: 1.125rem;
+  --text-p2--letter-spacing: -0.03em;
+
+  --text-p3: 0.75rem; /* 12/16 */
+  --text-p3--line-height: 1rem;
+  --text-p3--letter-spacing: -0.03em;
 }
