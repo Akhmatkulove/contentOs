@@ -34,7 +34,8 @@ src/shared    без бизнес-логики: ui, api, lib, config
 - shadcn-компоненты добавляются через `npx shadcn-vue@latest add <name>` и попадают в `src/shared/ui`. После добавления проверь `src/app/styles/tailwind.css`: CLI может дописать туда CSS-переменные (`--primary` и т. п.), их нужно удалить.
 - Цвета берутся только из примитивов Figma (`@theme static` в `tailwind.css`, стандартная палитра Tailwind сброшена): `bg-violet-400`, `text-neutral-700`. Семантические токены не вводи без запроса.
 - UI-kit делается по одному компоненту в порядке, который задаёт пользователь. Ничего не добавляй «на будущее».
-- Классы объединяй через `cn()` из `@/shared/lib`.
+- В компонентах `shared/ui` классы объединяй через `cn()` из `@/shared/lib`: он разрешает конфликты Tailwind, когда классы приходят снаружи (`cn('…', props.class)`). На страницах и в остальном коде, где все классы свои, хватает обычного `:class` со взаимоисключающими ветками.
+- Новый кастомный токен Tailwind (`--text-*` и т. п.) добавляй и в `extendTailwindMerge` в `shared/lib/utils.ts`, иначе `cn()` может его выкинуть.
 - Компоненты UI-kit называются `v-*.vue` (`shared/ui/icon/v-icon.vue`) и экспортируются как `V*` (`VIcon`). shadcn создаёт `Button.vue` и т. п.: сразу переименуй в `v-button.vue`. Правило `vue/multi-word-component-names` не отключай.
 - Иконки: только `<VIcon name="…" />` из `@/shared/ui/icon`. Имена — как у главного компонента Hugeicons в Figma (не как у инстанса). Новая иконка добавляется `<symbol>` в `sprite.svg` и именем в `icon-names.ts`. Компоненты shadcn импортируют lucide: заменяй на `VIcon`.
 - Типографика: `text-h3`, `text-h4`, `text-p1`, `text-p2`, `text-p3` + `font-medium`/`font-semibold` (других весов нет), CAPS = `uppercase`.
