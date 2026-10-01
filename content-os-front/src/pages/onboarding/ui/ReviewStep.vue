@@ -1,26 +1,30 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useObjectUrl } from '@vueuse/core'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
-import { draft } from '../model/draft'
-import { roleOptions } from '../model/roles'
+import { submitApplication } from '../api/onboarding'
+import { useReopen } from '../model/reopen'
+import { roleTitle as titleOf } from '../model/roles'
 import ApplicationState from './ApplicationState.vue'
 import OnboardingStepper from './OnboardingStepper.vue'
 
 const router = useRouter()
+const session = useSessionStore()
+const { reopen, reopening } = useReopen()
 
-const photoUrl = useObjectUrl(() => draft.photo)
-const roleTitle = computed(() => roleOptions.find((option) => option.value === draft.role)?.title)
-
-// Comes from the signed-in user once the backend has auth.
-const email: string | null = null
+const roleTitle = computed(() => titleOf(session.me?.role))
 
 const status = ref<'draft' | 'sending' | 'sent' | 'error'>('draft')
 
-function submit() {
-  // The request itself lands together with the backend endpoint.
+async function submit() {
   status.value = 'sending'
+  try {
+    session.set(await submitApplication())
+    status.value = 'sent'
+  } catch {
+    status.value = 'error'
+  }
 }
 </script>
 
@@ -45,12 +49,12 @@ function submit() {
       icon="checkmark-circle-01"
       tone="mint"
       title="Your application is in!"
-      description="Thanks for introducing yourself. We’ll email you when your application has been reviewed."
+      description="Thanks for introducing yourself. Check back on the status page to see when it’s been reviewed."
     >
       <button type="button" @click="router.push({ name: 'onboarding-status' })">
         Track application
       </button>
-      <button type="button">Edit my details</button>
+      <button type="button" :disabled="reopening" @click="reopen">Edit my details</button>
     </ApplicationState>
 
     <ApplicationState
@@ -79,8 +83,8 @@ function submit() {
       >
         <div class="flex items-center gap-3 lg:gap-4">
           <img
-            v-if="photoUrl"
-            :src="photoUrl"
+            v-if="session.me?.photo_url"
+            :src="session.me.photo_url"
             alt=""
             class="size-12 shrink-0 rounded-full object-cover lg:size-16"
           />
@@ -93,7 +97,7 @@ function submit() {
 
           <div class="flex min-w-0 flex-col gap-1 lg:gap-1.5">
             <p class="truncate text-[18px]/[1.273] font-semibold text-violet-500 lg:text-[22px]">
-              {{ draft.name }}
+              {{ session.me?.name }}
             </p>
             <p class="text-[13px]/[1.4286] font-medium text-neutral-600 lg:text-[14px]">
               {{ roleTitle }}
@@ -102,9 +106,9 @@ function submit() {
         </div>
 
         <dl class="flex flex-col gap-3 text-p2 leading-5 font-medium tracking-normal lg:gap-5">
-          <div v-if="email" class="flex items-center justify-between gap-4">
+          <div class="flex items-center justify-between gap-4">
             <dt class="text-neutral-600">Email</dt>
-            <dd class="truncate text-violet-500">{{ email }}</dd>
+            <dd class="truncate text-violet-500">{{ session.me?.email }}</dd>
           </div>
           <div class="flex items-center justify-between gap-4">
             <dt class="text-neutral-600">Role</dt>
@@ -117,7 +121,7 @@ function submit() {
         >
           <VIcon name="file-view" class="size-[18px] lg:size-5" />
           <p class="text-[13px]/[1.4286] font-medium lg:text-[14px]">
-            We’ll review your application and email you when there’s an update.
+            We’ll review your application. You can follow its status here in Creator Lab.
           </p>
         </div>
       </div>

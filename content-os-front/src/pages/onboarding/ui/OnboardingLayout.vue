@@ -1,6 +1,16 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/entities/session'
 import logoMarkUrl from './assets/logo-mark.svg'
 import logoTextUrl from './assets/logo-text.svg'
+
+const router = useRouter()
+const session = useSessionStore()
+
+async function logout() {
+  await session.logout()
+  await router.push({ name: 'login' })
+}
 </script>
 
 <template>
@@ -21,7 +31,11 @@ import logoTextUrl from './assets/logo-text.svg'
         />
       </div>
 
-      <button type="button" class="text-p2 font-medium tracking-normal text-neutral-600">
+      <button
+        type="button"
+        class="text-p2 font-medium tracking-normal text-neutral-600"
+        @click="logout"
+      >
         Log out
       </button>
     </header>

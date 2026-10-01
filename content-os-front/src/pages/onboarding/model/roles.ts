@@ -1,5 +1,5 @@
+import type { Role } from '@/entities/session'
 import type { IconName } from '@/shared/ui/icon'
-import type { Role } from './draft'
 
 export const roleOptions: { value: Role; icon: IconName; title: string; description: string }[] = [
   {
@@ -9,7 +9,7 @@ export const roleOptions: { value: Role; icon: IconName; title: string; descript
     description: 'Create and upload content\nfor brands',
   },
   {
-    value: 'manager',
+    value: 'art_director',
     icon: 'user-group',
     title: 'Manager / Art Director',
     description: 'Plan, review and manage\ncontent',
@@ -21,3 +21,7 @@ export const roleOptions: { value: Role; icon: IconName; title: string; descript
     description: 'Work with creators\nand manage campaigns',
   },
 ]
+
+export function roleTitle(role: Role | null | undefined) {
+  return roleOptions.find((option) => option.value === role)?.title
+}

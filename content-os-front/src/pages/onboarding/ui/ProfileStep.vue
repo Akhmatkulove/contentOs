@@ -1,25 +1,64 @@
 <script setup lang="ts">
-import { useObjectUrl } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/entities/session'
+import { errorStatus } from '@/shared/api'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
-import { draft } from '../model/draft'
+import { saveAnswers, uploadPhoto } from '../api/onboarding'
 import OnboardingStepper from './OnboardingStepper.vue'
 
 const router = useRouter()
+const session = useSessionStore()
 
-const photoUrl = useObjectUrl(() => draft.photo)
+const name = ref(session.me?.name ?? '')
+const photoUrl = computed(() => session.me?.photo_url ?? null)
+const uploading = ref(false)
+const photoError = ref('')
+const saving = ref(false)
+const error = ref('')
 
-function onPhotoChange(event: Event) {
+// The photo is uploaded as soon as it is picked; the server crops and re-encodes it.
+async function onPhotoChange(event: Event) {
   const input = event.target as HTMLInputElement
-  draft.photo = input.files?.[0] ?? null
+  const photo = input.files?.[0]
+  input.value = ''
+  if (!photo) return
+  uploading.value = true
+  photoError.value = ''
+  try {
+    session.set(await uploadPhoto(photo))
+  } catch (e) {
+    const status = errorStatus(e)
+    photoError.value =
+      status === 413
+        ? 'This photo is larger than 5MB.'
+        : status === 422
+          ? 'Use a JPG or PNG image.'
+          : 'Couldn’t upload the photo. Please try again.'
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function submit() {
+  saving.value = true
+  error.value = ''
+  try {
+    session.set(await saveAnswers({ name: name.value.trim() }))
+    await router.push({ name: 'onboarding-review' })
+  } catch {
+    error.value = 'Couldn’t save your answers. Please try again.'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
 <template>
   <form
     class="mx-auto flex w-full max-w-[1040px] flex-1 flex-col items-center gap-6 lg:flex-none lg:gap-10"
-    @submit.prevent="router.push({ name: 'onboarding-review' })"
+    @submit.prevent="submit"
   >
     <OnboardingStepper :current="1" />
 
@@ -56,23 +95,32 @@ function onPhotoChange(event: Event) {
           <span
             class="text-p2 leading-5 font-medium tracking-normal text-violet-400 group-has-[:focus-visible]:underline"
           >
-            Upload a photo
+            {{ uploading ? 'Uploading…' : 'Upload a photo' }}
           </span>
           <input
             type="file"
+            name="photo"
             accept="image/jpeg,image/png"
             class="sr-only"
+            :disabled="uploading"
             @change="onPhotoChange"
           />
         </label>
 
-        <p class="text-p3 leading-[18px] font-medium tracking-normal text-neutral-600">
+        <p
+          v-if="photoError"
+          role="alert"
+          class="text-p3 leading-[18px] font-medium tracking-normal text-red-400"
+        >
+          {{ photoError }}
+        </p>
+        <p v-else class="text-p3 leading-[18px] font-medium tracking-normal text-neutral-600">
           JPG, PNG up to 5MB
         </p>
       </div>
 
       <VInput
-        v-model="draft.name"
+        v-model="name"
         label="Your name"
         name="name"
         autocomplete="name"
@@ -81,9 +129,11 @@ function onPhotoChange(event: Event) {
       />
     </div>
 
+    <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+
     <div class="mt-auto flex w-full gap-3 lg:mt-0 lg:w-[720px] lg:justify-between">
       <button type="button" @click="router.push({ name: 'onboarding-role' })">Back</button>
-      <button type="submit" :disabled="!draft.name.trim()">Continue</button>
+      <button type="submit" :disabled="!name.trim() || saving || uploading">Continue</button>
     </div>
   </form>
 </template>

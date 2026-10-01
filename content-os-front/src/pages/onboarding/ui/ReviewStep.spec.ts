@@ -1,68 +1,111 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { draft } from '../model/draft'
+import { useSessionStore, type Me } from '@/entities/session'
+import { http } from '@/shared/api'
 import ReviewStep from './ReviewStep.vue'
 
+const filled = {
+  email: 'amina@example.com',
+  role: 'art_director',
+  name: 'Amina Karimova',
+  photo_url: null,
+  status: 'onboarding',
+  onboarding_step: 'review',
+} as Me
+
 function mountStep() {
+  const stub = { template: '<div />' }
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/profile', name: 'onboarding-profile', component: { template: '<div />' } },
+      { path: '/profile', name: 'onboarding-profile', component: stub },
       { path: '/review', name: 'onboarding-review', component: ReviewStep },
+      { path: '/status', name: 'onboarding-status', component: stub },
     ],
   })
   return { router, wrapper: mount(ReviewStep, { global: { plugins: [router] } }) }
 }
 
+function button(wrapper: ReturnType<typeof mountStep>['wrapper'], text: string) {
+  return wrapper.findAll('button').find((b) => b.text() === text)!
+}
+
 describe('ReviewStep', () => {
   beforeEach(() => {
-    draft.role = 'manager'
-    draft.name = 'Amina Karimova'
-    draft.photo = null
+    setActivePinia(createPinia())
+    useSessionStore().set(filled)
   })
 
-  it('shows the answers from the previous steps', () => {
+  it('shows the saved answers', () => {
     const { wrapper } = mountStep()
     expect(wrapper.text()).toContain('Amina Karimova')
-    expect(wrapper.get('dd').text()).toBe('Manager / Art Director')
+    expect(wrapper.findAll('dd').map((dd) => dd.text())).toEqual([
+      'amina@example.com',
+      'Manager / Art Director',
+    ])
   })
 
   it('returns to the profile step on Back', async () => {
     const { router, wrapper } = mountStep()
-    await wrapper.get('button[type="button"]').trigger('click')
+    await button(wrapper, 'Back').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('onboarding-profile')
   })
 
-  it('shows the sending state after submit', async () => {
+  it('shows the sending state while the application is on its way', async () => {
+    vi.spyOn(http, 'post').mockReturnValue(new Promise(() => {}))
     const { wrapper } = mountStep()
+
     await wrapper.get('form').trigger('submit')
+
     expect(wrapper.get('h1').text()).toBe('Sending your application…')
     expect(wrapper.find('dl').exists()).toBe(false)
   })
 
-  it('shows the sent state with every step done', async () => {
+  it('sends the application and shows the sent state with every step done', async () => {
+    const sent = { ...filled, status: 'pending_review', onboarding_step: null } as Me
+    const post = vi.spyOn(http, 'post').mockResolvedValue({ data: sent })
     const { wrapper } = mountStep()
-    // No backend yet, so nothing in the UI moves the status past sending.
-    ;(wrapper.vm as unknown as { status: string }).status = 'sent'
-    await wrapper.vm.$nextTick()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/me/onboarding/submit')
+    expect(useSessionStore().me?.status).toBe('pending_review')
     expect(wrapper.get('h1').text()).toBe('Your application is in!')
     expect(wrapper.find('[aria-current="step"]').exists()).toBe(false)
     expect(wrapper.findAll('li svg')).toHaveLength(3)
   })
 
+  it('takes the sent application back for editing', async () => {
+    const sent = { ...filled, status: 'pending_review', onboarding_step: null } as Me
+    const post = vi
+      .spyOn(http, 'post')
+      .mockResolvedValueOnce({ data: sent })
+      .mockResolvedValueOnce({ data: filled })
+    const { router, wrapper } = mountStep()
+    await router.push('/status')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    await button(wrapper, 'Edit my details').trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenLastCalledWith('/me/onboarding/reopen')
+    expect(router.currentRoute.value.name).toBe('onboarding-review')
+  })
+
   it('shows the error state and returns to the form', async () => {
+    vi.spyOn(http, 'post').mockRejectedValue(new Error('offline'))
     const { wrapper } = mountStep()
-    // No backend yet, so nothing in the UI moves the status to error.
-    ;(wrapper.vm as unknown as { status: string }).status = 'error'
-    await wrapper.vm.$nextTick()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
     expect(wrapper.get('h1').text()).toBe('Your application wasn’t sent')
     expect(wrapper.get('[aria-current="step"]').text()).toContain('Done')
-
-    await wrapper
-      .findAll('button')
-      .find((b) => b.text() === 'Back to application')!
-      .trigger('click')
+    await button(wrapper, 'Back to application').trigger('click')
     expect(wrapper.get('h1').text()).toBe('Ready to join Creator Lab?')
   })
 })

@@ -1,10 +1,43 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { googleSignInUrl, homeRoute, login, useSessionStore } from '@/entities/session'
+import { errorStatus } from '@/shared/api'
 import { VInput, VPasswordInput } from '@/shared/ui/input'
 import googleUrl from './assets/google.svg'
 
+const route = useRoute()
+const router = useRouter()
+const session = useSessionStore()
+
 const email = ref('')
 const password = ref('')
+const submitting = ref(false)
+// The backend sends people back here with ?error=google when Google sign-in fails.
+const error = ref(
+  route.query.error === 'google' ? 'Couldn’t sign in with Google. Please try again.' : '',
+)
+
+async function submit() {
+  error.value = ''
+  submitting.value = true
+  try {
+    const me = await login({ email: email.value, password: password.value })
+    session.set(me)
+    await router.push(homeRoute(me))
+  } catch (e) {
+    error.value =
+      errorStatus(e) === 401
+        ? 'Invalid email or password.'
+        : 'Something went wrong. Please try again.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+function continueWithGoogle() {
+  window.location.assign(googleSignInUrl)
+}
 </script>
 
 <template>
@@ -21,7 +54,7 @@ const password = ref('')
       </p>
     </div>
 
-    <form class="flex flex-col gap-5 lg:gap-7" @submit.prevent>
+    <form class="flex flex-col gap-5 lg:gap-7" @submit.prevent="submit">
       <div class="flex flex-col gap-4 lg:gap-5">
         <VInput
           v-model="email"
@@ -45,7 +78,9 @@ const password = ref('')
         </div>
       </div>
 
-      <button type="submit">Log in</button>
+      <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+
+      <button type="submit" :disabled="submitting || !email || !password">Log in</button>
     </form>
 
     <div class="flex items-center gap-4">
@@ -54,7 +89,7 @@ const password = ref('')
       <div class="h-px flex-1 bg-neutral-300" />
     </div>
 
-    <button type="button">
+    <button type="button" @click="continueWithGoogle">
       <img :src="googleUrl" alt="" width="17.5794" height="17.9382" />
       Continue with Google
     </button>

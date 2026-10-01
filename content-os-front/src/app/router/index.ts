@@ -10,14 +10,16 @@ import {
 } from '@/pages/onboarding'
 import { SignupPage } from '@/pages/signup'
 import AuthLayout from '../layouts/AuthLayout.vue'
+import { installAccessGuard } from './access'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', name: 'home', component: HomePage },
+    { path: '/', name: 'home', component: HomePage, meta: { access: 'approved' } },
     {
       path: '/',
       component: AuthLayout,
+      meta: { access: 'guest' },
       children: [
         { path: 'login', name: 'login', component: LoginPage },
         { path: 'signup', name: 'signup', component: SignupPage },
@@ -28,10 +30,30 @@ export const router = createRouter({
       component: OnboardingLayout,
       children: [
         { path: '', redirect: { name: 'onboarding-role' } },
-        { path: 'role', name: 'onboarding-role', component: OnboardingRoleStep },
-        { path: 'profile', name: 'onboarding-profile', component: OnboardingProfileStep },
-        { path: 'review', name: 'onboarding-review', component: OnboardingReviewStep },
-        { path: 'status', name: 'onboarding-status', component: OnboardingStatusPage },
+        {
+          path: 'role',
+          name: 'onboarding-role',
+          component: OnboardingRoleStep,
+          meta: { access: 'onboarding', step: 'role' },
+        },
+        {
+          path: 'profile',
+          name: 'onboarding-profile',
+          component: OnboardingProfileStep,
+          meta: { access: 'onboarding', step: 'profile' },
+        },
+        {
+          path: 'review',
+          name: 'onboarding-review',
+          component: OnboardingReviewStep,
+          meta: { access: 'onboarding', step: 'review' },
+        },
+        {
+          path: 'status',
+          name: 'onboarding-status',
+          component: OnboardingStatusPage,
+          meta: { access: 'review' },
+        },
       ],
     },
     {
@@ -41,3 +63,5 @@ export const router = createRouter({
     },
   ],
 })
+
+installAccessGuard(router)

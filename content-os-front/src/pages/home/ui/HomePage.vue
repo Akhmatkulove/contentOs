@@ -1,25 +1,21 @@
 <script setup lang="ts">
-import { useCounterStore } from '../model/counter'
+import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/entities/session'
 
-const counter = useCounterStore()
+const router = useRouter()
+const session = useSessionStore()
+
+async function logout() {
+  await session.logout()
+  await router.push({ name: 'login' })
+}
 </script>
 
+<!-- Placeholder until the role-specific dashboards are designed. -->
 <template>
-  <main class="flex min-h-screen flex-col items-center justify-center gap-4">
-    <h1 class="text-h3">Content OS</h1>
-    <button class="btn" @click="counter.increment">count: {{ counter.count }}</button>
+  <main class="flex min-h-dvh flex-col items-center justify-center gap-4">
+    <h1 class="text-h3 text-violet-500">Hello, {{ session.me?.name }}</h1>
+    <p class="text-p1 font-medium text-neutral-600">Role: {{ session.me?.role }}</p>
+    <button type="button" @click="logout">Log out</button>
   </main>
 </template>
-
-<style scoped lang="scss">
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  background: #111;
-  color: #fff;
-
-  &:hover {
-    opacity: 0.85;
-  }
-}
-</style>

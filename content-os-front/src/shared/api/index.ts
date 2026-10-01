@@ -1,1 +1,1 @@
-export { http } from './http'
+export { errorStatus, http } from './http'

@@ -1,15 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, watch } from 'vue'
+import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
 import type { IconName } from '@/shared/ui/icon'
+import { useReopen } from '../model/reopen'
 import ApplicationState from './ApplicationState.vue'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-const router = useRouter()
+const POLL_INTERVAL_MS = 30_000
 
-// Comes from the backend once applications are stored there.
-const status = ref<'pending' | 'approved'>('pending')
+const router = useRouter()
+const session = useSessionStore()
+const { reopen, reopening, failed: reopenFailed } = useReopen()
+
+// The router only lets pending and rejected applications in here, so "approved"
+// means the decision came while this page was open: that is when the welcome shows.
+const status = computed(() => session.me?.status)
+
+// No push channel: ask for the status every 30s and whenever the tab comes back.
+async function refresh() {
+  try {
+    if ((await session.load()) === null) await router.push({ name: 'login' })
+  } catch {
+    // Offline or the server hiccuped: the next tick will try again.
+  }
+}
+
+const { pause } = useIntervalFn(refresh, POLL_INTERVAL_MS)
+const visibility = useDocumentVisibility()
+watch(visibility, (value) => {
+  if (value === 'visible') refresh()
+})
+watch(status, (value) => {
+  if (value === 'approved') pause()
+})
 
 const reviewSteps: { label: string; icon: IconName; done: boolean }[] = [
   { label: 'Application received', icon: 'tick-01', done: true },
@@ -30,6 +56,19 @@ const reviewSteps: { label: string; icon: IconName; done: boolean }[] = [
       hide-support
     >
       <button type="button" @click="router.push({ name: 'home' })">Go to dashboard</button>
+    </ApplicationState>
+
+    <ApplicationState
+      v-else-if="status === 'rejected'"
+      icon="multiplication-sign"
+      tone="red"
+      title="Your application wasn’t approved"
+      description="You can update your details and send the application again."
+    >
+      <p v-if="reopenFailed" role="alert" class="text-p3 font-medium text-red-400">
+        Something went wrong. Please try again.
+      </p>
+      <button type="button" :disabled="reopening" @click="reopen">Update and resend</button>
     </ApplicationState>
 
     <ApplicationState
@@ -59,8 +98,10 @@ const reviewSteps: { label: string; icon: IconName; done: boolean }[] = [
         </ul>
       </template>
 
-      <button type="button">View my application</button>
-      <button type="button">Edit my details</button>
+      <p v-if="reopenFailed" role="alert" class="text-p3 font-medium text-red-400">
+        Something went wrong. Please try again.
+      </p>
+      <button type="button" :disabled="reopening" @click="reopen">Edit my details</button>
     </ApplicationState>
   </div>
 </template>

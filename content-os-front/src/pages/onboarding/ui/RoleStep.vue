@@ -1,17 +1,38 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore, type Role } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
-import { draft } from '../model/draft'
+import { saveAnswers } from '../api/onboarding'
 import { roleOptions } from '../model/roles'
 import OnboardingStepper from './OnboardingStepper.vue'
 
 const router = useRouter()
+const session = useSessionStore()
+
+const role = ref<Role | null>(session.me?.role ?? null)
+const saving = ref(false)
+const error = ref('')
+
+async function submit() {
+  if (!role.value) return
+  saving.value = true
+  error.value = ''
+  try {
+    session.set(await saveAnswers({ role: role.value }))
+    await router.push({ name: 'onboarding-profile' })
+  } catch {
+    error.value = 'Couldn’t save your answer. Please try again.'
+  } finally {
+    saving.value = false
+  }
+}
 </script>
 
 <template>
   <form
     class="mx-auto flex w-full max-w-[1040px] flex-1 flex-col items-center gap-6 lg:flex-none lg:gap-10"
-    @submit.prevent="router.push({ name: 'onboarding-profile' })"
+    @submit.prevent="submit"
   >
     <OnboardingStepper :current="0" />
 
@@ -32,18 +53,10 @@ const router = useRouter()
         :key="option.value"
         :class="[
           'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-violet-300 lg:h-[280px] lg:flex-1 lg:gap-5 lg:rounded-[20px] lg:p-7',
-          draft.role === option.value
-            ? 'border-violet-400 bg-violet-100'
-            : 'border-neutral-300 bg-white',
+          role === option.value ? 'border-violet-400 bg-violet-100' : 'border-neutral-300 bg-white',
         ]"
       >
-        <input
-          v-model="draft.role"
-          type="radio"
-          name="role"
-          :value="option.value"
-          class="sr-only"
-        />
+        <input v-model="role" type="radio" name="role" :value="option.value" class="sr-only" />
 
         <VIcon :name="option.icon" class="size-6 text-violet-400 lg:size-8" />
 
@@ -61,16 +74,18 @@ const router = useRouter()
         <span
           :class="[
             'flex size-5 items-center justify-center rounded-full border bg-white',
-            draft.role === option.value ? 'border-violet-400' : 'border-neutral-600',
+            role === option.value ? 'border-violet-400' : 'border-neutral-600',
           ]"
         >
-          <span v-if="draft.role === option.value" class="size-2.5 rounded-full bg-violet-400" />
+          <span v-if="role === option.value" class="size-2.5 rounded-full bg-violet-400" />
         </span>
       </label>
     </fieldset>
 
+    <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+
     <div class="mt-auto flex w-full justify-end lg:mt-0">
-      <button type="submit" :disabled="!draft.role">Continue</button>
+      <button type="submit" :disabled="!role || saving">Continue</button>
     </div>
   </form>
 </template>
