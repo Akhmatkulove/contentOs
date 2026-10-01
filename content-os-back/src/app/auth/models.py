@@ -53,6 +53,8 @@ class User(Base):
         _string_enum(Status, "status"), default=Status.ONBOARDING
     )
     name: Mapped[str | None] = mapped_column(String(100))
+    # Ключ аватара в хранилище (avatars/<uuid>.webp), URL строит core.storage.public_url.
+    photo_key: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

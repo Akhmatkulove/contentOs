@@ -19,6 +19,41 @@ services:
       timeout: 5s
       retries: 15
 
+  # S3-совместимое хранилище файлов. Консоль: http://localhost:9001 (contentos / contentos).
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-contentos}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-contentos}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # Создаёт бакет и открывает анонимное чтение только для avatars/.
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" &&
+        mc mb --ignore-existing local/$$S3_BUCKET &&
+        mc anonymous set download local/$$S3_BUCKET/avatars
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-contentos}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-contentos}
+      S3_BUCKET: ${S3_BUCKET:-contentos}
+    depends_on:
+      minio:
+        condition: service_healthy
+
   migrate:
     build: .
     command: ["alembic", "upgrade", "head"]
@@ -33,10 +68,17 @@ services:
     environment:
       DATABASE_URL: *database-url
       ENVIRONMENT: ${ENVIRONMENT:-local}
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-contentos}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-contentos}
+      S3_BUCKET: ${S3_BUCKET:-contentos}
+      S3_PUBLIC_URL: http://localhost:9000/${S3_BUCKET:-contentos}
     ports:
       - "8000:8000"
     depends_on:
       migrate:
+        condition: service_completed_successfully
+      minio-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
@@ -54,3 +96,4 @@ services:
 
 volumes:
   pgdata:
+  miniodata:

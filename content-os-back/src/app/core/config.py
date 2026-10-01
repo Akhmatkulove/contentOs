@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
 
+    # S3-совместимое хранилище файлов: локально MinIO из compose.yaml.
+    # Без бакета загрузка файлов отвечает 404.
+    s3_endpoint_url: str | None = None  # None — сам AWS S3
+    s3_region: str = "us-east-1"
+    s3_access_key: SecretStr | None = None
+    s3_secret_key: SecretStr | None = None
+    s3_bucket: str | None = None
+    # Откуда браузер читает публичные файлы (аватары): адрес бакета или CDN перед ним.
+    s3_public_url: str | None = None
+
     @property
     def docs_enabled(self) -> bool:
         return self.environment != "production"

@@ -44,7 +44,8 @@ def migrated_database_url(database_url: str, alembic_config: Config) -> str:
 
 @pytest.fixture(scope="session")
 def settings(migrated_database_url: str) -> Settings:
-    return Settings(environment="test", database_url=migrated_database_url)
+    # Без .env: локальные токены Telegram, Google и хранилища в тесты попадать не должны.
+    return Settings(_env_file=None, environment="test", database_url=migrated_database_url)
 
 
 @pytest.fixture(scope="session")

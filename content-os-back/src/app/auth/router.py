@@ -45,7 +45,7 @@ async def signup(
     token = await create_session(db, user, settings)
     await db.commit()
     set_session_cookie(response, token, settings)
-    return MeResponse.model_validate(user)
+    return MeResponse.of(user, settings)
 
 
 @router.post("/auth/login")
@@ -61,7 +61,7 @@ async def login(
     token = await create_session(db, user, settings)
     await db.commit()
     set_session_cookie(response, token, settings)
-    return MeResponse.model_validate(user)
+    return MeResponse.of(user, settings)
 
 
 @router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -78,8 +78,8 @@ async def logout(
 
 
 @router.get("/me")
-async def me(user: CurrentUser) -> MeResponse:
-    return MeResponse.model_validate(user)
+async def me(user: CurrentUser, settings: SettingsDep) -> MeResponse:
+    return MeResponse.of(user, settings)
 
 
 @router.get("/auth/google")

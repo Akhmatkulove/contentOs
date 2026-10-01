@@ -1,9 +1,11 @@
 import uuid
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import AfterValidator, BaseModel, EmailStr, Field, computed_field
 
-from app.auth.models import Role, Status
+from app.auth.models import Role, Status, User
+from app.core.config import Settings
+from app.core.storage import public_url
 
 Email = Annotated[EmailStr, AfterValidator(str.lower)]
 
@@ -22,13 +24,23 @@ OnboardingStep = Literal["role", "profile", "review"]
 
 
 class MeResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: uuid.UUID
     email: str
     role: Role | None
     status: Status
     name: str | None
+    photo_url: str | None
+
+    @classmethod
+    def of(cls, user: User, settings: Settings) -> "MeResponse":
+        return cls(
+            id=user.id,
+            email=user.email,
+            role=user.role,
+            status=user.status,
+            name=user.name,
+            photo_url=public_url(settings, user.photo_key),
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -5,7 +5,7 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 ## Команды
 
 - `cp .env.example .env` — один раз
-- `docker compose up -d db`: Postgres на `localhost:5433` (5432 часто занят локальным Postgres)
+- `docker compose up -d db minio minio-init`: Postgres на `localhost:5433` (5432 часто занят локальным Postgres), MinIO на `:9000` (консоль `:9001`, contentos / contentos)
 - `uv run alembic upgrade head` · `uv run uvicorn app.main:create_app --factory --reload`: api на `:8000`, фронт проксирует туда `/api`
 - `docker compose up --build`: весь стек в контейнерах (db → migrate → api); `docker compose watch` пересобирает при изменениях
 - `uv run pytest` · `uv run ruff check` · `uv run ruff format` · `uv run mypy`
@@ -15,9 +15,10 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 
 ```
 src/app/main.py        create_app(): фабрика приложения, все роутеры под /api
-src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf
+src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf, storage (S3)
 src/app/auth/          пользователи, сессии, signup/login/logout/me, зависимости доступа
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
+src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic

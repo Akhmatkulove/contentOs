@@ -34,6 +34,7 @@ async def test_app_connects_to_database_on_its_own(settings: Settings) -> None:
 
 async def test_health_reports_503_when_database_is_unreachable() -> None:
     settings = Settings(
+        _env_file=None,
         environment="test",
         database_url="postgresql+asyncpg://nobody:nothing@127.0.0.1:1/none",
     )
