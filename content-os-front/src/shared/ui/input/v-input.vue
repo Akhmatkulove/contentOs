@@ -27,7 +27,7 @@ const errorId = computed(() => `${id.value}-error`)
 
 <template>
   <div :class="cn('flex w-full flex-col gap-2', className)">
-    <label v-if="label" :for="id" class="text-p3 font-medium text-neutral-600">
+    <label v-if="label" :for="id" class="text-p2 font-medium text-neutral-600">
       {{ label }}
     </label>
 

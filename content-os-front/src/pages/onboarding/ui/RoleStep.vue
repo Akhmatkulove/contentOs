@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { VIcon } from '@/shared/ui/icon'
 import type { IconName } from '@/shared/ui/icon'
+import { draft, type Role } from '../model/draft'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-type Role = 'creator' | 'manager' | 'brand'
+const router = useRouter()
 
 const roleOptions: { value: Role; icon: IconName; title: string; description: string }[] = [
   {
@@ -26,14 +27,12 @@ const roleOptions: { value: Role; icon: IconName; title: string; description: st
     description: 'Work with creators\nand manage campaigns',
   },
 ]
-
-const role = ref<Role | null>(null)
 </script>
 
 <template>
   <form
     class="mx-auto flex w-full max-w-[1040px] flex-1 flex-col items-center gap-6 lg:flex-none lg:gap-10"
-    @submit.prevent
+    @submit.prevent="router.push({ name: 'onboarding-profile' })"
   >
     <OnboardingStepper :current="0" />
 
@@ -54,10 +53,18 @@ const role = ref<Role | null>(null)
         :key="option.value"
         :class="[
           'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-violet-300 lg:h-[280px] lg:flex-1 lg:gap-5 lg:rounded-[20px] lg:p-7',
-          role === option.value ? 'border-violet-400 bg-violet-100' : 'border-neutral-300 bg-white',
+          draft.role === option.value
+            ? 'border-violet-400 bg-violet-100'
+            : 'border-neutral-300 bg-white',
         ]"
       >
-        <input v-model="role" type="radio" name="role" :value="option.value" class="sr-only" />
+        <input
+          v-model="draft.role"
+          type="radio"
+          name="role"
+          :value="option.value"
+          class="sr-only"
+        />
 
         <VIcon :name="option.icon" class="size-6 text-violet-400 lg:size-8" />
 
@@ -75,23 +82,16 @@ const role = ref<Role | null>(null)
         <span
           :class="[
             'flex size-5 items-center justify-center rounded-full border bg-white',
-            role === option.value ? 'border-violet-400' : 'border-neutral-600',
+            draft.role === option.value ? 'border-violet-400' : 'border-neutral-600',
           ]"
         >
-          <span v-if="role === option.value" class="size-2.5 rounded-full bg-violet-400" />
+          <span v-if="draft.role === option.value" class="size-2.5 rounded-full bg-violet-400" />
         </span>
       </label>
     </fieldset>
 
     <div class="mt-auto flex w-full justify-end lg:mt-0">
-      <button
-        type="submit"
-        :disabled="!role"
-        class="flex h-10 w-full items-center justify-center gap-2 rounded-3xl bg-violet-400 px-5 text-p2 font-semibold text-white disabled:opacity-50 lg:w-[208px]"
-      >
-        Continue
-        <VIcon name="arrow-right-02-sharp" :size="16" />
-      </button>
+      <button type="submit" :disabled="!draft.role">Continue</button>
     </div>
   </form>
 </template>
