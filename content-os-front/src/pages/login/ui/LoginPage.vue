@@ -26,10 +26,13 @@ async function submit() {
     session.set(me)
     await router.push(homeRoute(me))
   } catch (e) {
+    const status = errorStatus(e)
     error.value =
-      errorStatus(e) === 401
+      status === 401
         ? 'Invalid email or password.'
-        : 'Something went wrong. Please try again.'
+        : status === 429
+          ? 'Too many attempts. Please wait a few minutes and try again.'
+          : 'Something went wrong. Please try again.'
   } finally {
     submitting.value = false
   }

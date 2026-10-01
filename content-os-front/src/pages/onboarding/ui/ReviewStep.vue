@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
+import { errorStatus } from '@/shared/api'
 import { VIcon } from '@/shared/ui/icon'
 import { submitApplication } from '../api/onboarding'
 import { useReopen } from '../model/reopen'
@@ -16,13 +17,16 @@ const { reopen, reopening } = useReopen()
 const roleTitle = computed(() => titleOf(session.me?.role))
 
 const status = ref<'draft' | 'sending' | 'sent' | 'error'>('draft')
+// The backend limits resends so the review chat can't be flooded.
+const tooMany = ref(false)
 
 async function submit() {
   status.value = 'sending'
   try {
     session.set(await submitApplication())
     status.value = 'sent'
-  } catch {
+  } catch (e) {
+    tooMany.value = errorStatus(e) === 429
     status.value = 'error'
   }
 }
@@ -62,9 +66,13 @@ async function submit() {
       icon="multiplication-sign"
       tone="red"
       title="Your application wasn’t sent"
-      description="Something interrupted the submission. Your answers are saved — please try again."
+      :description="
+        tooMany
+          ? 'You’ve sent your application several times recently. Your answers are saved — please try again in an hour.'
+          : 'Something interrupted the submission. Your answers are saved — please try again.'
+      "
     >
-      <button type="button" @click="submit">Try again</button>
+      <button v-if="!tooMany" type="button" @click="submit">Try again</button>
       <button type="button" @click="status = 'draft'">Back to application</button>
     </ApplicationState>
 

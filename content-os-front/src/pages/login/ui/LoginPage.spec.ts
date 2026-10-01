@@ -73,6 +73,15 @@ describe('LoginPage', () => {
     expect(wrapper.get('[role="alert"]').text()).toBe('Something went wrong. Please try again.')
   })
 
+  it('asks to wait after too many attempts', async () => {
+    failWith(429)
+    const { wrapper } = await mountPage()
+
+    await fillAndSubmit(wrapper)
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('Too many attempts')
+  })
+
   it('explains a failed Google sign-in', async () => {
     const { wrapper } = await mountPage('?error=google')
 

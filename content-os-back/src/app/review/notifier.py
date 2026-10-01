@@ -12,6 +12,9 @@ from app.auth.models import User
 from app.core.config import Settings, SettingsDep
 
 logger = logging.getLogger(__name__)
+# httpx на уровне INFO пишет URL каждого запроса, а в URL Bot API лежит токен бота.
+# Фиксируем уровень, чтобы общий INFO-логгинг не вывел токен в логи.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 Decision = Literal["approve", "reject"]
 

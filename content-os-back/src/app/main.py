@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 
 from app.auth.router import router as auth_router
+from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings, get_settings
 from app.core.csrf import origin_check
 from app.core.db import create_engine, create_sessionmaker
@@ -35,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.storage = build_storage(settings)
     app.middleware("http")(origin_check(settings.allowed_origins))
+    app.add_middleware(BodyLimitMiddleware)
 
     api = APIRouter(prefix="/api")
     api.include_router(health_router)

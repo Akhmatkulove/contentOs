@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { AxiosError, type AxiosResponse } from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
@@ -94,6 +95,20 @@ describe('ReviewStep', () => {
 
     expect(post).toHaveBeenLastCalledWith('/me/onboarding/reopen')
     expect(router.currentRoute.value.name).toBe('onboarding-review')
+  })
+
+  it('asks to wait instead of retrying when resends are limited', async () => {
+    const response = { status: 429, data: {}, headers: {}, config: {} } as AxiosResponse
+    vi.spyOn(http, 'post').mockRejectedValue(
+      new AxiosError('too many', undefined, undefined, undefined, response),
+    )
+    const { wrapper } = mountStep()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('try again in an hour')
+    expect(button(wrapper, 'Try again')).toBeUndefined()
   })
 
   it('shows the error state and returns to the form', async () => {

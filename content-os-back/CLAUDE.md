@@ -15,7 +15,8 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 
 ```
 src/app/main.py        create_app(): фабрика приложения, все роутеры под /api
-src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf, storage (S3)
+src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf, storage (S3),
+                       body_limit (размер тела), rate_limit (счётчики попыток в Postgres)
 src/app/auth/          пользователи, сессии, signup/login/logout/me, зависимости доступа
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
@@ -33,6 +34,12 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 4. Сессия БД приходит через `SessionDep`. `commit()` делает тот, кто владеет операцией (обработчик или сервис), а не репозиторные функции.
 5. Доступ проверяется зависимостями из `app.auth.deps`: `CurrentUser` (есть сессия), `ApprovedUser` (аккаунт одобрен, весь продукт за ней), `require_role(...)`. Владение ресурсом проверяет сервис фичи. Роль и статус — разные поля, см. `docs/adr/0001-auth-and-roles.md`.
 6. Pydantic-схемы на входе и выходе API, ORM-модели наружу не отдаются. Обработчики возвращают схему, `response_model` выводится из аннотации.
+
+## Безопасность
+
+- Размер тела ограничивает `BodyLimitMiddleware` (1 МБ, `/api/me/photo` — 6 МБ): FastAPI читает тело до проверки сессии. Новому эндпоинту с файлами добавь лимит в `PATH_LIMITS`.
+- Дорогие или шумные действия (argon2, сообщения в Telegram) закрывай `rate_limit.check(...)` до самой работы.
+- `rate_limit.client_ip` берёт адрес из `request.client`. За reverse proxy запускай uvicorn с `--proxy-headers --forwarded-allow-ips=<адрес прокси>`, иначе у всех клиентов будет один IP и общий лимит.
 
 ## База данных и миграции
 

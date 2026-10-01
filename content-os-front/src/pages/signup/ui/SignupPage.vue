@@ -39,6 +39,8 @@ async function submit() {
     const status = errorStatus(e)
     if (status === 409) errors.email = 'This email is already registered. Log in instead.'
     else if (status === 422) errors.email = 'Enter a valid email address.'
+    else if (status === 429)
+      errors.form = 'Too many attempts. Please wait a few minutes and try again.'
     else errors.form = 'Something went wrong. Please try again.'
   } finally {
     submitting.value = false
