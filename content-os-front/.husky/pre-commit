@@ -1,2 +1,10 @@
-cd content-os-front
-npx lint-staged
+(cd content-os-front && npx lint-staged)
+
+backend_files=$(git diff --cached --name-only --diff-filter=ACMR -- 'content-os-back/*.py' | sed 's|^content-os-back/||')
+if [ -n "$backend_files" ]; then
+  cd content-os-back
+  uv run ruff check $backend_files && uv run ruff format --check $backend_files || {
+    echo "ruff: исправь через 'uv run ruff check --fix && uv run ruff format' в content-os-back"
+    exit 1
+  }
+fi

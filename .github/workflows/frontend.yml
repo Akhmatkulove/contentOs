@@ -1,0 +1,38 @@
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - content-os-front/**
+      - .github/workflows/frontend.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: content-os-front
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: content-os-front/package-lock.json
+      - run: npm ci
+      - run: npx eslint . --max-warnings=0
+      - run: npx prettier --check src/
+      - run: npm run lint:fsd
+      - run: npm run type-check
+      - run: npm run test:run
+      - run: npm run build
