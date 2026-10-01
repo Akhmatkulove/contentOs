@@ -1,7 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import App from '@/App.vue'
-import { router } from '@/router'
+import App from '../App.vue'
+import { router } from '.'
 
 describe('router', () => {
   it('renders the 404 view for unknown paths', async () => {

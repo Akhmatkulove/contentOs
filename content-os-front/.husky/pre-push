@@ -1,3 +1,4 @@
 cd content-os-front
 npm run type-check
+npm run lint:fsd
 npm run test:run
