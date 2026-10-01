@@ -8,6 +8,7 @@ from app.core.config import Settings, get_settings
 from app.core.csrf import origin_check
 from app.core.db import create_engine, create_sessionmaker
 from app.health.router import router as health_router
+from app.onboarding.router import router as onboarding_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -33,6 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api = APIRouter(prefix="/api")
     api.include_router(health_router)
     api.include_router(auth_router)
+    api.include_router(onboarding_router)
     app.include_router(api)
 
     return app

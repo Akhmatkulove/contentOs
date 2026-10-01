@@ -76,3 +76,13 @@ async def client(settings: Settings, db_session: AsyncSession) -> AsyncIterator[
     app.dependency_overrides[get_session] = lambda: db_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture
+async def user_client(client: AsyncClient) -> AsyncClient:
+    """Клиент только что зарегистрированного пользователя: статус onboarding, роли нет."""
+    response = await client.post(
+        "/api/auth/signup", json={"email": "user@example.com", "password": "user-password"}
+    )
+    assert response.status_code == 201
+    return client

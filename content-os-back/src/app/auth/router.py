@@ -22,12 +22,6 @@ from app.core.db import SessionDep
 router = APIRouter(tags=["auth"])
 
 
-def _me(user: User) -> MeResponse:
-    return MeResponse(
-        id=user.id, email=user.email, role=user.role, status=user.status, name=user.name
-    )
-
-
 @router.post("/auth/signup", status_code=status.HTTP_201_CREATED)
 async def signup(
     body: SignupRequest, db: SessionDep, settings: SettingsDep, response: Response
@@ -43,7 +37,7 @@ async def signup(
     token = await create_session(db, user, settings)
     await db.commit()
     set_session_cookie(response, token, settings)
-    return _me(user)
+    return MeResponse.model_validate(user)
 
 
 @router.post("/auth/login")
@@ -59,7 +53,7 @@ async def login(
     token = await create_session(db, user, settings)
     await db.commit()
     set_session_cookie(response, token, settings)
-    return _me(user)
+    return MeResponse.model_validate(user)
 
 
 @router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -77,4 +71,4 @@ async def logout(
 
 @router.get("/me")
 async def me(user: CurrentUser) -> MeResponse:
-    return _me(user)
+    return MeResponse.model_validate(user)
