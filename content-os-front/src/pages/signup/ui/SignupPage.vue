@@ -5,19 +5,20 @@ import googleUrl from './assets/google.svg'
 
 const email = ref('')
 const password = ref('')
+const passwordRepeat = ref('')
 </script>
 
 <template>
   <div class="hidden h-10 items-center justify-end gap-4 lg:flex">
-    <p class="text-p3 font-medium text-neutral-600">Don't have an account?</p>
-    <RouterLink :to="{ name: 'signup' }">Sign up</RouterLink>
+    <p class="text-p3 font-medium text-neutral-600">Already have an account?</p>
+    <RouterLink :to="{ name: 'login' }">Log in</RouterLink>
   </div>
 
   <div class="mx-auto flex w-full max-w-[440px] flex-1 flex-col gap-5 lg:justify-center lg:gap-7">
     <div class="flex flex-col gap-2 lg:gap-3">
-      <h1 class="text-h4 tracking-normal text-violet-500 lg:text-h3">Welcome back</h1>
+      <h1 class="text-h4 tracking-normal text-violet-500 lg:text-h3">Create your account</h1>
       <p class="text-p3 font-medium tracking-normal text-neutral-600 lg:text-p1">
-        Log in to your Creator Lab account.
+        Sign up to start using Creator Lab.
       </p>
     </div>
 
@@ -36,16 +37,20 @@ const password = ref('')
           v-model="password"
           label="Password"
           name="password"
-          autocomplete="current-password"
+          autocomplete="new-password"
           placeholder="Enter your password"
         />
 
-        <div class="flex h-5 items-center justify-end">
-          <a href="#" class="text-p3 font-medium text-violet-400">Forgot password?</a>
-        </div>
+        <VPasswordInput
+          v-model="passwordRepeat"
+          label="Repeat password"
+          name="password-repeat"
+          autocomplete="new-password"
+          placeholder="Enter your password again"
+        />
       </div>
 
-      <button type="submit">Log in</button>
+      <button type="submit">Sign up</button>
     </form>
 
     <div class="flex items-center gap-4">
@@ -60,10 +65,8 @@ const password = ref('')
     </button>
 
     <p class="flex h-5 items-center justify-center gap-1 text-p3">
-      <span class="font-medium text-neutral-600">Don't have an account?</span>
-      <RouterLink :to="{ name: 'signup' }" class="font-semibold text-violet-400"
-        >Sign up</RouterLink
-      >
+      <span class="font-medium text-neutral-600">Already have an account?</span>
+      <RouterLink :to="{ name: 'login' }" class="font-semibold text-violet-400">Log in</RouterLink>
     </p>
   </div>
 </template>
