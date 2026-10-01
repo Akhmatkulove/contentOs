@@ -1,6 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
+from fastapi import Depends, Request
 from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,12 +11,28 @@ class Settings(BaseSettings):
 
     environment: Literal["local", "test", "production"] = "local"
     database_url: PostgresDsn
+    # Origin'ы, с которых браузер может слать изменяющие запросы (защита от CSRF).
+    allowed_origins: list[str] = ["http://localhost:5173"]
+    session_ttl_days: int = 30
 
     @property
     def docs_enabled(self) -> bool:
         return self.environment != "production"
 
+    @property
+    def secure_cookies(self) -> bool:
+        return self.environment == "production"
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def get_app_settings(request: Request) -> Settings:
+    """Настройки, с которыми создано приложение (тесты передают свои)."""
+    settings: Settings = request.app.state.settings
+    return settings
+
+
+SettingsDep = Annotated[Settings, Depends(get_app_settings)]

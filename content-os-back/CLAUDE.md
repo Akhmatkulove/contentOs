@@ -15,7 +15,8 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 
 ```
 src/app/main.py        create_app(): фабрика приложения, все роутеры под /api
-src/app/core/          config (Settings), db (Base, engine, SessionDep)
+src/app/core/          config (Settings, SettingsDep), db (Base, engine, SessionDep), csrf
+src/app/auth/          пользователи, сессии, signup/login/logout/me, зависимости доступа
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
 tests/                 pytest, по файлу на фичу: tests/test_<feature>.py
@@ -27,7 +28,8 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 2. Фичи импортируют `app.core`, но не друг друга, пока нет реальной необходимости. Общее выносится в `core`, когда появляется второй потребитель.
 3. Настройки читаются только через `Settings` в `app.core.config`; `os.environ` в коде приложения не используй.
 4. Сессия БД приходит через `SessionDep`. `commit()` делает тот, кто владеет операцией (обработчик или сервис), а не репозиторные функции.
-5. Pydantic-схемы на входе и выходе API, ORM-модели наружу не отдаются. Обработчики возвращают схему, `response_model` выводится из аннотации.
+5. Доступ проверяется зависимостями из `app.auth.deps`: `CurrentUser` (есть сессия), `ApprovedUser` (аккаунт одобрен, весь продукт за ней), `require_role(...)`. Владение ресурсом проверяет сервис фичи. Роль и статус — разные поля, см. `docs/adr/0001-auth-and-roles.md`.
+6. Pydantic-схемы на входе и выходе API, ORM-модели наружу не отдаются. Обработчики возвращают схему, `response_model` выводится из аннотации.
 
 ## База данных и миграции
 
