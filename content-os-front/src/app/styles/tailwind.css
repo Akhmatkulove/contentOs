@@ -123,3 +123,11 @@
   --text-p3--line-height: 1rem;
   --text-p3--letter-spacing: -0.03em;
 }
+
+/* Tailwind v4 preflight leaves buttons with the default cursor; restore pointer. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
