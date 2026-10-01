@@ -1,7 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
-import { OnboardingLayout, OnboardingProfileStep, OnboardingRoleStep } from '@/pages/onboarding'
+import {
+  OnboardingLayout,
+  OnboardingProfileStep,
+  OnboardingReviewStep,
+  OnboardingRoleStep,
+} from '@/pages/onboarding'
 import { SignupPage } from '@/pages/signup'
 import AuthLayout from '../layouts/AuthLayout.vue'
 
@@ -24,6 +29,7 @@ export const router = createRouter({
         { path: '', redirect: { name: 'onboarding-role' } },
         { path: 'role', name: 'onboarding-role', component: OnboardingRoleStep },
         { path: 'profile', name: 'onboarding-profile', component: OnboardingProfileStep },
+        { path: 'review', name: 'onboarding-review', component: OnboardingReviewStep },
       ],
     },
     {

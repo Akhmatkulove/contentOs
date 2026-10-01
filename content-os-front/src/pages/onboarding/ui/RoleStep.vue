@@ -1,32 +1,11 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { VIcon } from '@/shared/ui/icon'
-import type { IconName } from '@/shared/ui/icon'
-import { draft, type Role } from '../model/draft'
+import { draft } from '../model/draft'
+import { roleOptions } from '../model/roles'
 import OnboardingStepper from './OnboardingStepper.vue'
 
 const router = useRouter()
-
-const roleOptions: { value: Role; icon: IconName; title: string; description: string }[] = [
-  {
-    value: 'creator',
-    icon: 'user',
-    title: 'Creator / Mobilograph',
-    description: 'Create and upload content\nfor brands',
-  },
-  {
-    value: 'manager',
-    icon: 'user-group',
-    title: 'Manager / Art Director',
-    description: 'Plan, review and manage\ncontent',
-  },
-  {
-    value: 'brand',
-    icon: 'folder-01',
-    title: 'Brand',
-    description: 'Work with creators\nand manage campaigns',
-  },
-]
 </script>
 
 <template>

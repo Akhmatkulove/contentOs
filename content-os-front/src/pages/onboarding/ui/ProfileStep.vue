@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { useObjectUrl } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
@@ -8,20 +8,7 @@ import OnboardingStepper from './OnboardingStepper.vue'
 
 const router = useRouter()
 
-const photoUrl = ref<string | null>(null)
-
-watch(
-  () => draft.photo,
-  (photo) => {
-    if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
-    photoUrl.value = photo ? URL.createObjectURL(photo) : null
-  },
-  { immediate: true },
-)
-
-onBeforeUnmount(() => {
-  if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
-})
+const photoUrl = useObjectUrl(() => draft.photo)
 
 function onPhotoChange(event: Event) {
   const input = event.target as HTMLInputElement
@@ -32,7 +19,7 @@ function onPhotoChange(event: Event) {
 <template>
   <form
     class="mx-auto flex w-full max-w-[1040px] flex-1 flex-col items-center gap-6 lg:flex-none lg:gap-10"
-    @submit.prevent
+    @submit.prevent="router.push({ name: 'onboarding-review' })"
   >
     <OnboardingStepper :current="1" />
 

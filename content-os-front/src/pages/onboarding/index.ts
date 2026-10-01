@@ -1,3 +1,4 @@
 export { default as OnboardingLayout } from './ui/OnboardingLayout.vue'
 export { default as OnboardingRoleStep } from './ui/RoleStep.vue'
 export { default as OnboardingProfileStep } from './ui/ProfileStep.vue'
+export { default as OnboardingReviewStep } from './ui/ReviewStep.vue'

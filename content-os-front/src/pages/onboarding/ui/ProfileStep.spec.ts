@@ -9,6 +9,7 @@ function mountStep() {
     routes: [
       { path: '/role', name: 'onboarding-role', component: { template: '<div />' } },
       { path: '/profile', name: 'onboarding-profile', component: ProfileStep },
+      { path: '/review', name: 'onboarding-review', component: { template: '<div />' } },
     ],
   })
   return { router, wrapper: mount(ProfileStep, { global: { plugins: [router] } }) }
