@@ -1,8 +1,9 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 
+from app.auth.deps import get_approved_user
 from app.auth.router import router as auth_router
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings, get_settings
@@ -46,6 +47,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(review_router)
     if settings.dev_endpoints_enabled:
         api.include_router(review_dev_router)
+
+    # The product itself: only approved users get in. Feature routers go here, so an
+    # endpoint can't be left open by forgetting a dependency. Roles are checked on top.
+    product = APIRouter(dependencies=[Depends(get_approved_user)])
+    api.include_router(product)
     app.include_router(api)
 
     return app
