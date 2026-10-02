@@ -3,7 +3,8 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 </script>
 
-<!-- Not in Figma yet: built from the page's tokens. -->
+<!-- Not in Figma yet: built from the page's tokens.
+     TODO(ui): VEmpty in shared/ui once a second page needs an empty state. -->
 <template>
   <section
     class="flex flex-col items-center rounded-2xl bg-card px-6 py-12 text-center shadow-[0_8px_32px_4px_rgb(29_42_60/0.05)] md:min-h-[480px] md:justify-center md:py-16 md:shadow-none"

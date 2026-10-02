@@ -25,6 +25,7 @@ const status = computed(() => productStatuses[product.status])
       <VStatus :tone="status.tone" class="absolute bottom-2.5 left-2.5 md:bottom-3 md:left-3">
         {{ status.label }}
       </VStatus>
+      <!-- TODO(ui): VDropdownMenu with the product actions. -->
       <VButton
         variant="surface"
         size="icon-24"

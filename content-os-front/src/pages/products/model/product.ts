@@ -1,5 +1,5 @@
-// Shape of a product card. There is no products endpoint yet: once there is,
-// replace this with the type from `Schemas`.
+// TODO(api): replace with the product type from `Schemas` once the backend
+// has a products endpoint.
 export type ProductStatus = 'approved' | 'in_progress' | 'to_shoot' | 'needs_changes'
 
 export interface Product {

@@ -9,7 +9,8 @@ import ProductsEmpty from './ProductsEmpty.vue'
 
 const { products, total, isEmpty, search, page } = useProductsList()
 
-// Static triggers until the dropdown component exists.
+// TODO(ui): VSelect (dropdown) — replace these static triggers, wire them to
+// the query.
 const filters = [
   { label: 'Collection: All collections', class: 'w-[232px]' },
   { label: 'Status: All statuses', class: 'w-[220px]' },
@@ -26,10 +27,12 @@ const filters = [
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- TODO(ui): "Add product" form/dialog — no design yet; same for every Add product button. -->
         <VButton v-if="!isEmpty" class="hidden md:inline-flex">
           <VIcon name="plus-sign" :size="16" />
           Add product
         </VButton>
+        <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
         <VButton
           variant="surface"
           size="icon-44"
@@ -57,6 +60,7 @@ const filters = [
           aria-label="Search products"
           class="w-auto min-w-0 flex-1 md:min-w-60"
         />
+        <!-- TODO(ui): VSheet (bottom sheet) with the filters, opened by this button. -->
         <VButton variant="outline" size="icon-32" aria-label="Filters" class="md:hidden">
           <VIcon name="filter-horizontal" :size="16" />
         </VButton>
@@ -81,6 +85,7 @@ const filters = [
 
       <div class="flex items-center justify-between md:min-h-11">
         <p class="text-p2 font-medium text-secondary">{{ total }} products</p>
+        <!-- TODO(ui): list view of products — the toggle does nothing yet. -->
         <div role="group" aria-label="View" class="flex items-center gap-1.5">
           <VButton
             variant="ghost"

@@ -3,8 +3,9 @@ import type { Product } from './product'
 
 export const PRODUCTS_PER_PAGE = 8
 
-// Layout only: there is no products endpoint yet, so the list is empty and
-// the filters change nothing.
+// TODO(api): products endpoint. Until then the list is empty and the
+// filters change nothing; then load it with useQuery keyed by search, filters
+// and page.
 export function useProductsList() {
   const search = ref('')
   const page = ref(1)
