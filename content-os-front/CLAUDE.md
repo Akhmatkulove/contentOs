@@ -39,6 +39,7 @@ src/shared    без бизнес-логики: ui, api, lib, config
 - Любая ошибка запроса приходит как `ApiError` (`status`, 0 — нет ответа; `message`; `fields` — ошибки полей из 422; `canceled`). Код проверяй через `errorStatus(e)`.
 - Необработанная ошибка запроса показывается тостом (глобальный обработчик в `app/query`). Если экран показывает ошибку сам, передай `meta: { toast: false }`. 401/403 тост не дают: их обрабатывает `installSessionInterceptor` редиректом.
 - Тост из кода: `toast.error('…')` / `toast.success('…')` из `@/shared/ui/toast` (свой, на Reka UI Toast; одинаковые не дублируются, максимум 3).
+- Модалки на странице не верстаются. Модалка — отдельный компонент в `ui/` слайса с `<VModal>` в корне; результат она отдаёт через `emit('close', result)`. Открывается из composable в `model/`: `const result = await openModal(AddReferenceModal, props)` из `@/shared/ui/modal`. Компонент подключай через `defineAsyncComponent`, чтобы код модалки грузился при первом открытии. Хост `VModalHost` стоит в `App.vue`, при смене маршрута модалки закрываются.
 - После логина/регистрации/любого ответа с новым `/me` вызывай `useEnterSession()` из `@/entities/session`: запомнит пользователя и отправит на его маршрут.
 - В тестах компонентов с `useMutation`/`useQuery` подключай плагины: `plugins: [router, getActivePinia()!, PiniaColada]`.
 
