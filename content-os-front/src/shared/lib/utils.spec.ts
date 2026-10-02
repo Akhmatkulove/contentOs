@@ -11,6 +11,13 @@ describe('cn', () => {
     expect(cn('text-neutral-700', 'text-h3')).toBe('text-neutral-700 text-h3')
   })
 
+  it('treats semantic colors as colors', () => {
+    expect(cn('text-p3', 'text-secondary')).toBe('text-p3 text-secondary')
+    expect(cn('text-secondary', 'text-brand')).toBe('text-brand')
+    expect(cn('bg-card', 'bg-status-accent')).toBe('bg-status-accent')
+    expect(cn('border', 'border-default')).toBe('border border-default')
+  })
+
   it('resolves conflicts between typography tokens', () => {
     expect(cn('text-p1', 'text-p3')).toBe('text-p3')
   })

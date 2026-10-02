@@ -88,6 +88,33 @@
   --color-green-400: #3d5437;
 
   /*
+   * Semantic colors — Figma variables built on the primitives above
+   * (--text-brand → text-brand, --surface-card → bg-card). Each namespace
+   * feeds one utility: --text-color-* → text-*, --background-color-* → bg-*,
+   * --border-color-* → border-*. Prefer these; reach for a primitive only
+   * where Figma uses one directly (status chips, progress).
+   */
+  --text-color-primary: var(--color-neutral-900);
+  --text-color-secondary: var(--color-neutral-600);
+  --text-color-brand: var(--color-violet-500);
+  --text-color-link: var(--color-violet-400);
+  --text-color-inverse: var(--color-white);
+
+  --background-color-canvas: var(--color-neutral-200);
+  --background-color-card: var(--color-white);
+  --background-color-subtle: var(--color-neutral-100);
+  --background-color-muted: var(--color-neutral-200);
+  --background-color-inverse: var(--color-violet-500);
+  --background-color-action-primary: var(--color-pink-200);
+  --background-color-action-accent: var(--color-violet-400);
+  --background-color-status-accent: var(--color-violet-100);
+  --background-color-status-info: var(--color-blue-100);
+  --background-color-status-warning: var(--color-yellow-100);
+  --text-color-status-info: var(--color-blue-400);
+
+  --border-color-default: var(--color-neutral-300);
+
+  /*
    * Typography — Figma "Web Design" text styles. Each text-* sets size,
    * line-height and letter-spacing; headings also set their weight.
    * Body styles come in Medium and SemiBold: add font-medium / font-semibold.
@@ -111,6 +138,12 @@
   --text-h4--letter-spacing: -0.04em;
   --text-h4--font-weight: 600;
 
+  /* Figma sets H6 in Bold; only Medium and SemiBold are loaded, so 600. */
+  --text-h6: 1.125rem; /* 18/22 */
+  --text-h6--line-height: 1.375rem;
+  --text-h6--letter-spacing: -0.03em;
+  --text-h6--font-weight: 600;
+
   --text-p1: 1rem; /* 16/20 */
   --text-p1--line-height: 1.25rem;
   --text-p1--letter-spacing: -0.03em;
@@ -122,6 +155,10 @@
   --text-p3: 0.75rem; /* 12/16 */
   --text-p3--line-height: 1rem;
   --text-p3--letter-spacing: -0.03em;
+
+  --text-p4: 0.6875rem; /* 11/14 */
+  --text-p4--line-height: 0.875rem;
+  --text-p4--letter-spacing: -0.03em;
 }
 
 @layer base {
