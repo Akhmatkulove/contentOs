@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - content-os-front/**
+      # API types are generated from the backend's OpenAPI schema.
+      - content-os-back/src/**
+      - content-os-back/uv.lock
       - .github/workflows/frontend.yml
 
 concurrency:
@@ -29,7 +32,18 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: content-os-front/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: content-os-back/uv.lock
       - run: npm ci
+      - name: API types match the backend
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/shared/api/schema.d.ts || {
+            echo "::error::src/shared/api/schema.d.ts is out of date: run 'npm run gen:api' and commit it"
+            exit 1
+          }
       - run: npx eslint . --max-warnings=0
       - run: npx prettier --check src/
       - run: npm run lint:fsd

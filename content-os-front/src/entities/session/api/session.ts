@@ -1,11 +1,8 @@
-import { errorStatus, http } from '@/shared/api'
+import { errorStatus, http, type Schemas } from '@/shared/api'
 import { API_URL } from '@/shared/config'
 import type { Me } from '../model/me'
 
-export interface Credentials {
-  email: string
-  password: string
-}
+export type Credentials = Schemas['LoginRequest']
 
 // The signed-in user, or null without a session.
 export async function fetchMe(): Promise<Me | null> {
@@ -17,7 +14,7 @@ export async function fetchMe(): Promise<Me | null> {
   }
 }
 
-export async function signup(credentials: Credentials): Promise<Me> {
+export async function signup(credentials: Schemas['SignupRequest']): Promise<Me> {
   return (await http.post<Me>('/auth/signup', credentials)).data
 }
 

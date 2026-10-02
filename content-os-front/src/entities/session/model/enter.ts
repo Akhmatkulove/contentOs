@@ -1,7 +1,7 @@
 import { useRouter } from 'vue-router'
 import { homeRoute } from './home'
 import type { Me } from './me'
-import { useSessionStore } from './store'
+import { useSessionStore } from './session.store'
 
 // After login, signup or anything else that returns a fresh /me: remember the user
 // and send them where they belong right now.

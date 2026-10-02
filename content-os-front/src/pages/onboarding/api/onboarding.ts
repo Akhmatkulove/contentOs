@@ -1,8 +1,8 @@
-import type { Me, Role } from '@/entities/session'
-import { http } from '@/shared/api'
+import type { Me } from '@/entities/session'
+import { http, type Schemas } from '@/shared/api'
 
 // Answers are saved per step; fields left out stay as they are.
-export async function saveAnswers(answers: { role?: Role; name?: string }): Promise<Me> {
+export async function saveAnswers(answers: Schemas['OnboardingUpdate']): Promise<Me> {
   return (await http.patch<Me>('/me/onboarding', answers)).data
 }
 

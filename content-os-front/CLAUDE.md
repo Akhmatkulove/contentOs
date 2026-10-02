@@ -1,17 +1,18 @@
 # content-os-front
 
-Vue 3 (`<script setup>`) + TypeScript, Vite, Pinia, Vue Router, Tailwind v4, Reka UI / shadcn-vue, axios.
+Vue 3 (`<script setup>`) + TypeScript, Vite, Pinia, Pinia Colada, Vue Router, Tailwind v4, Reka UI / shadcn-vue, axios.
 
 ## Команды
 
 - `npm run dev`: dev-сервер, `/api` проксируется на `localhost:8000`
 - `npm run type-check` · `npm run test:run` · `npm run lint` · `npm run lint:fsd`
+- `npm run gen:api`: типы API из OpenAPI-схемы бэкенда → `src/shared/api/schema.d.ts` (нужен `uv`). Запускай после изменения схем бэкенда и коммить результат: CI сверяет файл с бэкендом.
 - После изменений прогоняй `type-check`, `test:run` и `lint:fsd`. Pre-push hook запускает то же самое.
 
 ## Архитектура: Feature-Sliced Design v2.1
 
 ```
-src/app       точка входа, App.vue, router, глобальные стили
+src/app       точка входа, App.vue, router, query (Pinia Colada), глобальные стили
 src/pages     экраны роутов: pages/<slice>/{ui,model,api,lib}/ + index.ts
 src/widgets   крупные UI-блоки, используемые несколькими страницами
 src/features  переиспользуемые действия пользователя
@@ -29,10 +30,22 @@ src/shared    без бизнес-логики: ui, api, lib, config
 6. `import.meta.env` читается только в `shared/config`.
 7. Тесты кладутся рядом с кодом: `*.spec.ts`.
 
+## Логика и данные
+
+- `.vue` = шаблон + вызов composable. Состояние, запросы и навигация страницы живут в `pages/<slice>/model/*.ts` (`useLoginForm()`), правила — в чистых функциях там же (`loginErrorMessage()`), тесты к ним рядом.
+- Pinia — только для состояния, общего для нескольких страниц (сейчас один стор `session`). Формы, флаги загрузки и ошибки в сторы не клади. Файл стора называется `<имя>.store.ts` (`entities/session/model/session.store.ts`), функция — `use<Имя>Store`.
+- Типы запросов и ответов не пиши руками: бери из `Schemas` (`@/shared/api`), например `Schemas['MeResponse']`. `schema.d.ts` не редактируй.
+- Запросы: функции в сегменте `api/` слайса поверх `http` из `@/shared/api`. Состояние запроса — через Pinia Colada: `useQuery` для чтения (кэш по ключу), `useMutation` для изменений. Ручные `ref(false)` + `try/finally` не пиши.
+- Любая ошибка запроса приходит как `ApiError` (`status`, 0 — нет ответа; `message`; `fields` — ошибки полей из 422; `canceled`). Код проверяй через `errorStatus(e)`.
+- Необработанная ошибка запроса показывается тостом (глобальный обработчик в `app/query`). Если экран показывает ошибку сам, передай `meta: { toast: false }`. 401/403 тост не дают: их обрабатывает `installSessionInterceptor` редиректом.
+- Тост из кода: `toast.error('…')` / `toast.success('…')` из `@/shared/ui/toast` (свой, на Reka UI Toast; одинаковые не дублируются, максимум 3).
+- После логина/регистрации/любого ответа с новым `/me` вызывай `useEnterSession()` из `@/entities/session`: запомнит пользователя и отправит на его маршрут.
+- В тестах компонентов с `useMutation`/`useQuery` подключай плагины: `plugins: [router, getActivePinia()!, PiniaColada]`.
+
 ## UI и стили
 
 - Вёрстка mobile-first: базовые классы пишутся под мобильный экран, большие экраны добавляются через брейкпоинты (`md:`, `lg:`). `max-*:` варианты не используй.
-- shadcn-компоненты добавляются через `npx shadcn-vue@latest add <name>` и попадают в `src/shared/ui`. После добавления проверь `src/app/styles/tailwind.css`: CLI может дописать туда CSS-переменные (`--primary` и т. п.), их нужно удалить.
+- shadcn-компоненты добавляются через `npx shadcn-vue@latest add <name>` и попадают в `src/shared/ui`. После добавления проверь `src/app/styles/tailwind.css` и `package.json`: CLI может дописать CSS-переменные (`--primary` и т. п.), шрифты и зависимости (`@lucide/vue`), их нужно удалить. Если компонент shadcn тянет отдельную библиотеку (например, Sonner для тостов), сначала проверь, нет ли нужного примитива в Reka UI.
 - Цвета берутся только из примитивов Figma (`@theme static` в `tailwind.css`, стандартная палитра Tailwind сброшена): `bg-violet-400`, `text-neutral-700`. Семантические токены не вводи без запроса.
 - UI-kit делается по одному компоненту в порядке, который задаёт пользователь. Ничего не добавляй «на будущее».
 - В компонентах `shared/ui` классы объединяй через `cn()` из `@/shared/lib`: он разрешает конфликты Tailwind, когда классы приходят снаружи (`cn('…', props.class)`). На страницах и в остальном коде, где все классы свои, хватает обычного `:class` со взаимоисключающими ветками.

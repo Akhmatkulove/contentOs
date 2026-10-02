@@ -13,7 +13,8 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
     "prepare": "cd .. && husky content-os-front/.husky",
-    "lint:fsd": "steiger ./src"
+    "lint:fsd": "steiger ./src",
+    "gen:api": "mkdir -p node_modules/.tmp && (cd ../content-os-back && uv run --quiet python -m app.openapi) > node_modules/.tmp/openapi.json && openapi-typescript node_modules/.tmp/openapi.json -o src/shared/api/schema.d.ts && prettier --write src/shared/api/schema.d.ts"
   },
   "dependencies": {
     "@pinia/colada": "^1.4.7",
@@ -43,6 +44,7 @@
     "husky": "^9.1.7",
     "jsdom": "^30.1.1",
     "lint-staged": "^17.6.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.9",
     "sass-embedded": "^1.105.1",
     "shadcn-vue": "^2.8.2",
@@ -59,5 +61,10 @@
       "prettier --write"
     ],
     "*.{js,mjs,json,css,scss,html,md}": "prettier --write --ignore-unknown"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }
