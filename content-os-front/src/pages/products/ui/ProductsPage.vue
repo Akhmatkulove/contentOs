@@ -10,8 +10,8 @@ import ProductsEmpty from './ProductsEmpty.vue'
 
 const { products, total, isEmpty, search, page } = useProductsList()
 
-// TODO(ui): VSelect (dropdown) — replace these static triggers, wire them to
-// the query.
+// TODO(ui): VSelect variant for filters (40px pill, no label, value inline as
+// "Collection: …") — replace these static triggers, wire them to the query.
 const filters = [
   { label: 'Collection: All collections', class: 'w-[232px]' },
   { label: 'Status: All statuses', class: 'w-[220px]' },

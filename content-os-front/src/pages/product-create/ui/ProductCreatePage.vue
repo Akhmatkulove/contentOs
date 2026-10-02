@@ -3,9 +3,15 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
 import { VNotificationButton } from '@/shared/ui/notification-button'
+import { VSelect } from '@/shared/ui/select'
 import { VTextarea } from '@/shared/ui/textarea'
-import { useProductCreateForm } from '../model/product-create-form'
-import FormSelect from './FormSelect.vue'
+import {
+  categoryOptions,
+  collectionOptions,
+  statusOptions,
+  tagOptions,
+  useProductCreateForm,
+} from '../model/product-create-form'
 import SectionCard from './SectionCard.vue'
 
 const { form, cancel, submit } = useProductCreateForm()
@@ -49,11 +55,33 @@ const emptyListClass =
       <SectionCard title="Product details">
         <div class="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
           <VInput v-model="form.name" label="Product name" placeholder="Enter product name" />
-          <FormSelect label="Tags" placeholder="Select tags" />
-          <FormSelect label="Collection" placeholder="Select collection" />
-          <FormSelect label="Category" placeholder="Select category" />
+          <VSelect
+            v-model="form.tag"
+            :options="tagOptions"
+            label="Tags"
+            placeholder="Select tags"
+            searchable
+          />
+          <VSelect
+            v-model="form.collection"
+            :options="collectionOptions"
+            label="Collection"
+            placeholder="Select collection"
+            searchable
+          />
+          <VSelect
+            v-model="form.category"
+            :options="categoryOptions"
+            label="Category"
+            placeholder="Select category"
+          />
           <VInput v-model="form.sku" label="SKU" placeholder="SKU" />
-          <FormSelect label="Status" placeholder="Select status" value="Active" />
+          <VSelect
+            v-model="form.status"
+            :options="statusOptions"
+            label="Status"
+            placeholder="Select status"
+          />
           <VTextarea v-model="form.about" label="About" placeholder="About" class="md:col-span-2" />
         </div>
       </SectionCard>
