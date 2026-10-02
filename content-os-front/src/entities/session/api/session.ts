@@ -30,4 +30,6 @@ export async function logout(): Promise<void> {
 }
 
 // A full-page navigation, not an XHR: the backend redirects to Google and back.
-export const googleSignInUrl = `${API_URL}/auth/google`
+export function continueWithGoogle() {
+  window.location.assign(`${API_URL}/auth/google`)
+}

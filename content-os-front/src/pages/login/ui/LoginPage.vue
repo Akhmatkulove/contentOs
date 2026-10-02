@@ -1,46 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { googleSignInUrl, homeRoute, login, useSessionStore } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
+import { continueWithGoogle } from '@/entities/session'
 import { VInput, VPasswordInput } from '@/shared/ui/input'
+import { useLoginForm } from '../model/login-form'
 import googleUrl from './assets/google.svg'
 
-const route = useRoute()
-const router = useRouter()
-const session = useSessionStore()
-
-const email = ref('')
-const password = ref('')
-const submitting = ref(false)
-// The backend sends people back here with ?error=google when Google sign-in fails.
-const error = ref(
-  route.query.error === 'google' ? 'Couldn’t sign in with Google. Please try again.' : '',
-)
-
-async function submit() {
-  error.value = ''
-  submitting.value = true
-  try {
-    const me = await login({ email: email.value, password: password.value })
-    session.set(me)
-    await router.push(homeRoute(me))
-  } catch (e) {
-    const status = errorStatus(e)
-    error.value =
-      status === 401
-        ? 'Invalid email or password.'
-        : status === 429
-          ? 'Too many attempts. Please wait a few minutes and try again.'
-          : 'Something went wrong. Please try again.'
-  } finally {
-    submitting.value = false
-  }
-}
-
-function continueWithGoogle() {
-  window.location.assign(googleSignInUrl)
-}
+const { email, password, error, canSubmit, submit } = useLoginForm()
 </script>
 
 <template>
@@ -83,7 +47,7 @@ function continueWithGoogle() {
 
       <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
 
-      <button type="submit" :disabled="submitting || !email || !password">Log in</button>
+      <button type="submit" :disabled="!canSubmit">Log in</button>
     </form>
 
     <div class="flex items-center gap-4">
