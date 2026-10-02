@@ -23,11 +23,20 @@ describe('VButton', () => {
 
   it('can render a link with the button look', () => {
     const wrapper = mount(VButton, {
-      props: { asChild: true, variant: 'outline' },
+      props: { asChild: true, variant: 'secondary' },
       slots: { default: '<a href="/products/new">Add product</a>' },
     })
     expect(wrapper.element.tagName).toBe('A')
     expect(wrapper.attributes('type')).toBeUndefined()
     expect(wrapper.classes()).toContain('border-default')
+  })
+
+  it('takes padding and type for size 36 from the variant, as in Figma', () => {
+    const primary = mount(VButton, { props: { size: '36' } })
+    const soft = mount(VButton, { props: { variant: 'soft', size: '36' } })
+    expect(primary.classes()).toEqual(
+      expect.arrayContaining(['h-9', 'text-table', 'font-semibold']),
+    )
+    expect(soft.classes()).toEqual(expect.arrayContaining(['h-9', 'text-p3', 'font-medium']))
   })
 })

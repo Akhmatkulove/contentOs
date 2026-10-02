@@ -96,6 +96,7 @@
    */
   --text-color-primary: var(--color-neutral-900);
   --text-color-secondary: var(--color-neutral-600);
+  --text-color-tertiary: var(--color-neutral-500);
   --text-color-brand: var(--color-violet-500);
   --text-color-link: var(--color-violet-400);
   --text-color-inverse: var(--color-white);
@@ -151,6 +152,11 @@
   --text-p2: 0.875rem; /* 14/18 */
   --text-p2--line-height: 1.125rem;
   --text-p2--letter-spacing: -0.03em;
+
+  /* Body/Table: 13/18, no tracking. */
+  --text-table: 0.8125rem;
+  --text-table--line-height: 1.125rem;
+  --text-table--letter-spacing: 0;
 
   --text-p3: 0.75rem; /* 12/16 */
   --text-p3--line-height: 1rem;

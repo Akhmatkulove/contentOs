@@ -32,7 +32,7 @@ const page = defineModel<number>('page', { default: 1 })
     <PaginationList v-slot="{ items }" class="flex items-center gap-2">
       <PaginationPrev as-child>
         <VButton
-          variant="outline"
+          variant="secondary"
           size="icon-32"
           aria-label="Previous page"
           class="text-neutral-500"
@@ -49,9 +49,9 @@ const page = defineModel<number>('page', { default: 1 })
           as-child
         >
           <VButton
-            variant="outline"
+            variant="secondary"
             size="icon-32"
-            class="text-p3 font-medium data-selected:border-transparent data-selected:bg-inverse data-selected:text-inverse"
+            class="text-p3 font-medium data-selected:pointer-events-none data-selected:border-transparent data-selected:bg-inverse data-selected:text-inverse"
           >
             {{ item.value }}
           </VButton>
@@ -67,7 +67,7 @@ const page = defineModel<number>('page', { default: 1 })
       </template>
 
       <PaginationNext as-child>
-        <VButton variant="outline" size="icon-32" aria-label="Next page" class="text-neutral-500">
+        <VButton variant="secondary" size="icon-32" aria-label="Next page" class="text-neutral-500">
           <VIcon name="arrow-right-01-sharp" :size="16" />
         </VButton>
       </PaginationNext>

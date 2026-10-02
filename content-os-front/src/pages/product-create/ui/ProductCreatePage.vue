@@ -43,9 +43,9 @@ const emptyListClass =
         </p>
       </div>
       <div class="hidden shrink-0 items-center gap-2.5 md:flex">
-        <VButton variant="outline" class="text-link" @click="cancel">Cancel</VButton>
-        <VButton type="submit" class="gap-2">
-          <VIcon name="tick-01" :size="16" />
+        <VButton variant="secondary" @click="cancel">Cancel</VButton>
+        <VButton type="submit">
+          <VIcon name="tick-01" />
           Create product
         </VButton>
       </div>
@@ -119,12 +119,12 @@ const emptyListClass =
     >
       <!-- TODO(ui): reference picker (from the reference bank) — no design yet. -->
       <template #action>
-        <VButton variant="outline" class="w-full gap-2 text-link md:hidden">
-          <VIcon name="plus-sign" :size="16" />
+        <VButton variant="secondary" class="w-full md:hidden">
+          <VIcon name="plus-sign" />
           Add reference
         </VButton>
-        <VButton class="hidden gap-2 md:inline-flex">
-          <VIcon name="plus-sign" :size="16" />
+        <VButton class="hidden md:inline-flex">
+          <VIcon name="plus-sign" />
           Add reference
         </VButton>
       </template>
@@ -137,12 +137,12 @@ const emptyListClass =
     >
       <!-- TODO(ui): deliverable form and rows — no design yet. -->
       <template #action>
-        <VButton variant="outline" class="w-full gap-2 text-link md:hidden">
-          <VIcon name="plus-sign" :size="16" />
+        <VButton variant="secondary" class="w-full md:hidden">
+          <VIcon name="plus-sign" />
           Add deliverable
         </VButton>
-        <VButton class="hidden gap-2 md:inline-flex">
-          <VIcon name="plus-sign" :size="16" />
+        <VButton class="hidden md:inline-flex">
+          <VIcon name="plus-sign" />
           Add deliverable
         </VButton>
       </template>
@@ -153,9 +153,9 @@ const emptyListClass =
     <div
       class="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] flex gap-2 bg-card px-4 pt-4 pb-6 md:hidden"
     >
-      <VButton variant="outline" class="flex-1 text-link" @click="cancel">Cancel</VButton>
-      <VButton type="submit" class="flex-1 gap-2">
-        <VIcon name="tick-01" :size="16" />
+      <VButton variant="secondary" class="flex-1" @click="cancel">Cancel</VButton>
+      <VButton type="submit" class="flex-1">
+        <VIcon name="tick-01" />
         Create product
       </VButton>
     </div>

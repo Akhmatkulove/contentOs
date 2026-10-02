@@ -29,7 +29,7 @@ import { VIcon } from '@/shared/ui/icon'
 
     <VButton as-child class="mt-6 w-full max-w-[280px] md:w-auto">
       <RouterLink :to="{ name: 'product-create' }">
-        <VIcon name="plus-sign" :size="16" />
+        <VIcon name="plus-sign" />
         Add product
       </RouterLink>
     </VButton>

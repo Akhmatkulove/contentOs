@@ -30,7 +30,7 @@ const filters = [
       <div class="flex items-center gap-3">
         <VButton v-if="!isEmpty" as-child class="hidden md:inline-flex">
           <RouterLink :to="{ name: 'product-create' }">
-            <VIcon name="plus-sign" :size="16" />
+            <VIcon name="plus-sign" />
             Add product
           </RouterLink>
         </VButton>
@@ -53,7 +53,7 @@ const filters = [
           class="w-auto min-w-0 flex-1 md:min-w-60"
         />
         <!-- TODO(ui): VSheet (bottom sheet) with the filters, opened by this button. -->
-        <VButton variant="outline" size="icon-32" aria-label="Filters" class="md:hidden">
+        <VButton variant="secondary" size="icon-32" aria-label="Filters" class="md:hidden">
           <VIcon name="filter-horizontal" :size="16" />
         </VButton>
         <button
@@ -70,9 +70,9 @@ const filters = [
         </button>
       </section>
 
-      <VButton as-child class="w-full gap-2 md:hidden">
+      <VButton as-child class="w-full md:hidden">
         <RouterLink :to="{ name: 'product-create' }">
-          <VIcon name="plus-sign" :size="16" />
+          <VIcon name="plus-sign" />
           Add product
         </RouterLink>
       </VButton>
