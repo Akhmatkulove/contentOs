@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ActivityPage } from '@/pages/activity'
+import { ContentPage } from '@/pages/content'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
 import {
@@ -8,7 +10,11 @@ import {
   OnboardingRoleStep,
   OnboardingStatusPage,
 } from '@/pages/onboarding'
+import { ProductsPage } from '@/pages/products'
+import { ReferencesPage } from '@/pages/references'
+import { ShootsPage } from '@/pages/shoots'
 import { SignupPage } from '@/pages/signup'
+import { TasksPage } from '@/pages/tasks'
 import AppLayout from '../layouts/AppLayout.vue'
 import AuthLayout from '../layouts/AuthLayout.vue'
 import { installAccessGuard } from './access'
@@ -20,7 +26,15 @@ export const router = createRouter({
       path: '/',
       component: AppLayout,
       meta: { access: 'approved' },
-      children: [{ path: '', name: 'home', component: HomePage }],
+      children: [
+        { path: '', name: 'home', component: HomePage },
+        { path: 'tasks', name: 'tasks', component: TasksPage },
+        { path: 'shoots', name: 'shoots', component: ShootsPage },
+        { path: 'products', name: 'products', component: ProductsPage },
+        { path: 'content', name: 'content', component: ContentPage },
+        { path: 'references', name: 'references', component: ReferencesPage },
+        { path: 'activity', name: 'activity', component: ActivityPage },
+      ],
     },
     {
       path: '/',

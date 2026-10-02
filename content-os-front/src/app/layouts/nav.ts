@@ -5,19 +5,18 @@ import type { IconName } from '@/shared/ui/icon'
 export interface NavItem {
   label: string
   icon: IconName
-  // Sections without a page yet have no route and render as inert items.
-  to?: RouteLocationRaw
+  to: RouteLocationRaw
   badge?: number
 }
 
 export const sidebarNav: NavItem[] = [
   { label: 'Home', icon: 'home-01', to: { name: 'home' } },
-  { label: 'My tasks', icon: 'task-01' },
-  { label: 'Shoots', icon: 'camera-01' },
-  { label: 'Products', icon: 'package' },
-  { label: 'Content', icon: 'image-02' },
-  { label: 'References', icon: 'album-02' },
-  { label: 'Activity', icon: 'clock-01' },
+  { label: 'My tasks', icon: 'task-01', to: { name: 'tasks' } },
+  { label: 'Shoots', icon: 'camera-01', to: { name: 'shoots' } },
+  { label: 'Products', icon: 'package', to: { name: 'products' } },
+  { label: 'Content', icon: 'image-02', to: { name: 'content' } },
+  { label: 'References', icon: 'album-02', to: { name: 'references' } },
+  { label: 'Activity', icon: 'clock-01', to: { name: 'activity' } },
 ]
 
 // The mobile tab bar fits four sections; the rest live behind More.
