@@ -4,14 +4,9 @@ import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VSelect } from '@/shared/ui/select'
+import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
-import {
-  categoryOptions,
-  collectionOptions,
-  statusOptions,
-  tagOptions,
-  useProductCreateForm,
-} from '../model/product-create-form'
+import { statusOptions, useProductCreateForm } from '../model/product-create-form'
 import SectionCard from './SectionCard.vue'
 
 const { form, cancel, submit } = useProductCreateForm()
@@ -55,26 +50,9 @@ const emptyListClass =
       <SectionCard title="Product details">
         <div class="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
           <VInput v-model="form.name" label="Product name" placeholder="Enter product name" />
-          <VSelect
-            v-model="form.tag"
-            :options="tagOptions"
-            label="Tags"
-            placeholder="Select tags"
-            searchable
-          />
-          <VSelect
-            v-model="form.collection"
-            :options="collectionOptions"
-            label="Collection"
-            placeholder="Select collection"
-            searchable
-          />
-          <VSelect
-            v-model="form.category"
-            :options="categoryOptions"
-            label="Category"
-            placeholder="Select category"
-          />
+          <VTagsInput v-model="form.tags" label="Tags" placeholder="Add tags" />
+          <VInput v-model="form.collection" label="Collection" placeholder="Enter collection" />
+          <VInput v-model="form.category" label="Category" placeholder="Enter category" />
           <VInput v-model="form.sku" label="SKU" placeholder="SKU" />
           <VSelect
             v-model="form.status"
