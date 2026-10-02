@@ -124,6 +124,43 @@
   --text-p3--letter-spacing: -0.03em;
 }
 
+@layer base {
+  /*
+   * Thin scrollbar from the Figma "Scrollbar" component: 4px, rounded,
+   * neutral-400 thumb on a neutral-200 track. Chrome ignores ::-webkit-scrollbar
+   * once scrollbar-width is set, so the standard properties go to Firefox only.
+   */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    border-radius: 3px;
+    background: var(--color-neutral-200);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: var(--color-neutral-400);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neutral-500);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-neutral-400) var(--color-neutral-200);
+    }
+  }
+}
+
 /* Tailwind v4 preflight leaves buttons with the default cursor; restore pointer. */
 @layer base {
   button:not(:disabled),

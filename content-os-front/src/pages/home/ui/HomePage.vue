@@ -13,9 +13,9 @@ async function logout() {
 
 <!-- Placeholder until the role-specific dashboards are designed. -->
 <template>
-  <main class="flex min-h-dvh flex-col items-center justify-center gap-4">
+  <div class="flex flex-col items-start gap-4">
     <h1 class="text-h3 text-violet-500">Hello, {{ session.me?.name }}</h1>
     <p class="text-p1 font-medium text-neutral-600">Role: {{ session.me?.role }}</p>
     <button type="button" @click="logout">Log out</button>
-  </main>
+  </div>
 </template>
