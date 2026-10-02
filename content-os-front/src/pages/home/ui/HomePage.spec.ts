@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { PiniaColada } from '@pinia/colada'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
 import { http } from '@/shared/api'
@@ -20,7 +21,9 @@ describe('HomePage', () => {
       ],
     })
     await router.push('/')
-    const wrapper = mount(HomePage, { global: { plugins: [router] } })
+    const wrapper = mount(HomePage, {
+      global: { plugins: [router, getActivePinia()!, PiniaColada] },
+    })
 
     expect(wrapper.text()).toContain('Hello, Anna')
     await wrapper.get('button').trigger('click')

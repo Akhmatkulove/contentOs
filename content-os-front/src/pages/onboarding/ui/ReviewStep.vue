@@ -1,35 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import { useSessionStore } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
 import { VIcon } from '@/shared/ui/icon'
-import { submitApplication } from '../api/onboarding'
 import { useReopen } from '../model/reopen'
 import { roleTitle as titleOf } from '../model/roles'
+import { useSubmitApplication } from '../model/submit-application'
 import ApplicationState from './ApplicationState.vue'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-const router = useRouter()
 const session = useSessionStore()
+const { view, tooMany, submit, backToDraft } = useSubmitApplication()
 const { reopen, reopening } = useReopen()
 
 const roleTitle = computed(() => titleOf(session.me?.role))
-
-const status = ref<'draft' | 'sending' | 'sent' | 'error'>('draft')
-// The backend limits resends so the review chat can't be flooded.
-const tooMany = ref(false)
-
-async function submit() {
-  status.value = 'sending'
-  try {
-    session.set(await submitApplication())
-    status.value = 'sent'
-  } catch (e) {
-    tooMany.value = errorStatus(e) === 429
-    status.value = 'error'
-  }
-}
 </script>
 
 <template>
@@ -37,10 +20,10 @@ async function submit() {
     class="mx-auto flex w-full max-w-[1040px] flex-1 flex-col items-center gap-6 lg:flex-none lg:gap-10"
     @submit.prevent="submit"
   >
-    <OnboardingStepper :current="status === 'sent' ? 3 : 2" />
+    <OnboardingStepper :current="view === 'sent' ? 3 : 2" />
 
     <ApplicationState
-      v-if="status === 'sending'"
+      v-if="view === 'sending'"
       icon="clock-01"
       title="Sending your application…"
       description="We’re saving your details. This will only take a moment."
@@ -49,20 +32,20 @@ async function submit() {
     </ApplicationState>
 
     <ApplicationState
-      v-else-if="status === 'sent'"
+      v-else-if="view === 'sent'"
       icon="checkmark-circle-01"
       tone="mint"
       title="Your application is in!"
       description="Thanks for introducing yourself. Check back on the status page to see when it’s been reviewed."
     >
-      <button type="button" @click="router.push({ name: 'onboarding-status' })">
+      <button type="button" @click="$router.push({ name: 'onboarding-status' })">
         Track application
       </button>
       <button type="button" :disabled="reopening" @click="reopen">Edit my details</button>
     </ApplicationState>
 
     <ApplicationState
-      v-else-if="status === 'error'"
+      v-else-if="view === 'error'"
       icon="multiplication-sign"
       tone="red"
       title="Your application wasn’t sent"
@@ -73,7 +56,7 @@ async function submit() {
       "
     >
       <button v-if="!tooMany" type="button" @click="submit">Try again</button>
-      <button type="button" @click="status = 'draft'">Back to application</button>
+      <button type="button" @click="backToDraft">Back to application</button>
     </ApplicationState>
 
     <template v-else>
@@ -135,7 +118,7 @@ async function submit() {
       </div>
 
       <div class="mt-auto flex w-full gap-3 lg:mt-0 lg:w-[720px] lg:justify-between">
-        <button type="button" @click="router.push({ name: 'onboarding-profile' })">Back</button>
+        <button type="button" @click="$router.push({ name: 'onboarding-profile' })">Back</button>
         <button type="submit">Submit application</button>
       </div>
     </template>

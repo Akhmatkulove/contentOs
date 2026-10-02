@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError, type AxiosResponse } from 'axios'
-import { createPinia, setActivePinia } from 'pinia'
+import { PiniaColada } from '@pinia/colada'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
 import { http } from '@/shared/api'
@@ -15,7 +16,10 @@ function mountStep() {
       { path: '/review', name: 'onboarding-review', component: { template: '<div />' } },
     ],
   })
-  return { router, wrapper: mount(ProfileStep, { global: { plugins: [router] } }) }
+  return {
+    router,
+    wrapper: mount(ProfileStep, { global: { plugins: [router, getActivePinia()!, PiniaColada] } }),
+  }
 }
 
 async function pickPhoto(wrapper: ReturnType<typeof mountStep>['wrapper']) {

@@ -2,7 +2,7 @@ import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
-import { http } from '@/shared/api'
+import { ApiError, http } from '@/shared/api'
 import { router } from '.'
 import { accessRedirect, installAccessGuard, installSessionInterceptor } from './access'
 
@@ -96,7 +96,7 @@ describe('session interceptor', () => {
     const session = useSessionStore()
     session.set(me({ status: 'approved' }))
 
-    await expect(reject(401)).rejects.toBeInstanceOf(AxiosError)
+    await expect(reject(401)).rejects.toBeInstanceOf(ApiError)
 
     expect(session.me).toBeNull()
     expect(stubRouter.currentRoute.value.name).toBe('login')
@@ -110,7 +110,7 @@ describe('session interceptor', () => {
       return session.me
     })
 
-    await expect(reject(403)).rejects.toBeInstanceOf(AxiosError)
+    await expect(reject(403)).rejects.toBeInstanceOf(ApiError)
 
     expect(stubRouter.currentRoute.value.name).toBe('onboarding-status')
   })
@@ -119,7 +119,7 @@ describe('session interceptor', () => {
     const session = useSessionStore()
     session.clear()
 
-    await expect(reject(401)).rejects.toBeInstanceOf(AxiosError)
+    await expect(reject(401)).rejects.toBeInstanceOf(ApiError)
 
     expect(stubRouter.currentRoute.value.name).toBe('home')
   })

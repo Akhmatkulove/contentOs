@@ -1,6 +1,7 @@
+import { useMutation } from '@pinia/colada'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { login, useEnterSession } from '@/entities/session'
+import { login, useEnterSession, type Credentials } from '@/entities/session'
 import { errorStatus } from '@/shared/api'
 
 export function loginErrorMessage(error: unknown): string {
@@ -20,23 +21,28 @@ export function useLoginForm() {
 
   const email = ref('')
   const password = ref('')
-  const submitting = ref(false)
   // The backend sends people back here with ?error=google when Google sign-in fails.
-  const error = ref(
-    route.query.error === 'google' ? 'Couldn’t sign in with Google. Please try again.' : '',
-  )
-  const canSubmit = computed(() => !submitting.value && !!email.value && !!password.value)
+  const googleFailed = ref(route.query.error === 'google')
 
-  async function submit() {
-    error.value = ''
-    submitting.value = true
-    try {
-      await enter(await login({ email: email.value, password: password.value }))
-    } catch (e) {
-      error.value = loginErrorMessage(e)
-    } finally {
-      submitting.value = false
-    }
+  const {
+    mutate,
+    isLoading,
+    error: loginError,
+  } = useMutation({
+    // Navigation is part of the mutation, so the button stays disabled until the page changes.
+    mutation: async (credentials: Credentials) => enter(await login(credentials)),
+    meta: { toast: false },
+  })
+
+  const error = computed(() => {
+    if (loginError.value) return loginErrorMessage(loginError.value)
+    return googleFailed.value ? 'Couldn’t sign in with Google. Please try again.' : ''
+  })
+  const canSubmit = computed(() => !isLoading.value && !!email.value && !!password.value)
+
+  function submit() {
+    googleFailed.value = false
+    mutate({ email: email.value, password: password.value })
   }
 
   return { email, password, error, canSubmit, submit }

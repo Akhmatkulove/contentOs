@@ -1,4 +1,5 @@
-import { ref } from 'vue'
+import { useMutation } from '@pinia/colada'
+import { computed } from 'vue'
 import { useEnterSession } from '@/entities/session'
 import { reopenApplication } from '../api/onboarding'
 
@@ -6,20 +7,11 @@ import { reopenApplication } from '../api/onboarding'
 // onboarding with its answers, and the user lands on the review step to change them.
 export function useReopen() {
   const enter = useEnterSession()
-  const reopening = ref(false)
-  const failed = ref(false)
 
-  async function reopen() {
-    reopening.value = true
-    failed.value = false
-    try {
-      await enter(await reopenApplication())
-    } catch {
-      failed.value = true
-    } finally {
-      reopening.value = false
-    }
-  }
+  const { mutate, isLoading, error } = useMutation({
+    mutation: async () => enter(await reopenApplication()),
+    meta: { toast: false },
+  })
 
-  return { reopen, reopening, failed }
+  return { reopen: () => mutate(), reopening: isLoading, failed: computed(() => !!error.value) }
 }

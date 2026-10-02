@@ -1,32 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useSessionStore, type Role } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
-import { saveAnswers } from '../api/onboarding'
 import { roleOptions } from '../model/roles'
+import { useRoleStep } from '../model/role-step'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-const router = useRouter()
-const session = useSessionStore()
-
-const role = ref<Role | null>(session.me?.role ?? null)
-const saving = ref(false)
-const error = ref('')
-
-async function submit() {
-  if (!role.value) return
-  saving.value = true
-  error.value = ''
-  try {
-    session.set(await saveAnswers({ role: role.value }))
-    await router.push({ name: 'onboarding-profile' })
-  } catch {
-    error.value = 'Couldn’t save your answer. Please try again.'
-  } finally {
-    saving.value = false
-  }
-}
+const { role, canSubmit, failed, submit } = useRoleStep()
 </script>
 
 <template>
@@ -82,10 +60,12 @@ async function submit() {
       </label>
     </fieldset>
 
-    <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+    <p v-if="failed" role="alert" class="text-p3 font-medium text-red-400">
+      Couldn’t save your answer. Please try again.
+    </p>
 
     <div class="mt-auto flex w-full justify-end lg:mt-0">
-      <button type="submit" :disabled="!role || saving">Continue</button>
+      <button type="submit" :disabled="!canSubmit">Continue</button>
     </div>
   </form>
 </template>

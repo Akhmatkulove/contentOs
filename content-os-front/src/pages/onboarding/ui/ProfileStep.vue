@@ -1,57 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useSessionStore } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
-import { saveAnswers, uploadPhoto } from '../api/onboarding'
+import { useProfileStep } from '../model/profile-step'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-const router = useRouter()
-const session = useSessionStore()
+const { name, photoUrl, uploading, photoError, upload, canSubmit, failed, submit } =
+  useProfileStep()
 
-const name = ref(session.me?.name ?? '')
-const photoUrl = computed(() => session.me?.photo_url ?? null)
-const uploading = ref(false)
-const photoError = ref('')
-const saving = ref(false)
-const error = ref('')
-
-// The photo is uploaded as soon as it is picked; the server crops and re-encodes it.
-async function onPhotoChange(event: Event) {
+function onPhotoChange(event: Event) {
   const input = event.target as HTMLInputElement
   const photo = input.files?.[0]
+  // Cleared so that picking the same file again still fires change.
   input.value = ''
-  if (!photo) return
-  uploading.value = true
-  photoError.value = ''
-  try {
-    session.set(await uploadPhoto(photo))
-  } catch (e) {
-    const status = errorStatus(e)
-    photoError.value =
-      status === 413
-        ? 'This photo is larger than 5MB.'
-        : status === 422
-          ? 'Use a JPG or PNG image.'
-          : 'Couldn’t upload the photo. Please try again.'
-  } finally {
-    uploading.value = false
-  }
-}
-
-async function submit() {
-  saving.value = true
-  error.value = ''
-  try {
-    session.set(await saveAnswers({ name: name.value.trim() }))
-    await router.push({ name: 'onboarding-review' })
-  } catch {
-    error.value = 'Couldn’t save your answers. Please try again.'
-  } finally {
-    saving.value = false
-  }
+  if (photo) upload(photo)
 }
 </script>
 
@@ -129,11 +90,13 @@ async function submit() {
       />
     </div>
 
-    <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+    <p v-if="failed" role="alert" class="text-p3 font-medium text-red-400">
+      Couldn’t save your answers. Please try again.
+    </p>
 
     <div class="mt-auto flex w-full gap-3 lg:mt-0 lg:w-[720px] lg:justify-between">
-      <button type="button" @click="router.push({ name: 'onboarding-role' })">Back</button>
-      <button type="submit" :disabled="!name.trim() || saving || uploading">Continue</button>
+      <button type="button" @click="$router.push({ name: 'onboarding-role' })">Back</button>
+      <button type="submit" :disabled="!canSubmit">Continue</button>
     </div>
   </form>
 </template>

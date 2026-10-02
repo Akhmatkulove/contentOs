@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError, type AxiosResponse } from 'axios'
+import { PiniaColada } from '@pinia/colada'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
@@ -7,6 +8,7 @@ import { http } from '@/shared/api'
 import SignupPage from './SignupPage.vue'
 
 const stub = { template: '<div />' }
+let pinia: ReturnType<typeof createPinia>
 
 async function mountPage() {
   const router = createRouter({
@@ -18,7 +20,10 @@ async function mountPage() {
     ],
   })
   await router.push('/signup')
-  return { router, wrapper: mount(SignupPage, { global: { plugins: [router] } }) }
+  return {
+    router,
+    wrapper: mount(SignupPage, { global: { plugins: [router, pinia, PiniaColada] } }),
+  }
 }
 
 type Wrapper = Awaited<ReturnType<typeof mountPage>>['wrapper']
@@ -32,7 +37,10 @@ async function fill(wrapper: Wrapper, password = 'anna-password', repeat = passw
 }
 
 describe('SignupPage', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+  })
 
   it('creates the account and starts onboarding', async () => {
     const me = { status: 'onboarding', onboarding_step: 'role' } as Me

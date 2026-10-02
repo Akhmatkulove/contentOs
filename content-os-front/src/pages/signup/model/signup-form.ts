@@ -1,5 +1,6 @@
+import { useMutation } from '@pinia/colada'
 import { computed, reactive, ref } from 'vue'
-import { signup, useEnterSession } from '@/entities/session'
+import { signup, useEnterSession, type Credentials } from '@/entities/session'
 import { errorStatus } from '@/shared/api'
 
 // Same limit as SignupRequest on the backend.
@@ -46,27 +47,25 @@ export function useSignupForm() {
   const email = ref('')
   const password = ref('')
   const passwordRepeat = ref('')
-  const submitting = ref(false)
-  const errors = reactive<SignupErrors>({ email: '', password: '', passwordRepeat: '', form: '' })
+  const passwordErrors = reactive({ password: '', passwordRepeat: '' })
+
+  const { mutate, reset, isLoading, error } = useMutation({
+    mutation: async (credentials: Credentials) => enter(await signup(credentials)),
+    meta: { toast: false },
+  })
+
+  const errors = computed<SignupErrors>(() => ({
+    ...passwordErrors,
+    ...(error.value ? signupErrorMessage(error.value) : { email: '', form: '' }),
+  }))
   const canSubmit = computed(
-    () => !submitting.value && !!email.value && !!password.value && !!passwordRepeat.value,
+    () => !isLoading.value && !!email.value && !!password.value && !!passwordRepeat.value,
   )
 
-  async function submit() {
-    Object.assign(
-      errors,
-      { email: '', form: '' },
-      validatePasswords(password.value, passwordRepeat.value),
-    )
-    if (errors.password || errors.passwordRepeat) return
-    submitting.value = true
-    try {
-      await enter(await signup({ email: email.value, password: password.value }))
-    } catch (e) {
-      Object.assign(errors, signupErrorMessage(e))
-    } finally {
-      submitting.value = false
-    }
+  function submit() {
+    Object.assign(passwordErrors, validatePasswords(password.value, passwordRepeat.value))
+    if (passwordErrors.password || passwordErrors.passwordRepeat) return reset()
+    mutate({ email: email.value, password: password.value })
   }
 
   return { email, password, passwordRepeat, errors, canSubmit, submit }

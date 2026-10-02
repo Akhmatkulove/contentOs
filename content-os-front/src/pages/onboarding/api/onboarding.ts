@@ -19,6 +19,10 @@ export async function uploadPhoto(photo: File): Promise<Me> {
   const form = new FormData()
   form.append('photo', photo)
   return (
-    await http.put<Me>('/me/photo', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await http.put<Me>('/me/photo', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      // Up to 5MB over a slow mobile connection.
+      timeout: 60_000,
+    })
   ).data
 }

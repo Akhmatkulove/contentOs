@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { PiniaColada } from '@pinia/colada'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me, type Status } from '@/entities/session'
 import { http } from '@/shared/api'
@@ -21,7 +22,10 @@ async function mountPage() {
     ],
   })
   await router.push('/status')
-  return { router, wrapper: mount(StatusPage, { global: { plugins: [router] } }) }
+  return {
+    router,
+    wrapper: mount(StatusPage, { global: { plugins: [router, getActivePinia()!, PiniaColada] } }),
+  }
 }
 
 function button(wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper'], text: string) {

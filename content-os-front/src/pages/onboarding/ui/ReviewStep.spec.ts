@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError, type AxiosResponse } from 'axios'
-import { createPinia, setActivePinia } from 'pinia'
+import { PiniaColada } from '@pinia/colada'
+import { createPinia, getActivePinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
 import { http } from '@/shared/api'
@@ -25,7 +26,10 @@ function mountStep() {
       { path: '/status', name: 'onboarding-status', component: stub },
     ],
   })
-  return { router, wrapper: mount(ReviewStep, { global: { plugins: [router] } }) }
+  return {
+    router,
+    wrapper: mount(ReviewStep, { global: { plugins: [router, getActivePinia()!, PiniaColada] } }),
+  }
 }
 
 function button(wrapper: ReturnType<typeof mountStep>['wrapper'], text: string) {

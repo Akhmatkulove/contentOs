@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError, type AxiosResponse } from 'axios'
+import { PiniaColada } from '@pinia/colada'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
@@ -7,6 +8,7 @@ import { http } from '@/shared/api'
 import LoginPage from './LoginPage.vue'
 
 const stub = { template: '<div />' }
+let pinia: ReturnType<typeof createPinia>
 
 async function mountPage(query = '') {
   const router = createRouter({
@@ -19,7 +21,10 @@ async function mountPage(query = '') {
     ],
   })
   await router.push(`/login${query}`)
-  return { router, wrapper: mount(LoginPage, { global: { plugins: [router] } }) }
+  return {
+    router,
+    wrapper: mount(LoginPage, { global: { plugins: [router, pinia, PiniaColada] } }),
+  }
 }
 
 async function fillAndSubmit(wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper']) {
@@ -37,7 +42,10 @@ function failWith(status: number) {
 }
 
 describe('LoginPage', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+  })
 
   it('logs in and resumes where the user left off', async () => {
     const me = { status: 'onboarding', onboarding_step: 'profile' } as Me
