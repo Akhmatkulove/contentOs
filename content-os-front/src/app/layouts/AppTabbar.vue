@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { VIcon } from '@/shared/ui/icon'
-import { tabbarNav } from './nav'
+import { useNav } from './nav'
+
+const nav = useNav()
 
 const tabClass =
   'flex flex-1 flex-col items-center justify-center gap-[5px] py-2 text-[11px]/[13px] font-semibold tracking-[0.02em] uppercase'
@@ -12,7 +14,7 @@ const tabClass =
   >
     <div class="flex h-[60px]">
       <RouterLink
-        v-for="item in tabbarNav"
+        v-for="item in nav.tabbar"
         :key="item.label"
         v-slot="{ href, navigate, isActive }"
         :to="item.to"

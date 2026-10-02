@@ -1,12 +1,18 @@
 import type { RouteLocationNormalized, RouteLocationRaw, Router } from 'vue-router'
-import { homeRoute, useSessionStore, type Me, type OnboardingStep } from '@/entities/session'
+import {
+  homeRoute,
+  useSessionStore,
+  type Me,
+  type OnboardingStep,
+  type Role,
+} from '@/entities/session'
 import { errorStatus, http } from '@/shared/api'
 
 // Who may open a route. Routes without `access` (404, 500) are open to everyone.
 //   guest       — no session: login, signup
 //   onboarding  — status onboarding, and only steps already reached
 //   review      — application sent: under review or rejected
-//   approved    — the product itself
+//   approved    — the product itself; `roles` narrows a section to some roles
 export type Access = 'guest' | 'onboarding' | 'review' | 'approved'
 
 declare module 'vue-router' {
@@ -14,6 +20,8 @@ declare module 'vue-router' {
     access?: Access
     // Onboarding step the route shows, for access: 'onboarding'.
     step?: OnboardingStep
+    // Roles that see the section, for access: 'approved'. Without it, every role does.
+    roles?: Role[]
   }
 }
 
@@ -22,7 +30,7 @@ const STEP_ORDER: OnboardingStep[] = ['role', 'profile', 'review']
 // Only the route's meta matters, so resolved and normalized locations both fit.
 type Target = Pick<RouteLocationNormalized, 'meta'>
 
-function canOpen(to: Target, me: Me | null): boolean {
+export function canOpen(to: Target, me: Me | null): boolean {
   switch (to.meta.access) {
     case undefined:
       return true
@@ -35,8 +43,11 @@ function canOpen(to: Target, me: Me | null): boolean {
     }
     case 'review':
       return me?.status === 'pending_review' || me?.status === 'rejected'
-    case 'approved':
-      return me?.status === 'approved'
+    case 'approved': {
+      if (me?.status !== 'approved') return false
+      const { roles } = to.meta
+      return !roles || (me.role !== null && roles.includes(me.role))
+    }
   }
 }
 

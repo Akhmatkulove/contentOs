@@ -64,6 +64,21 @@ describe('accessRedirect', () => {
     expect(redirect('/onboarding/status', approved)).toBe('home')
     expect(redirect('/onboarding/role', approved)).toBe('home')
   })
+
+  it('keeps brands to Home, Products and Content', () => {
+    const brand = me({ role: 'brand', status: 'approved', onboarding_step: null })
+    for (const path of ['/', '/products', '/content']) expect(redirect(path, brand)).toBe(true)
+    for (const path of ['/tasks', '/shoots', '/references', '/activity']) {
+      expect(redirect(path, brand)).toBe('home')
+    }
+  })
+
+  it.each(['art_director', 'creator'] as const)('opens every section to %s', (role) => {
+    const user = me({ role, status: 'approved', onboarding_step: null })
+    for (const path of ['/', '/tasks', '/shoots', '/products', '/content', '/activity']) {
+      expect(redirect(path, user)).toBe(true)
+    }
+  })
 })
 
 describe('session interceptor', () => {

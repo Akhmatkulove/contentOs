@@ -1,6 +1,8 @@
-import type { RouteLocationRaw } from 'vue-router'
-import type { Role } from '@/entities/session'
+import { computed } from 'vue'
+import { useRouter, type RouteLocationRaw, type Router } from 'vue-router'
+import { useSessionStore, type Me, type Role } from '@/entities/session'
 import type { IconName } from '@/shared/ui/icon'
+import { canOpen } from '../router/access'
 
 export interface NavItem {
   label: string
@@ -20,9 +22,25 @@ export const sidebarNav: NavItem[] = [
 ]
 
 // The mobile tab bar fits four sections; the rest live behind More.
-export const tabbarNav: NavItem[] = sidebarNav.filter((item) =>
-  ['Home', 'My tasks', 'Shoots', 'Content'].includes(item.label),
-)
+const TABBAR_LIMIT = 4
+const tabbarPicks = ['Home', 'My tasks', 'Shoots', 'Content']
+
+// A section is listed only if its route lets the user in, so the menu and the
+// access guard can't disagree.
+export function navFor(router: Router, me: Me | null) {
+  const sidebar = sidebarNav.filter((item) => canOpen(router.resolve(item.to), me))
+  const tabbar =
+    sidebar.length <= TABBAR_LIMIT
+      ? sidebar
+      : sidebar.filter((item) => tabbarPicks.includes(item.label))
+  return { sidebar, tabbar }
+}
+
+export function useNav() {
+  const router = useRouter()
+  const session = useSessionStore()
+  return computed(() => navFor(router, session.me))
+}
 
 export const roleLabels: Record<Role, string> = {
   brand: 'Brand',

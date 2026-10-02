@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import type { Role } from '@/entities/session'
 import { ActivityPage } from '@/pages/activity'
 import { ContentPage } from '@/pages/content'
 import { HomePage } from '@/pages/home'
@@ -19,6 +20,9 @@ import AppLayout from '../layouts/AppLayout.vue'
 import AuthLayout from '../layouts/AuthLayout.vue'
 import { installAccessGuard } from './access'
 
+// Brands only see Home, Products and Content.
+const team: Role[] = ['art_director', 'creator']
+
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -28,12 +32,17 @@ export const router = createRouter({
       meta: { access: 'approved' },
       children: [
         { path: '', name: 'home', component: HomePage },
-        { path: 'tasks', name: 'tasks', component: TasksPage },
-        { path: 'shoots', name: 'shoots', component: ShootsPage },
+        { path: 'tasks', name: 'tasks', component: TasksPage, meta: { roles: team } },
+        { path: 'shoots', name: 'shoots', component: ShootsPage, meta: { roles: team } },
         { path: 'products', name: 'products', component: ProductsPage },
         { path: 'content', name: 'content', component: ContentPage },
-        { path: 'references', name: 'references', component: ReferencesPage },
-        { path: 'activity', name: 'activity', component: ActivityPage },
+        {
+          path: 'references',
+          name: 'references',
+          component: ReferencesPage,
+          meta: { roles: team },
+        },
+        { path: 'activity', name: 'activity', component: ActivityPage, meta: { roles: team } },
       ],
     },
     {

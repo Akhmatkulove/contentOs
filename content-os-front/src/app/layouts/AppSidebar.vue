@@ -4,9 +4,10 @@ import { useSessionStore } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
 import logoMarkUrl from './assets/logo-mark-dark.svg'
 import logoTextUrl from './assets/logo-text-dark.svg'
-import { roleLabels, sidebarNav } from './nav'
+import { roleLabels, useNav } from './nav'
 
 const session = useSessionStore()
+const nav = useNav()
 
 const name = computed(() => session.me?.name ?? '')
 const role = computed(() => (session.me?.role ? roleLabels[session.me.role] : ''))
@@ -25,7 +26,7 @@ const initial = computed(() => name.value.charAt(0).toUpperCase())
       class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-[15px] pt-3 pb-4"
     >
       <RouterLink
-        v-for="item in sidebarNav"
+        v-for="item in nav.sidebar"
         :key="item.label"
         :to="item.to"
         exact-active-class="bg-neutral-200"
