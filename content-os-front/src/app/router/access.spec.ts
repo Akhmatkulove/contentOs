@@ -4,7 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
 import { http } from '@/shared/api'
 import { router } from '.'
-import { accessRedirect, installSessionInterceptor } from './access'
+import { accessRedirect, installAccessGuard, installSessionInterceptor } from './access'
 
 function me(overrides: Partial<Me> = {}): Me {
   return {
@@ -122,5 +122,33 @@ describe('session interceptor', () => {
     await expect(reject(401)).rejects.toBeInstanceOf(AxiosError)
 
     expect(stubRouter.currentRoute.value.name).toBe('home')
+  })
+})
+
+describe('access guard', () => {
+  const stubRouter = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/login', name: 'login', component: { template: '<div />' } },
+      {
+        path: '/signup',
+        name: 'signup',
+        component: { template: '<div />' },
+        meta: { access: 'guest' },
+      },
+      { path: '/error', name: 'server-error', component: { template: '<div />' } },
+    ],
+  })
+  installAccessGuard(stubRouter)
+
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('opens the 500 page, keeping the path, when /me fails', async () => {
+    vi.spyOn(useSessionStore(), 'load').mockRejectedValue(new Error('down'))
+
+    await stubRouter.push('/signup?ref=ad')
+
+    expect(stubRouter.currentRoute.value.name).toBe('server-error')
+    expect(stubRouter.currentRoute.value.query.from).toBe('/signup?ref=ad')
   })
 })

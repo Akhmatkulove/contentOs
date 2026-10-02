@@ -57,6 +57,11 @@ export const router = createRouter({
       ],
     },
     {
+      path: '/error',
+      name: 'server-error',
+      component: () => import('@/pages/server-error').then((m) => m.ServerErrorPage),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/not-found').then((m) => m.NotFoundPage),
