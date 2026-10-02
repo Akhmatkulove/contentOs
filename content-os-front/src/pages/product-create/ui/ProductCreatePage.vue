@@ -133,11 +133,11 @@ const emptyListClass =
       <p :class="emptyListClass">The References you've added will be displayed here</p>
     </SectionCard>
 
+    <!-- Deliverables hidden for now. TODO(ui): deliverable form and rows — no design yet.
     <SectionCard
       title="Deliverables"
       description="Plan and track the content pieces required for this product."
     >
-      <!-- TODO(ui): deliverable form and rows — no design yet. -->
       <template #action>
         <VButton variant="secondary" class="w-full md:hidden">
           <VIcon name="plus-sign" />
@@ -150,6 +150,7 @@ const emptyListClass =
       </template>
       <p :class="emptyListClass">The Deliverables you've added will be displayed here</p>
     </SectionCard>
+    -->
 
     <!-- On mobile the actions stay above the tab bar. -->
     <div
