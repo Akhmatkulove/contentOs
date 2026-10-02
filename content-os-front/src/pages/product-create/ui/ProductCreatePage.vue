@@ -1,15 +1,21 @@
 <script setup lang="ts">
+import { useTemplateRef } from 'vue'
 import { VButton } from '@/shared/ui/button'
+import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
+import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
 import { statusOptions, useProductCreateForm } from '../model/product-create-form'
+import { photoAccept } from '../model/product-photos'
 import SectionCard from './SectionCard.vue'
 
-const { form, cancel, submit } = useProductCreateForm()
+const { form, photos, addPhotos, removePhoto, rejectPhotos, cancel, submit } =
+  useProductCreateForm()
+const dropzone = useTemplateRef('dropzone')
 
 const emptyListClass =
   'hidden h-[117px] items-center justify-center rounded-[20px] bg-subtle p-8 text-center text-p1 font-medium text-secondary md:flex'
@@ -76,19 +82,37 @@ const emptyListClass =
     </div>
 
     <SectionCard title="Photos">
-      <!-- TODO(ui): VDropzone (Figma "CMS / Shared / Dropzone") — file picking and drag & drop;
-           uploaded files go below it as VUploadThumbnail (Figma "CMS / Shared / Upload thumbnail"). -->
-      <button
-        type="button"
-        class="flex h-[140px] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-400 bg-violet-100/20 px-5 py-3 text-center md:h-28"
+      <VDropzone
+        ref="dropzone"
+        :accept="photoAccept"
+        hint="Images • upload multiple files"
+        class="h-[140px] border-pink-200 md:h-28 md:border-violet-400"
+        @select="addPhotos"
+        @reject="rejectPhotos"
+      />
+      <!-- Mobile: one scrollable row ending with "Add more"; desktop: wraps. -->
+      <ul
+        v-if="photos.length"
+        class="-mx-4 flex gap-3 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
       >
-        <VIcon name="image-02" :size="26" class="text-brand" />
-        <span class="text-p2 font-semibold text-brand">
-          <span class="md:hidden">Choose files to upload</span>
-          <span class="hidden md:inline">Drag and drop files here or browse</span>
-        </span>
-        <span class="text-p3 font-medium text-secondary">Images • upload multiple files</span>
-      </button>
+        <li v-for="photo in photos" :key="photo.id">
+          <VUploadThumbnail
+            :src="photo.url"
+            :alt="photo.file.name"
+            @remove="removePhoto(photo.id)"
+          />
+        </li>
+        <li class="md:hidden">
+          <VButton
+            variant="ghost"
+            class="aspect-[9/16] h-auto w-20 flex-col gap-1.5 rounded-xl border border-default bg-subtle text-p4 font-medium"
+            @click="dropzone?.open()"
+          >
+            <VIcon name="plus-sign" :size="18" class="text-brand" />
+            Add more
+          </VButton>
+        </li>
+      </ul>
     </SectionCard>
 
     <SectionCard

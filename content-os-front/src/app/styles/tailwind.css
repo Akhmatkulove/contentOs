@@ -112,6 +112,8 @@
   --background-color-status-info: var(--color-blue-100);
   --background-color-status-warning: var(--color-yellow-100);
   --text-color-status-info: var(--color-blue-400);
+  /* Dark scrim over photos: remove buttons on thumbnails. */
+  --background-color-overlay-media: rgb(0 0 0 / 0.56);
 
   --border-color-default: var(--color-neutral-300);
 

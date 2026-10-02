@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import type { SelectOption } from '@/shared/ui/select'
+import { useProductPhotos } from './product-photos'
 
 export const statusOptions: SelectOption[] = [
   { value: 'active', label: 'Active' },
@@ -22,6 +23,8 @@ export function useProductCreateForm() {
     about: '',
     notes: '',
   })
+  // TODO(api): no upload endpoint for product photos yet; send them with the create request.
+  const photos = useProductPhotos()
 
   function cancel() {
     return router.push({ name: 'products' })
@@ -30,5 +33,5 @@ export function useProductCreateForm() {
   // TODO(api): create the product with useMutation, then open it.
   function submit() {}
 
-  return { form, cancel, submit }
+  return { form, ...photos, cancel, submit }
 }
