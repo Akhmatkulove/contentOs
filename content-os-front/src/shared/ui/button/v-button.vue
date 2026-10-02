@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Primitive } from 'reka-ui'
 import { cn } from '@/shared/lib'
 
 const buttonVariants = cva(
@@ -36,17 +37,26 @@ const {
   variant,
   size,
   type = 'button',
+  asChild = false,
   class: className,
 } = defineProps<{
   variant?: ButtonVariants['variant']
   size?: ButtonVariants['size']
   type?: 'button' | 'submit' | 'reset'
+  // Render the single child (e.g. a RouterLink) with the button's look
+  // instead of a <button>.
+  asChild?: boolean
   class?: HTMLAttributes['class']
 }>()
 </script>
 
 <template>
-  <button :type="type" :class="cn(buttonVariants({ variant, size }), className)">
+  <Primitive
+    as="button"
+    :as-child="asChild"
+    :type="asChild ? undefined : type"
+    :class="cn(buttonVariants({ variant, size }), className)"
+  >
     <slot />
-  </button>
+  </Primitive>
 </template>

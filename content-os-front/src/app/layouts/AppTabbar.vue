@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router'
 import { VIcon } from '@/shared/ui/icon'
-import { useNav } from './nav'
+import { isNavItemActive, useNav, type NavItem } from './nav'
 
 const nav = useNav()
+const router = useRouter()
+const route = useRoute()
+
+const isActive = (item: NavItem) => isNavItemActive(router, item, route)
 
 const tabClass =
   'flex flex-1 flex-col items-center justify-center gap-[5px] py-2 text-[11px]/[13px] font-semibold tracking-[0.02em] uppercase'
@@ -16,13 +21,13 @@ const tabClass =
       <RouterLink
         v-for="item in nav.tabbar"
         :key="item.label"
-        v-slot="{ href, navigate, isActive }"
+        v-slot="{ href, navigate }"
         :to="item.to"
         custom
       >
         <a
           :href="href"
-          :class="[tabClass, isActive ? 'text-violet-400' : 'text-neutral-600']"
+          :class="[tabClass, isActive(item) ? 'text-violet-400' : 'text-neutral-600']"
           @click="navigate"
         >
           <span class="relative">

@@ -22,6 +22,9 @@ declare module 'vue-router' {
     step?: OnboardingStep
     // Roles that see the section, for access: 'approved'. Without it, every role does.
     roles?: Role[]
+    // Nav section a nested screen belongs to (route name), so the sidebar
+    // keeps that section highlighted: 'products' for /products/new.
+    section?: string
   }
 }
 

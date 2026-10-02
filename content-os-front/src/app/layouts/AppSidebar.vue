@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
 import logoMarkUrl from './assets/logo-mark-dark.svg'
 import logoTextUrl from './assets/logo-text-dark.svg'
-import { roleLabels, useNav } from './nav'
+import { isNavItemActive, roleLabels, useNav, type NavItem } from './nav'
 
 const session = useSessionStore()
 const nav = useNav()
+const router = useRouter()
+const route = useRoute()
+
+const isActive = (item: NavItem) => isNavItemActive(router, item, route)
 
 const name = computed(() => session.me?.name ?? '')
 const role = computed(() => (session.me?.role ? roleLabels[session.me.role] : ''))
@@ -29,8 +34,10 @@ const initial = computed(() => name.value.charAt(0).toUpperCase())
         v-for="item in nav.sidebar"
         :key="item.label"
         :to="item.to"
-        exact-active-class="bg-neutral-200"
-        class="flex h-11 items-center gap-[15px] rounded-[11px] px-5 text-p2 font-semibold shrink-0 text-neutral-800 uppercase"
+        :class="[
+          'flex h-11 shrink-0 items-center gap-[15px] rounded-[11px] px-5 text-p2 font-semibold text-neutral-800 uppercase',
+          isActive(item) && 'bg-neutral-200',
+        ]"
       >
         <VIcon :name="item.icon" :size="18" class="text-violet-500" />
         <span class="flex-1">{{ item.label }}</span>

@@ -20,4 +20,14 @@ describe('VButton', () => {
     expect(wrapper.attributes('aria-label')).toBe('More actions')
     expect(wrapper.emitted('click')).toHaveLength(1)
   })
+
+  it('can render a link with the button look', () => {
+    const wrapper = mount(VButton, {
+      props: { asChild: true, variant: 'outline' },
+      slots: { default: '<a href="/products/new">Add product</a>' },
+    })
+    expect(wrapper.element.tagName).toBe('A')
+    expect(wrapper.attributes('type')).toBeUndefined()
+    expect(wrapper.classes()).toContain('border-default')
+  })
 })

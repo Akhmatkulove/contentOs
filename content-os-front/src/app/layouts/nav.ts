@@ -1,5 +1,11 @@
 import { computed } from 'vue'
-import { useRouter, type RouteLocationRaw, type Router } from 'vue-router'
+import {
+  useRouter,
+  type RouteLocationNormalizedLoaded,
+  type RouteLocationRaw,
+  type RouteMeta,
+  type Router,
+} from 'vue-router'
 import { useSessionStore, type Me, type Role } from '@/entities/session'
 import type { IconName } from '@/shared/ui/icon'
 import { canOpen } from '../router/access'
@@ -34,6 +40,17 @@ export function navFor(router: Router, me: Me | null) {
       ? sidebar
       : sidebar.filter((item) => tabbarPicks.includes(item.label))
   return { sidebar, tabbar }
+}
+
+// A section stays highlighted on its own screen and on screens nested in it
+// (meta.section), e.g. Products on /products/new.
+export function isNavItemActive(
+  router: Router,
+  item: NavItem,
+  route: { name?: RouteLocationNormalizedLoaded['name'] | null; meta: RouteMeta },
+) {
+  const name = router.resolve(item.to).name
+  return name !== undefined && (route.name === name || route.meta.section === name)
 }
 
 export function useNav() {

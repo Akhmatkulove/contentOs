@@ -1,6 +1,6 @@
 import type { Me, Role } from '@/entities/session'
 import { router } from '../router'
-import { navFor } from './nav'
+import { isNavItemActive, navFor, sidebarNav } from './nav'
 
 function approved(role: Role): Me {
   return {
@@ -32,5 +32,15 @@ describe('navFor', () => {
       sidebar: ['Home', 'My tasks', 'Shoots', 'Products', 'Content', 'References', 'Activity'],
       tabbar: ['Home', 'My tasks', 'Shoots', 'Content'],
     })
+  })
+
+  it('keeps a section highlighted on the screens nested in it', () => {
+    const products = sidebarNav.find((item) => item.label === 'Products')!
+    const home = sidebarNav.find((item) => item.label === 'Home')!
+    const createProduct = router.resolve({ name: 'product-create' })
+
+    expect(isNavItemActive(router, products, createProduct)).toBe(true)
+    expect(isNavItemActive(router, home, createProduct)).toBe(false)
+    expect(isNavItemActive(router, products, router.resolve({ name: 'products' }))).toBe(true)
   })
 })

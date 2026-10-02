@@ -11,6 +11,7 @@ import {
   OnboardingRoleStep,
   OnboardingStatusPage,
 } from '@/pages/onboarding'
+import { ProductCreatePage } from '@/pages/product-create'
 import { ProductsPage } from '@/pages/products'
 import { ReferencesPage } from '@/pages/references'
 import { ShootsPage } from '@/pages/shoots'
@@ -35,6 +36,12 @@ export const router = createRouter({
         { path: 'tasks', name: 'tasks', component: TasksPage, meta: { roles: team } },
         { path: 'shoots', name: 'shoots', component: ShootsPage, meta: { roles: team } },
         { path: 'products', name: 'products', component: ProductsPage },
+        {
+          path: 'products/new',
+          name: 'product-create',
+          component: ProductCreatePage,
+          meta: { section: 'products' },
+        },
         { path: 'content', name: 'content', component: ContentPage },
         {
           path: 'references',

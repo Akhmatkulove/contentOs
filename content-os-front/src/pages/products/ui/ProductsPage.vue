@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
+import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { PRODUCTS_PER_PAGE, useProductsList } from '../model/products-list'
@@ -27,23 +28,14 @@ const filters = [
       </div>
 
       <div class="flex items-center gap-3">
-        <!-- TODO(ui): "Add product" form/dialog — no design yet; same for every Add product button. -->
-        <VButton v-if="!isEmpty" class="hidden md:inline-flex">
-          <VIcon name="plus-sign" :size="16" />
-          Add product
+        <VButton v-if="!isEmpty" as-child class="hidden md:inline-flex">
+          <RouterLink :to="{ name: 'product-create' }">
+            <VIcon name="plus-sign" :size="16" />
+            Add product
+          </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
-        <VButton
-          variant="surface"
-          size="icon-44"
-          aria-label="Notifications"
-          class="relative text-link shadow-[0_8px_16px_rgb(29_42_60/0.05)] lg:hidden"
-        >
-          <VIcon name="notification-02" :size="18" />
-          <span
-            class="absolute top-[11px] right-[11px] size-[7px] rounded-full bg-red-300 ring-1 ring-white"
-          />
-        </VButton>
+        <VNotificationButton unread class="lg:hidden" />
       </div>
     </header>
 
@@ -78,9 +70,11 @@ const filters = [
         </button>
       </section>
 
-      <VButton class="w-full gap-2 md:hidden">
-        <VIcon name="plus-sign" :size="16" />
-        Add product
+      <VButton as-child class="w-full gap-2 md:hidden">
+        <RouterLink :to="{ name: 'product-create' }">
+          <VIcon name="plus-sign" :size="16" />
+          Add product
+        </RouterLink>
       </VButton>
 
       <div class="flex items-center justify-between md:min-h-11">
