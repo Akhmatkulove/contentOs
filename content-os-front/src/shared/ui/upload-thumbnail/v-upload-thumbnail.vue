@@ -9,10 +9,13 @@ import { VIcon } from '@/shared/ui/icon'
 const {
   src,
   alt = '',
+  video = false,
   class: className,
 } = defineProps<{
   src: string
   alt?: string
+  // The file is a video: its first frame is the preview.
+  video?: boolean
   class?: HTMLAttributes['class']
 }>()
 
@@ -25,7 +28,17 @@ defineEmits<{ remove: [] }>()
       cn('relative aspect-[9/16] w-20 shrink-0 overflow-hidden rounded-[10px] bg-muted', className)
     "
   >
-    <img :src="src" :alt="alt" class="size-full object-cover" />
+    <!-- #t=0.1 makes iOS Safari paint a frame without playing. -->
+    <video
+      v-if="video"
+      :src="`${src}#t=0.1`"
+      :aria-label="alt || undefined"
+      muted
+      playsinline
+      preload="metadata"
+      class="size-full object-cover"
+    />
+    <img v-else :src="src" :alt="alt" class="size-full object-cover" />
     <VButton
       variant="ghost"
       size="icon-24"

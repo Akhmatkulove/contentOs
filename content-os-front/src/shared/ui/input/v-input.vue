@@ -33,7 +33,7 @@ const errorId = computed(() => `${id.value}-error`)
       {{ label }}
     </label>
 
-    <!-- The box carries border and background so the suffix sits inside it. -->
+    <!-- The box carries border and background so prefix and suffix sit inside it. -->
     <div
       :class="[
         'flex h-11 items-center gap-2 rounded-[10px] px-3 transition-colors',
@@ -43,6 +43,7 @@ const errorId = computed(() => `${id.value}-error`)
           : 'border border-default bg-card focus-within:border-violet-400',
       ]"
     >
+      <slot name="prefix" />
       <input
         v-bind="attrs"
         :id="id"

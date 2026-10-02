@@ -8,4 +8,12 @@ describe('VUploadThumbnail', () => {
     await wrapper.get('button[aria-label="Remove look.jpg"]').trigger('click')
     expect(wrapper.emitted('remove')).toHaveLength(1)
   })
+
+  it('previews a video by its first frame', () => {
+    const wrapper = mount(VUploadThumbnail, {
+      props: { src: 'blob:2', alt: 'walk.mp4', video: true },
+    })
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.get('video').attributes('src')).toBe('blob:2#t=0.1')
+  })
 })

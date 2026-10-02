@@ -114,6 +114,8 @@
   --text-color-status-info: var(--color-blue-400);
   /* Dark scrim over photos: remove buttons on thumbnails. */
   --background-color-overlay-media: rgb(0 0 0 / 0.56);
+  /* Lighter scrim under the play button on video previews. */
+  --background-color-overlay-scrim: rgb(13 13 18 / 0.45);
 
   --border-color-default: var(--color-neutral-300);
 

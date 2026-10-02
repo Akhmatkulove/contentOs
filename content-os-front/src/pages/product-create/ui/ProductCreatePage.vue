@@ -13,7 +13,7 @@ import { statusOptions, useProductCreateForm } from '../model/product-create-for
 import { photoAccept } from '../model/product-photos'
 import SectionCard from './SectionCard.vue'
 
-const { form, photos, addPhotos, removePhoto, rejectPhotos, cancel, submit } =
+const { form, photos, addPhotos, removePhoto, rejectPhotos, addReference, cancel, submit } =
   useProductCreateForm()
 const dropzone = useTemplateRef('dropzone')
 
@@ -119,13 +119,13 @@ const emptyListClass =
       title="References"
       description="Attach references from your reference bank to guide the creative direction."
     >
-      <!-- TODO(ui): reference picker (from the reference bank) — no design yet. -->
+      <!-- TODO(ui): list of the product's references — no design yet. -->
       <template #action>
-        <VButton variant="secondary" class="w-full md:hidden">
+        <VButton variant="secondary" class="w-full md:hidden" @click="addReference">
           <VIcon name="plus-sign" />
           Add reference
         </VButton>
-        <VButton class="hidden md:inline-flex">
+        <VButton class="hidden md:inline-flex" @click="addReference">
           <VIcon name="plus-sign" />
           Add reference
         </VButton>

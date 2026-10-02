@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import type { SelectOption } from '@/shared/ui/select'
+import { openAddReference } from './add-reference'
 import { useProductPhotos } from './product-photos'
 
 export const statusOptions: SelectOption[] = [
@@ -30,8 +31,13 @@ export function useProductCreateForm() {
     return router.push({ name: 'products' })
   }
 
+  // TODO(api): attach the created reference to the product.
+  function addReference() {
+    return openAddReference()
+  }
+
   // TODO(api): create the product with useMutation, then open it.
   function submit() {}
 
-  return { form, ...photos, cancel, submit }
+  return { form, ...photos, addReference, cancel, submit }
 }
