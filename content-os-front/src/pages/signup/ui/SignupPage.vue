@@ -4,7 +4,7 @@ import { VInput, VPasswordInput } from '@/shared/ui/input'
 import { useSignupForm } from '../model/signup-form'
 import googleUrl from './assets/google.svg'
 
-const { email, password, passwordRepeat, errors, canSubmit, submit } = useSignupForm()
+const { form, errors, canSubmit, submit } = useSignupForm()
 </script>
 
 <template>
@@ -24,7 +24,7 @@ const { email, password, passwordRepeat, errors, canSubmit, submit } = useSignup
     <form class="flex flex-col gap-5 lg:gap-7" @submit.prevent="submit">
       <div class="flex flex-col gap-4 lg:gap-5">
         <VInput
-          v-model="email"
+          v-model="form.email"
           label="Email"
           type="email"
           name="email"
@@ -34,7 +34,7 @@ const { email, password, passwordRepeat, errors, canSubmit, submit } = useSignup
         />
 
         <VPasswordInput
-          v-model="password"
+          v-model="form.password"
           label="Password"
           name="password"
           autocomplete="new-password"
@@ -43,7 +43,7 @@ const { email, password, passwordRepeat, errors, canSubmit, submit } = useSignup
         />
 
         <VPasswordInput
-          v-model="passwordRepeat"
+          v-model="form.passwordRepeat"
           label="Repeat password"
           name="password-repeat"
           autocomplete="new-password"

@@ -1,23 +1,33 @@
 import { AxiosError, type AxiosResponse } from 'axios'
-import { signupErrorMessage, validatePasswords } from './signup-form'
+import * as v from 'valibot'
+import { signupErrorMessage, signupSchema } from './signup-form'
 
 function failure(status: number) {
   const response = { status, data: {}, headers: {}, config: {} } as AxiosResponse
   return new AxiosError('failed', undefined, undefined, undefined, response)
 }
 
-describe('validatePasswords', () => {
-  it('accepts a long enough password repeated exactly', () => {
-    expect(validatePasswords('anna-password', 'anna-password')).toEqual({
-      password: '',
-      passwordRepeat: '',
-    })
+function fieldErrors(input: { email: string; password: string; passwordRepeat: string }) {
+  const result = v.safeParse(signupSchema, input)
+  return result.success ? {} : v.flatten<typeof signupSchema>(result.issues).nested
+}
+
+describe('signupSchema', () => {
+  it('accepts a valid email and a long enough password repeated exactly', () => {
+    expect(
+      fieldErrors({
+        email: 'anna@example.com',
+        password: 'anna-password',
+        passwordRepeat: 'anna-password',
+      }),
+    ).toEqual({})
   })
 
-  it('flags a short password and a mismatched repeat', () => {
-    expect(validatePasswords('short', 'other')).toEqual({
-      password: 'Use at least 8 characters.',
-      passwordRepeat: 'Passwords don’t match.',
+  it('flags a bad email, a short password and a mismatched repeat', () => {
+    expect(fieldErrors({ email: 'anna', password: 'short', passwordRepeat: 'other' })).toEqual({
+      email: ['Enter a valid email address.'],
+      password: ['Use at least 8 characters.'],
+      passwordRepeat: ['Passwords don’t match.'],
     })
   })
 })

@@ -16,7 +16,7 @@ import {
   typeOptions,
   useAddReferenceForm,
 } from '../model/add-reference-form'
-import FavoriteToggle from './FavoriteToggle.vue'
+// import FavoriteToggle from './FavoriteToggle.vue'
 import LinkPreview from './LinkPreview.vue'
 
 // Figma "Modal / Add reference" (desktop) and "Sheet / Add reference" (mobile).
@@ -25,10 +25,10 @@ const emit = defineEmits<{ close: [] }>()
 const {
   source,
   form,
-  productOptions,
-  shootOptions,
-  creatorOptions,
-  collectionOptions,
+  // productOptions,
+  // shootOptions,
+  // creatorOptions,
+  // collectionOptions,
   files,
   addFiles,
   removeFile,
@@ -115,6 +115,7 @@ const dropzone = useTemplateRef('dropzone')
           label="Type"
           placeholder="Select type"
         />
+        <!-- Temporarily hidden: product, shoot, creator.
         <VSelect
           v-model="form.product"
           :options="productOptions"
@@ -136,12 +137,14 @@ const dropzone = useTemplateRef('dropzone')
           placeholder="Select creator"
           searchable
         />
+        -->
         <VTagsInput
           v-model="form.tags"
           label="Tags"
           placeholder="Add tags (e.g. fabric, minimal, lighting)"
           class="col-span-2 md:col-span-1"
         />
+        <!-- Temporarily hidden: collection.
         <VSelect
           v-model="form.collection"
           :options="collectionOptions"
@@ -150,6 +153,7 @@ const dropzone = useTemplateRef('dropzone')
           searchable
           class="col-span-2 md:col-span-1"
         />
+        -->
       </div>
 
       <VTextarea
@@ -159,12 +163,16 @@ const dropzone = useTemplateRef('dropzone')
         :rows="2"
       />
 
+      <!-- Temporarily hidden: add to favorites.
       <FavoriteToggle v-model="form.favorite" class="md:hidden" />
+      -->
     </form>
 
     <template #footer>
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2.5 md:justify-end">
+        <!-- Temporarily hidden: add to favorites.
         <FavoriteToggle v-model="form.favorite" class="hidden md:flex md:flex-1" />
+        -->
         <VButton
           variant="secondary"
           class="flex-1 md:w-[150px] md:flex-none"

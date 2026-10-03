@@ -64,6 +64,22 @@ describe('SignupPage', () => {
     expect(wrapper.text()).toContain('Passwords don’t match.')
   })
 
+  it('clears an error as soon as it is fixed, and shows new ones only on submit', async () => {
+    vi.spyOn(http, 'post')
+    const { wrapper } = await mountPage()
+
+    await fill(wrapper, 'short', 'short')
+    await wrapper.get('input[name="password"]').setValue('anna-password')
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Use at least 8 characters.')
+    expect(wrapper.text()).not.toContain('Passwords don’t match.')
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Passwords don’t match.')
+  })
+
   it('points to login when the email is taken', async () => {
     const response = { status: 409, data: {}, headers: {}, config: {} } as AxiosResponse
     vi.spyOn(http, 'post').mockRejectedValue(
@@ -75,5 +91,9 @@ describe('SignupPage', () => {
 
     expect(wrapper.text()).toContain('This email is already registered.')
     expect(router.currentRoute.value.name).toBe('signup')
+
+    await wrapper.get('input[name="email"]').setValue('anna2@example.com')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('This email is already registered.')
   })
 })

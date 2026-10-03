@@ -1,10 +1,24 @@
 import { AxiosError, type AxiosResponse } from 'axios'
-import { loginErrorMessage } from './login-form'
+import * as v from 'valibot'
+import { loginErrorMessage, loginSchema } from './login-form'
 
 function failure(status: number) {
   const response = { status, data: {}, headers: {}, config: {} } as AxiosResponse
   return new AxiosError('failed', undefined, undefined, undefined, response)
 }
+
+describe('loginSchema', () => {
+  it('accepts a valid email with any password', () => {
+    expect(v.is(loginSchema, { email: 'anna@example.com', password: 'x' })).toBe(true)
+  })
+
+  it('flags a malformed email', () => {
+    const result = v.safeParse(loginSchema, { email: 'anna', password: 'anna-password' })
+    expect(result.success ? {} : v.flatten<typeof loginSchema>(result.issues).nested).toEqual({
+      email: ['Enter a valid email address.'],
+    })
+  })
+})
 
 describe('loginErrorMessage', () => {
   it('names wrong credentials', () => {

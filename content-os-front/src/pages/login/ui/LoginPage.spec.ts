@@ -90,6 +90,23 @@ describe('LoginPage', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('Too many attempts')
   })
 
+  it('checks the email before sending and clears the error once it is fixed', async () => {
+    const post = vi.spyOn(http, 'post')
+    const { wrapper } = await mountPage()
+
+    await wrapper.get('input[name="email"]').setValue('anna')
+    await wrapper.get('input[name="password"]').setValue('anna-password')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Enter a valid email address.')
+
+    await wrapper.get('input[name="email"]').setValue('anna@example.com')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Enter a valid email address.')
+  })
+
   it('explains a failed Google sign-in', async () => {
     const { wrapper } = await mountPage('?error=google')
 

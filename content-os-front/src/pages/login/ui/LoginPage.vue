@@ -4,7 +4,7 @@ import { VInput, VPasswordInput } from '@/shared/ui/input'
 import { useLoginForm } from '../model/login-form'
 import googleUrl from './assets/google.svg'
 
-const { email, password, error, canSubmit, submit } = useLoginForm()
+const { form, errors, canSubmit, submit } = useLoginForm()
 </script>
 
 <template>
@@ -24,16 +24,17 @@ const { email, password, error, canSubmit, submit } = useLoginForm()
     <form class="flex flex-col gap-5 lg:gap-7" @submit.prevent="submit">
       <div class="flex flex-col gap-4 lg:gap-5">
         <VInput
-          v-model="email"
+          v-model="form.email"
           label="Email"
           type="email"
           name="email"
           autocomplete="email"
           placeholder="you@domain.com"
+          :error="errors.email"
         />
 
         <VPasswordInput
-          v-model="password"
+          v-model="form.password"
           label="Password"
           name="password"
           autocomplete="current-password"
@@ -45,7 +46,9 @@ const { email, password, error, canSubmit, submit } = useLoginForm()
         </div>
       </div>
 
-      <p v-if="error" role="alert" class="text-p3 font-medium text-red-400">{{ error }}</p>
+      <p v-if="errors.form" role="alert" class="text-p3 font-medium text-red-400">
+        {{ errors.form }}
+      </p>
 
       <button type="submit" :disabled="!canSubmit">Log in</button>
     </form>

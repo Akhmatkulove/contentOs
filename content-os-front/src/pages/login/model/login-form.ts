@@ -1,8 +1,17 @@
 import { useMutation } from '@pinia/colada'
-import { computed, ref } from 'vue'
+import { useRegleSchema } from '@regle/schemas'
+import * as v from 'valibot'
+import { computed, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { login, useEnterSession, type Credentials } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
+import { errorStatus, type Schemas } from '@/shared/api'
+
+// Checks what can be checked before asking the server. The password has no length rule:
+// it may predate the current signup limit, and the server checks it anyway.
+export const loginSchema = v.object({
+  email: v.pipe(v.string(), v.email('Enter a valid email address.')),
+  password: v.string(),
+}) satisfies v.GenericSchema<Schemas['LoginRequest']>
 
 export function loginErrorMessage(error: unknown): string {
   switch (errorStatus(error)) {
@@ -19,13 +28,15 @@ export function useLoginForm() {
   const route = useRoute()
   const enter = useEnterSession()
 
-  const email = ref('')
-  const password = ref('')
+  const form = reactive({ email: '', password: '' })
+  // rewardEarly: a field turns valid as soon as it is fixed, but turns invalid only on submit.
+  const { r$ } = useRegleSchema(form, loginSchema, { rewardEarly: true })
   // The backend sends people back here with ?error=google when Google sign-in fails.
   const googleFailed = ref(route.query.error === 'google')
 
   const {
     mutate,
+    reset,
     isLoading,
     error: loginError,
   } = useMutation({
@@ -34,16 +45,22 @@ export function useLoginForm() {
     meta: { toast: false },
   })
 
-  const error = computed(() => {
-    if (loginError.value) return loginErrorMessage(loginError.value)
-    return googleFailed.value ? 'Couldn’t sign in with Google. Please try again.' : ''
-  })
-  const canSubmit = computed(() => !isLoading.value && !!email.value && !!password.value)
+  const errors = computed(() => ({
+    email: r$.email.$errors[0] ?? '',
+    form: loginError.value
+      ? loginErrorMessage(loginError.value)
+      : googleFailed.value
+        ? 'Couldn’t sign in with Google. Please try again.'
+        : '',
+  }))
+  const canSubmit = computed(() => !isLoading.value && !!form.email && !!form.password)
 
-  function submit() {
+  async function submit() {
     googleFailed.value = false
-    mutate({ email: email.value, password: password.value })
+    reset()
+    const { valid, data } = await r$.$validate()
+    if (valid) mutate(data)
   }
 
-  return { email, password, error, canSubmit, submit }
+  return { form, errors, canSubmit, submit }
 }

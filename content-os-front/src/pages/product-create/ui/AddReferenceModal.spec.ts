@@ -37,7 +37,7 @@ describe('AddReferenceModal', () => {
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Add reference')
     expect(button('Upload files').getAttribute('aria-checked')).toBe('true')
     expect(document.querySelector('input[type="file"]')).not.toBeNull()
-    for (const label of ['Reference title', 'Type', 'Product', 'Shoot', 'Creator', 'Tags', 'Notes'])
+    for (const label of ['Reference title', 'Type', 'Tags', 'Notes'])
       expect(field(label)).toBeDefined()
   })
 

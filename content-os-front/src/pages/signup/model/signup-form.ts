@@ -1,34 +1,31 @@
 import { useMutation } from '@pinia/colada'
-import { computed, reactive, ref } from 'vue'
+import { useRegleSchema } from '@regle/schemas'
+import * as v from 'valibot'
+import { computed, reactive } from 'vue'
 import { signup, useEnterSession, type Credentials } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
+import { errorStatus, type Schemas } from '@/shared/api'
 
 // Same limit as SignupRequest on the backend.
-export const MIN_PASSWORD_LENGTH = 8
-
-export interface SignupErrors {
-  email: string
-  password: string
-  passwordRepeat: string
-  form: string
-}
+const credentials = v.object({
+  email: v.pipe(v.string(), v.email('Enter a valid email address.')),
+  password: v.pipe(v.string(), v.minLength(8, 'Use at least 8 characters.')),
+}) satisfies v.GenericSchema<Schemas['SignupRequest']>
 
 // Checks what can be checked before asking the server.
-export function validatePasswords(
-  password: string,
-  passwordRepeat: string,
-): Pick<SignupErrors, 'password' | 'passwordRepeat'> {
-  return {
-    password:
-      password.length < MIN_PASSWORD_LENGTH
-        ? `Use at least ${MIN_PASSWORD_LENGTH} characters.`
-        : '',
-    passwordRepeat: passwordRepeat !== password ? 'Passwords don’t match.' : '',
-  }
-}
+export const signupSchema = v.pipe(
+  v.object({ ...credentials.entries, passwordRepeat: v.string() }),
+  v.forward(
+    v.partialCheck(
+      [['password'], ['passwordRepeat']],
+      (input) => input.password === input.passwordRepeat,
+      'Passwords don’t match.',
+    ),
+    ['passwordRepeat'],
+  ),
+)
 
 // Which field the server's refusal belongs to, and what to say there.
-export function signupErrorMessage(error: unknown): Pick<SignupErrors, 'email' | 'form'> {
+export function signupErrorMessage(error: unknown): { email: string; form: string } {
   switch (errorStatus(error)) {
     case 409:
       return { email: 'This email is already registered. Log in instead.', form: '' }
@@ -44,29 +41,37 @@ export function signupErrorMessage(error: unknown): Pick<SignupErrors, 'email' |
 export function useSignupForm() {
   const enter = useEnterSession()
 
-  const email = ref('')
-  const password = ref('')
-  const passwordRepeat = ref('')
-  const passwordErrors = reactive({ password: '', passwordRepeat: '' })
+  const form = reactive({ email: '', password: '', passwordRepeat: '' })
+  // rewardEarly: a field turns valid as soon as it is fixed, but turns invalid only on submit.
+  const { r$ } = useRegleSchema(form, signupSchema, {
+    rewardEarly: true,
+    clearExternalErrorsOnChange: true,
+  })
 
   const { mutate, reset, isLoading, error } = useMutation({
     mutation: async (credentials: Credentials) => enter(await signup(credentials)),
+    onError: (e) => {
+      const { email } = signupErrorMessage(e)
+      if (email) r$.$setExternalErrors({ email: [{ $message: email }] })
+    },
     meta: { toast: false },
   })
 
-  const errors = computed<SignupErrors>(() => ({
-    ...passwordErrors,
-    ...(error.value ? signupErrorMessage(error.value) : { email: '', form: '' }),
+  const errors = computed(() => ({
+    email: r$.email.$errors[0] ?? '',
+    password: r$.password.$errors[0] ?? '',
+    passwordRepeat: r$.passwordRepeat.$errors[0] ?? '',
+    form: error.value ? signupErrorMessage(error.value).form : '',
   }))
   const canSubmit = computed(
-    () => !isLoading.value && !!email.value && !!password.value && !!passwordRepeat.value,
+    () => !isLoading.value && !!form.email && !!form.password && !!form.passwordRepeat,
   )
 
-  function submit() {
-    Object.assign(passwordErrors, validatePasswords(password.value, passwordRepeat.value))
-    if (passwordErrors.password || passwordErrors.passwordRepeat) return reset()
-    mutate({ email: email.value, password: password.value })
+  async function submit() {
+    reset()
+    const { valid, data } = await r$.$validate()
+    if (valid) mutate({ email: data.email, password: data.password })
   }
 
-  return { email, password, passwordRepeat, errors, canSubmit, submit }
+  return { form, errors, canSubmit, submit }
 }
