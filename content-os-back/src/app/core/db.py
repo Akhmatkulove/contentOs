@@ -1,8 +1,9 @@
+import enum
 from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sqlalchemy import MetaData
+from sqlalchemy import Enum, MetaData
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -23,6 +24,18 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+def string_enum(enum_class: type[enum.StrEnum], name: str) -> Enum:
+    # VARCHAR + CHECK вместо типа ENUM в Postgres: новое значение не требует ALTER TYPE.
+    return Enum(
+        enum_class,
+        name=name,
+        native_enum=False,
+        create_constraint=True,
+        length=32,
+        values_callable=lambda members: [member.value for member in members],
+    )
 
 
 def create_engine(url: str) -> AsyncEngine:

@@ -13,7 +13,8 @@ import { errorStatus, http } from '@/shared/api'
 //   onboarding  — status onboarding, and only steps already reached
 //   review      — application sent: under review or rejected
 //   approved    — the product itself; `roles` narrows a section to some roles
-export type Access = 'guest' | 'onboarding' | 'review' | 'approved'
+//   admin       — the admin panel; the admin sees nothing else
+export type Access = 'guest' | 'onboarding' | 'review' | 'approved' | 'admin'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -47,10 +48,12 @@ export function canOpen(to: Target, me: Me | null): boolean {
     case 'review':
       return me?.status === 'pending_review' || me?.status === 'rejected'
     case 'approved': {
-      if (me?.status !== 'approved') return false
+      if (me?.status !== 'approved' || me.is_admin) return false
       const { roles } = to.meta
       return !roles || (me.role !== null && roles.includes(me.role))
     }
+    case 'admin':
+      return me?.is_admin === true
   }
 }
 

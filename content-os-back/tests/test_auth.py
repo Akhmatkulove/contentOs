@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.service import create_or_reset_admin
 from app.auth.deps import ApprovedUser, require_role
 from app.auth.models import Role, Status, User, UserSession
 from app.core.config import Settings
@@ -242,3 +243,16 @@ async def test_role_gate_checks_role(guarded_client: AsyncClient, db_session: As
 async def test_guards_require_session(guarded_client: AsyncClient) -> None:
     assert (await guarded_client.get("/api/test/product")).status_code == 401
     assert (await guarded_client.get("/api/test/brand-only")).status_code == 401
+
+
+async def test_admin_is_kept_out_of_product(
+    guarded_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await create_or_reset_admin(db_session, "admin@example.com", "admin-long-password")
+    await db_session.commit()
+    response = await guarded_client.post(
+        "/api/auth/login", json={"email": "admin@example.com", "password": "admin-long-password"}
+    )
+    assert response.status_code == 200
+
+    assert (await guarded_client.get("/api/test/product")).status_code == 403

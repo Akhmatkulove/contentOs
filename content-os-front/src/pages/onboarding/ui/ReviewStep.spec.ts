@@ -12,6 +12,7 @@ const filled = {
   role: 'art_director',
   name: 'Amina Karimova',
   photo_url: null,
+  is_admin: false,
   status: 'onboarding',
   onboarding_step: 'review',
 } as Me

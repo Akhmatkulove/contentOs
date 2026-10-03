@@ -209,14 +209,115 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/admin/users': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Users */
+    get: operations['list_users_api_admin_users_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/brands/{brand_id}/art-directors/{art_director_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Assign Art Director */
+    put: operations['assign_art_director_api_admin_brands__brand_id__art_directors__art_director_id__put']
+    post?: never
+    /** Unassign Art Director */
+    delete: operations['unassign_art_director_api_admin_brands__brand_id__art_directors__art_director_id__delete']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/admin/art-directors/{art_director_id}/creators/{creator_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Assign Creator */
+    put: operations['assign_creator_api_admin_art_directors__art_director_id__creators__creator_id__put']
+    post?: never
+    /** Unassign Creator */
+    delete: operations['unassign_creator_api_admin_art_directors__art_director_id__creators__creator_id__delete']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /**
+     * AdminUsersResponse
+     * @description Все пользователи, кроме админов, новые первыми, и все связки между ними.
+     */
+    AdminUsersResponse: {
+      /** Users */
+      users: components['schemas']['ManagedUser'][]
+      /** Brand Art Directors */
+      brand_art_directors: components['schemas']['BrandArtDirectorLink'][]
+      /** Art Director Creators */
+      art_director_creators: components['schemas']['ArtDirectorCreatorLink'][]
+    }
+    /** ArtDirectorCreatorLink */
+    ArtDirectorCreatorLink: {
+      /**
+       * Art Director Id
+       * Format: uuid
+       */
+      art_director_id: string
+      /**
+       * Creator Id
+       * Format: uuid
+       */
+      creator_id: string
+      /**
+       * Assigned At
+       * Format: date-time
+       */
+      assigned_at: string
+    }
     /** Body_upload_photo_api_me_photo_put */
     Body_upload_photo_api_me_photo_put: {
       /** Photo */
       photo: string
+    }
+    /** BrandArtDirectorLink */
+    BrandArtDirectorLink: {
+      /**
+       * Brand Id
+       * Format: uuid
+       */
+      brand_id: string
+      /**
+       * Art Director Id
+       * Format: uuid
+       */
+      art_director_id: string
+      /**
+       * Assigned At
+       * Format: date-time
+       */
+      assigned_at: string
     }
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -238,6 +339,27 @@ export interface components {
       /** Password */
       password: string
     }
+    /** ManagedUser */
+    ManagedUser: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Email */
+      email: string
+      /** Name */
+      name: string | null
+      role: components['schemas']['Role'] | null
+      status: components['schemas']['Status']
+      /** Photo Url */
+      photo_url: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
     /** MeResponse */
     MeResponse: {
       /**
@@ -253,6 +375,8 @@ export interface components {
       name: string | null
       /** Photo Url */
       photo_url: string | null
+      /** Is Admin */
+      is_admin: boolean
       /**
        * Onboarding Step
        * @description Шаг, с которого продолжить онбординг: первый незаполненный, иначе проверка.
@@ -720,6 +844,165 @@ export interface operations {
         'application/json': components['schemas']['TelegramUpdate']
       }
     }
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_users_api_admin_users_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminUsersResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  assign_art_director_api_admin_brands__brand_id__art_directors__art_director_id__put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        brand_id: string
+        art_director_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  unassign_art_director_api_admin_brands__brand_id__art_directors__art_director_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        brand_id: string
+        art_director_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  assign_creator_api_admin_art_directors__art_director_id__creators__creator_id__put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        art_director_id: string
+        creator_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  unassign_creator_api_admin_art_directors__art_director_id__creators__creator_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        art_director_id: string
+        creator_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
     responses: {
       /** @description Successful Response */
       204: {

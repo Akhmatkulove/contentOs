@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
 
+from app.admin.router import router as admin_router
 from app.auth.deps import get_approved_user
 from app.auth.router import router as auth_router
 from app.core.body_limit import BodyLimitMiddleware
@@ -45,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(onboarding_router)
     api.include_router(profile_router)
     api.include_router(review_router)
+    api.include_router(admin_router)
     if settings.dev_endpoints_enabled:
         api.include_router(review_dev_router)
 

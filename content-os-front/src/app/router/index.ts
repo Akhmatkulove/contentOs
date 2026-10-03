@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { Role } from '@/entities/session'
 import { ActivityPage } from '@/pages/activity'
+import { AdminPage } from '@/pages/admin'
 import { ContentPage } from '@/pages/content'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
@@ -91,6 +92,12 @@ export const router = createRouter({
           meta: { access: 'review' },
         },
       ],
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminPage,
+      meta: { access: 'admin' },
     },
     {
       path: '/error',

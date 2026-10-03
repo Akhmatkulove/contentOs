@@ -21,6 +21,7 @@ src/app/auth/          пользователи, сессии, signup/login/logo
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
+src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
 tests/                 pytest, по файлу на фичу: tests/test_<feature>.py
@@ -33,6 +34,7 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 3. Настройки читаются только через `Settings` в `app.core.config`; `os.environ` в коде приложения не используй.
 4. Сессия БД приходит через `SessionDep`. `commit()` делает тот, кто владеет операцией (обработчик или сервис), а не репозиторные функции.
 5. Доступ проверяется зависимостями из `app.auth.deps`: `CurrentUser` (есть сессия), `ApprovedUser` (аккаунт одобрен, весь продукт за ней), `require_role(...)`. Владение ресурсом проверяет сервис фичи. Роль и статус — разные поля, см. `docs/adr/0001-auth-and-roles.md`.
+   Админка закрыта `AdminUser` (не-админу `404`). Админ — флаг `is_admin`, а не роль, в продукт он не входит; создаётся только `uv run python -m app.admin.create_admin <email>`, см. `docs/adr/0002-superadmin-and-brand-art-directors.md`.
    Роутер продуктовой фичи подключай в `product` в `create_app()`: он уже закрыт `get_approved_user`, роли проверяются поверх. `tests/test_access.py` требует 401 без сессии от любого эндпоинта не из списка `PUBLIC`; новый публичный эндпоинт добавляй туда осознанно.
 6. Pydantic-схемы на входе и выходе API, ORM-модели наружу не отдаются. Обработчики возвращают схему, `response_model` выводится из аннотации.
 7. Схемы — контракт с фронтом: фронт генерирует из них типы (`uv run python -m app.openapi` → `npm run gen:api` в content-os-front). Изменил схему или эндпоинт — перегенерируй типы на фронте, иначе упадёт CI фронта.

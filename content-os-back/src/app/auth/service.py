@@ -38,6 +38,12 @@ def _session_id(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def session_ttl(user: User, settings: Settings) -> timedelta:
+    if user.is_admin:
+        return timedelta(hours=settings.admin_session_ttl_hours)
+    return timedelta(days=settings.session_ttl_days)
+
+
 async def create_session(db: AsyncSession, user: User, settings: Settings) -> str:
     """Заводит сессию и возвращает токен для cookie. Коммитит вызывающий."""
     token = secrets.token_urlsafe(32)
@@ -45,7 +51,7 @@ async def create_session(db: AsyncSession, user: User, settings: Settings) -> st
         UserSession(
             id=_session_id(token),
             user_id=user.id,
-            expires_at=datetime.now(UTC) + timedelta(days=settings.session_ttl_days),
+            expires_at=datetime.now(UTC) + session_ttl(user, settings),
         )
     )
     return token
@@ -73,8 +79,9 @@ async def resolve_session(
         return None
 
     # Продлеваем, когда прошла половина срока, а не на каждом запросе: меньше записей в БД.
-    ttl = timedelta(days=settings.session_ttl_days)
-    if session.expires_at - now < ttl / 2:
+    # Сессию админа не продлеваем никогда.
+    ttl = session_ttl(user, settings)
+    if not user.is_admin and session.expires_at - now < ttl / 2:
         session.expires_at = now + ttl
         await db.commit()
         return user, True
@@ -94,6 +101,9 @@ async def sign_in_with_google(db: AsyncSession, profile: GoogleProfile) -> User:
         raise GoogleError("Google account email is not verified")
 
     user = await db.scalar(select(User).where(User.email == profile.email))
+    if user is not None and user.is_admin:
+        # Админ входит только по паролю: привязка Google ниже сбросила бы его пароль.
+        raise GoogleError("Admins sign in with a password")
     if user is None:
         user = User(email=profile.email, google_sub=profile.sub, email_verified=True)
         db.add(user)
@@ -112,11 +122,11 @@ async def sign_in_with_google(db: AsyncSession, profile: GoogleProfile) -> User:
     return user
 
 
-def set_session_cookie(response: Response, token: str, settings: Settings) -> None:
+def set_session_cookie(response: Response, token: str, user: User, settings: Settings) -> None:
     response.set_cookie(
         SESSION_COOKIE,
         token,
-        max_age=settings.session_ttl_days * 24 * 60 * 60,
+        max_age=int(session_ttl(user, settings).total_seconds()),
         path="/api",
         httponly=True,
         samesite="lax",

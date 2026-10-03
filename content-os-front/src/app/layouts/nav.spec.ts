@@ -10,6 +10,7 @@ function approved(role: Role): Me {
     status: 'approved',
     name: 'Anna',
     photo_url: null,
+    is_admin: false,
     onboarding_step: null,
   }
 }

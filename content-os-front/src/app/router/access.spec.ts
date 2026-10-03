@@ -14,6 +14,7 @@ function me(overrides: Partial<Me> = {}): Me {
     status: 'onboarding',
     name: null,
     photo_url: null,
+    is_admin: false,
     onboarding_step: 'role',
     ...overrides,
   }
@@ -71,6 +72,21 @@ describe('accessRedirect', () => {
     for (const path of ['/tasks', '/shoots', '/references', '/activity']) {
       expect(redirect(path, brand)).toBe('home')
     }
+  })
+
+  it('keeps the admin to the admin panel', () => {
+    const admin = me({ status: 'approved', onboarding_step: null, is_admin: true })
+    expect(redirect('/admin', admin)).toBe(true)
+    for (const path of ['/', '/products', '/onboarding/role', '/login']) {
+      expect(redirect(path, admin)).toBe('admin')
+    }
+  })
+
+  it('hides the admin panel from everyone else', () => {
+    expect(redirect('/admin', null)).toBe('login')
+    expect(
+      redirect('/admin', me({ role: 'brand', status: 'approved', onboarding_step: null })),
+    ).toBe('home')
   })
 
   it.each(['art_director', 'creator'] as const)('opens every section to %s', (role) => {

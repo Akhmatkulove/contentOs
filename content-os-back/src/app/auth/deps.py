@@ -1,4 +1,4 @@
-"""Слои доступа: сессия → статус → роль. Владение ресурсом проверяют сервисы фич."""
+"""Слои доступа: сессия → статус → роль, отдельно админ. Владение ресурсом проверяют сервисы фич."""
 
 from collections.abc import Awaitable, Callable
 from typing import Annotated
@@ -21,7 +21,7 @@ async def get_current_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     user, extended = resolved
     if extended:
-        set_session_cookie(response, token, settings)
+        set_session_cookie(response, token, user, settings)
     return user
 
 
@@ -29,12 +29,23 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 async def get_approved_user(user: CurrentUser) -> User:
-    if user.status != Status.APPROVED:
+    # Админ — служебный аккаунт, в продукт он не входит (docs/adr/0002).
+    if user.status != Status.APPROVED or user.is_admin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is not approved")
     return user
 
 
 ApprovedUser = Annotated[User, Depends(get_approved_user)]
+
+
+async def get_admin_user(user: CurrentUser) -> User:
+    # 404, а не 403: не-админу незачем знать, что админка существует.
+    if not user.is_admin:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not Found")
+    return user
+
+
+AdminUser = Annotated[User, Depends(get_admin_user)]
 
 
 def require_role(*roles: Role) -> Callable[[User], Awaitable[User]]:

@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     # Origin'ы, с которых браузер может слать изменяющие запросы (защита от CSRF).
     allowed_origins: list[str] = ["http://localhost:5173"]
     session_ttl_days: int = 30
+    # Сессия админа короче и не продлевается: вход раз в рабочий день.
+    admin_session_ttl_hours: int = 12
 
     # Заявки на проверку. Без этих настроек сообщения не отправляются,
     # а одобрять можно через dev-эндпоинт (не в production).

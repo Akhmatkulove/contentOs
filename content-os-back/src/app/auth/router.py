@@ -60,7 +60,7 @@ async def signup(
 
     token = await create_session(db, user, settings)
     await db.commit()
-    set_session_cookie(response, token, settings)
+    set_session_cookie(response, token, user, settings)
     return MeResponse.of(user, settings)
 
 
@@ -86,7 +86,7 @@ async def login(
 
     token = await create_session(db, user, settings)
     await db.commit()
-    set_session_cookie(response, token, settings)
+    set_session_cookie(response, token, user, settings)
     return MeResponse.of(user, settings)
 
 
@@ -168,5 +168,5 @@ async def google_callback(
     await db.commit()
     # Куда дальше (онбординг, статус, дашборд), решает фронт по /me.
     response = _google_redirect(f"{settings.app_url}/", settings)
-    set_session_cookie(response, token, settings)
+    set_session_cookie(response, token, user, settings)
     return response

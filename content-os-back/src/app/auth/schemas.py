@@ -30,6 +30,8 @@ class MeResponse(BaseModel):
     status: Status
     name: str | None
     photo_url: str | None
+    # Админ ведётся на /admin, в продукт и онбординг его не пускают.
+    is_admin: bool
 
     @classmethod
     def of(cls, user: User, settings: Settings) -> "MeResponse":
@@ -40,6 +42,7 @@ class MeResponse(BaseModel):
             status=user.status,
             name=user.name,
             photo_url=public_url(settings, user.photo_key),
+            is_admin=user.is_admin,
         )
 
     @computed_field  # type: ignore[prop-decorator]

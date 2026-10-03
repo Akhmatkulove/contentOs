@@ -9,9 +9,10 @@ import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.service import create_or_reset_admin
 from app.auth.google import GoogleOAuth, get_google
 from app.auth.models import User
 from app.core.config import Settings
@@ -234,3 +235,17 @@ async def test_google_sign_in_is_absent_when_not_configured(
         response = await client.get("/api/auth/google")
 
     assert response.status_code == 404
+
+
+async def test_admin_cannot_sign_in_with_google(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await create_or_reset_admin(db_session, "anna@gmail.com", "admin-long-password")
+    await db_session.commit()
+
+    assert_failed(await sign_in(client))
+    assert (await client.get("/api/me")).status_code == 401
+    admin = await db_session.scalar(select(User).where(User.email == "anna@gmail.com"))
+    assert admin is not None
+    assert admin.google_sub is None
+    assert admin.password_hash is not None
