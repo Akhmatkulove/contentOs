@@ -4,7 +4,7 @@ import { VInput } from '@/shared/ui/input'
 import { useProfileStep } from '../model/profile-step'
 import OnboardingStepper from './OnboardingStepper.vue'
 
-const { name, photoUrl, uploading, photoError, upload, canSubmit, failed, submit } =
+const { form, nameError, photoUrl, uploading, photoError, upload, canSubmit, failed, submit } =
   useProfileStep()
 
 function onPhotoChange(event: Event) {
@@ -81,11 +81,12 @@ function onPhotoChange(event: Event) {
       </div>
 
       <VInput
-        v-model="name"
+        v-model="form.name"
         label="Your name"
         name="name"
         autocomplete="name"
         placeholder="Enter your name"
+        :error="nameError"
         class="lg:flex-1"
       />
     </div>

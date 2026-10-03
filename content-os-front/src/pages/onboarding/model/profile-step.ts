@@ -1,9 +1,21 @@
 import { useMutation } from '@pinia/colada'
-import { computed, ref } from 'vue'
+import { useRegleSchema } from '@regle/schemas'
+import * as v from 'valibot'
+import { computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
-import { errorStatus } from '@/shared/api'
+import { errorStatus, type Schemas } from '@/shared/api'
 import { saveAnswers, uploadPhoto } from '../api/onboarding'
+
+// Same rules as Name in OnboardingUpdate on the backend.
+export const profileSchema = v.object({
+  name: v.pipe(
+    v.string(),
+    v.trim(),
+    v.nonEmpty('Enter your name.'),
+    v.maxLength(100, 'Use at most 100 characters.'),
+  ),
+}) satisfies v.GenericSchema<Schemas['OnboardingUpdate']>
 
 export function photoErrorMessage(error: unknown): string {
   switch (errorStatus(error)) {
@@ -20,7 +32,9 @@ export function useProfileStep() {
   const router = useRouter()
   const session = useSessionStore()
 
-  const name = ref(session.me?.name ?? '')
+  const form = reactive({ name: session.me?.name ?? '' })
+  // rewardEarly: the field turns valid as soon as it is fixed, but turns invalid only on submit.
+  const { r$ } = useRegleSchema(form, profileSchema, { rewardEarly: true })
   const photoUrl = computed(() => session.me?.photo_url ?? null)
 
   // The photo is uploaded as soon as it is picked; the server crops and re-encodes it.
@@ -30,8 +44,8 @@ export function useProfileStep() {
   })
 
   const answers = useMutation({
-    mutation: async (name: string) => {
-      session.set(await saveAnswers({ name }))
+    mutation: async (answers: Schemas['OnboardingUpdate']) => {
+      session.set(await saveAnswers(answers))
       await router.push({ name: 'onboarding-review' })
     },
     meta: { toast: false },
@@ -40,17 +54,23 @@ export function useProfileStep() {
   const uploading = photo.isLoading
   const photoError = computed(() => (photo.error.value ? photoErrorMessage(photo.error.value) : ''))
   const canSubmit = computed(
-    () => !!name.value.trim() && !answers.isLoading.value && !uploading.value,
+    () => !!form.name.trim() && !answers.isLoading.value && !uploading.value,
   )
 
+  async function submit() {
+    const { valid, data } = await r$.$validate()
+    if (valid) answers.mutate(data)
+  }
+
   return {
-    name,
+    form,
+    nameError: computed(() => r$.name.$errors[0] ?? ''),
     photoUrl,
     uploading,
     photoError,
     upload: photo.mutate,
     canSubmit,
     failed: computed(() => !!answers.error.value),
-    submit: () => answers.mutate(name.value.trim()),
+    submit,
   }
 }
