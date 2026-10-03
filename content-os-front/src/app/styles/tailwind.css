@@ -5,6 +5,19 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+ * hover: only with a mouse or trackpad. Tailwind's default checks (hover: hover)
+ * alone, which some phones report; there a tap would leave the hover style
+ * stuck. group-hover:, peer-hover: and has-hover: follow this definition.
+ */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+/*
  * Pretendard, only the weights the design uses (Medium, SemiBold),
  * subset to Latin + Cyrillic. Files live in public/fonts/pretendard.
  */

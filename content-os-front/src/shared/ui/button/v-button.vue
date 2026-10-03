@@ -5,8 +5,8 @@ import { Primitive } from 'reka-ui'
 import { cn } from '@/shared/lib'
 
 // Figma "CMS / Desktop / Button" and "CMS / Mobile / Button".
-// Clicked = :active. Tailwind's hover: only fires on devices with a pointer,
-// which matches the mobile set having no Hover state. pointer-events-none on
+// Clicked = :active. hover: only fires with a mouse or trackpad (see
+// tailwind.css), which matches the mobile set having no Hover state. pointer-events-none on
 // disabled keeps hover/active from repainting a disabled button.
 const buttonVariants = cva(
   'inline-flex shrink-0 touch-manipulation items-center justify-center rounded-full whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-violet-300 disabled:pointer-events-none',

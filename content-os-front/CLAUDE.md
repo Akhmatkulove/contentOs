@@ -46,6 +46,7 @@ src/shared    без бизнес-логики: ui, api, lib, config
 ## UI и стили
 
 - Вёрстка mobile-first: базовые классы пишутся под мобильный экран, большие экраны добавляются через брейкпоинты (`md:`, `lg:`). `max-*:` варианты не используй.
+- `hover:` срабатывает только с мышью или тачпадом: вариант переопределён в `tailwind.css` через `(hover: hover) and (pointer: fine)`. На телефонах ховер-стили не видны, отдельно их прятать не нужно; нажатие оформляй через `active:`.
 - shadcn-компоненты добавляются через `npx shadcn-vue@latest add <name>` и попадают в `src/shared/ui`. После добавления проверь `src/app/styles/tailwind.css` и `package.json`: CLI может дописать CSS-переменные (`--primary` и т. п.), шрифты и зависимости (`@lucide/vue`), их нужно удалить. Если компонент shadcn тянет отдельную библиотеку (например, Sonner для тостов), сначала проверь, нет ли нужного примитива в Reka UI.
 - Цвета берутся только из `@theme static` в `tailwind.css` (стандартная палитра Tailwind сброшена). Сначала семантика из переменных Figma: `text-brand`, `text-secondary`, `bg-card`, `bg-canvas`, `border-default`, `bg-action-accent` и т. д. Примитив (`bg-mint-100`, `text-neutral-500`) — только там, где Figma сама берёт примитив. Новые семантические токены добавляй, только когда они появились в Figma.
 - Кнопки: `VButton` из `@/shared/ui/button` (`variant`: primary/outline/surface/ghost, `size`: md или `icon-24…icon-44`). Сырой `<button>` с классами не пиши.
