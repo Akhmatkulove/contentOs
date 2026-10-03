@@ -40,6 +40,12 @@ src/shared    без бизнес-логики: ui, api, lib, config
 - Необработанная ошибка запроса показывается тостом (глобальный обработчик в `app/query`). Если экран показывает ошибку сам, передай `meta: { toast: false }`. 401/403 тост не дают: их обрабатывает `installSessionInterceptor` редиректом.
 - Тост из кода: `toast.error('…')` / `toast.success('…')` из `@/shared/ui/toast` (свой, на Reka UI Toast; одинаковые не дублируются, максимум 3).
 - Модалки на странице не верстаются. Модалка — отдельный компонент в `ui/` слайса с `<VModal>` в корне; результат она отдаёт через `emit('close', result)`. Открывается из composable в `model/`: `const result = await openModal(AddReferenceModal, props)` из `@/shared/ui/modal`. Компонент подключай через `defineAsyncComponent`, чтобы код модалки грузился при первом открытии. Хост `VModalHost` стоит в `App.vue`, при смене маршрута модалки закрываются.
+- Валидация форм: схема Valibot + `useRegleSchema` из `@regle/schemas`, всё в `model/` (пример: `pages/signup/model/signup-form.ts`).
+  - Схема экспортируется (`signupSchema`) и тестируется отдельно через `v.safeParse` + `v.flatten`. Правила повторяют бэкенд (Pydantic), а не придумываются; часть схемы, уходящая на сервер, сверяется с типом: `satisfies v.GenericSchema<Schemas['…']>`. Пробелы по краям обрезает `v.trim()` в схеме, а не код.
+  - Опции: `{ rewardEarly: true }`: ошибка появляется по отправке и пропадает, как только поле исправлено.
+  - `submit`: `const { valid, data } = await r$.$validate()`, отправляем `data` (уже очищенную схемой).
+  - Composable отдаёт `form` (reactive, `v-model="form.x"`) и `errors` (строки: `r$.x.$errors[0] ?? ''`; для массива `r$.x.$errors.$self[0]`). Ошибка сервера по полю: `r$.$setExternalErrors({ x: [{ $message }] })` + `clearExternalErrorsOnChange: true`; общая ошибка формы берётся из `error` мутации.
+  - Обязательное поле: проп `required` у `VInput`/`VTextarea` (звёздочка + `aria-required`). Нативный `required` не ставь: браузер перехватит отправку до Regle.
 - После логина/регистрации/любого ответа с новым `/me` вызывай `useEnterSession()` из `@/entities/session`: запомнит пользователя и отправит на его маршрут.
 - В тестах компонентов с `useMutation`/`useQuery` подключай плагины: `plugins: [router, getActivePinia()!, PiniaColada]`.
 
