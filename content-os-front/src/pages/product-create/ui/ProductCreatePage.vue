@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
+import { ReferenceCard } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
@@ -13,8 +14,18 @@ import { statusOptions, useProductCreateForm } from '../model/product-create-for
 import { photoAccept } from '../model/product-photos'
 import SectionCard from './SectionCard.vue'
 
-const { form, errors, photos, addPhotos, removePhoto, rejectPhotos, addReference, cancel, submit } =
-  useProductCreateForm()
+const {
+  form,
+  errors,
+  photos,
+  addPhotos,
+  removePhoto,
+  rejectPhotos,
+  references,
+  addReference,
+  cancel,
+  submit,
+} = useProductCreateForm()
 const dropzone = useTemplateRef('dropzone')
 
 const emptyListClass =
@@ -134,7 +145,6 @@ const emptyListClass =
       title="References"
       description="Attach references from your reference bank to guide the creative direction."
     >
-      <!-- TODO(ui): list of the product's references — no design yet. -->
       <template #action>
         <VButton variant="secondary" class="w-full md:hidden" @click="addReference">
           <VIcon name="plus-sign" />
@@ -145,7 +155,13 @@ const emptyListClass =
           Add reference
         </VButton>
       </template>
-      <p :class="emptyListClass">The References you've added will be displayed here</p>
+      <!-- TODO(ui): grid of the product's references — the card is from Figma, the grid isn't designed yet. -->
+      <ul v-if="references.length" class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+        <li v-for="reference in references" :key="reference.id">
+          <ReferenceCard :reference="reference" />
+        </li>
+      </ul>
+      <p v-else :class="emptyListClass">The References you've added will be displayed here</p>
     </SectionCard>
 
     <!-- Deliverables hidden for now. TODO(ui): deliverable form and rows — no design yet.

@@ -1,9 +1,10 @@
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
-import { computed, reactive, toRef } from 'vue'
+import { computed, reactive, ref, toRef } from 'vue'
 import { useRouter } from 'vue-router'
 import type { PickedFile } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
+import type { Reference } from '@/entities/reference'
 import { openAddReference } from './add-reference'
 import { useProductPhotos } from './product-photos'
 
@@ -57,6 +58,9 @@ export function useProductCreateForm() {
   }
 
   // TODO(api): attach the created reference to the product.
+  // TODO(api): fill from the "Add reference" modal and send with the product.
+  const references = ref<Reference[]>([])
+
   function addReference() {
     return openAddReference()
   }
@@ -67,5 +71,5 @@ export function useProductCreateForm() {
     // TODO(api): create the product with useMutation, then open it.
   }
 
-  return { form, errors, ...photos, addReference, cancel, submit }
+  return { form, errors, ...photos, references, addReference, cancel, submit }
 }
