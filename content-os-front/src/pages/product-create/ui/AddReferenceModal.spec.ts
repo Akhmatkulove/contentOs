@@ -35,7 +35,7 @@ describe('AddReferenceModal', () => {
   it('opens on file upload with the shared fields', async () => {
     await open()
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Add reference')
-    expect(button('Upload files').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Upload files').getAttribute('aria-checked')).toBe('true')
     expect(document.querySelector('input[type="file"]')).not.toBeNull()
     for (const label of ['Reference title', 'Type', 'Product', 'Shoot', 'Creator', 'Tags', 'Notes'])
       expect(field(label)).toBeDefined()
@@ -45,7 +45,7 @@ describe('AddReferenceModal', () => {
     await open()
     button('Paste link').click()
     await flushPromises()
-    expect(button('Paste link').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Paste link').getAttribute('aria-checked')).toBe('true')
     expect(document.querySelector('input[type="file"]')).toBeNull()
     expect(document.querySelector('input[type="url"]')).not.toBeNull()
   })

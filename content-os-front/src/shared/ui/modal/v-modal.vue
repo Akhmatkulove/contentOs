@@ -105,7 +105,7 @@ function onGrabberClick() {
           <span class="h-1 w-9 rounded-full bg-neutral-400" />
         </VButton>
 
-        <header class="flex min-h-8 items-center gap-4 md:items-start">
+        <header class="flex min-h-8 items-center gap-4 shrink-0 md:items-start">
           <div class="flex min-w-0 flex-1 flex-col gap-1.5">
             <DialogTitle class="text-h6 text-brand md:text-h4">{{ title }}</DialogTitle>
             <DialogDescription

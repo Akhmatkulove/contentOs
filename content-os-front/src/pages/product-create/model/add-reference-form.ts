@@ -1,11 +1,17 @@
 import { reactive, ref, shallowRef } from 'vue'
 import { usePickedFiles } from '@/shared/lib'
 import type { IconName } from '@/shared/ui/icon'
+import type { SegmentedOption } from '@/shared/ui/segmented'
 import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
 
 // A reference comes either from files or from a link to a post.
 export type ReferenceSource = 'upload' | 'link'
+
+export const sourceOptions: SegmentedOption<ReferenceSource>[] = [
+  { value: 'upload', label: 'Upload files', icon: 'upload-square-02' },
+  { value: 'link', label: 'Paste link', icon: 'copy-link' },
+]
 
 export const fileAccept = 'image/*,video/*'
 

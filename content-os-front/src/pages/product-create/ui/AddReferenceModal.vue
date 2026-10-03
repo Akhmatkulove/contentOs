@@ -5,11 +5,17 @@ import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
+import { VSegmented } from '@/shared/ui/segmented'
 import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
 import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
-import { fileAccept, typeOptions, useAddReferenceForm } from '../model/add-reference-form'
+import {
+  fileAccept,
+  sourceOptions,
+  typeOptions,
+  useAddReferenceForm,
+} from '../model/add-reference-form'
 import FavoriteToggle from './FavoriteToggle.vue'
 import LinkPreview from './LinkPreview.vue'
 
@@ -35,10 +41,6 @@ const {
 // The submit button sits in the modal footer, outside the <form>.
 const formId = useId()
 const dropzone = useTemplateRef('dropzone')
-
-// TODO(ui): drop once VSegmented exists.
-const segmentClass =
-  'h-9 flex-1 gap-2 rounded-xl border border-transparent text-table font-semibold aria-pressed:border-default aria-pressed:bg-card aria-pressed:text-brand'
 </script>
 
 <template>
@@ -47,32 +49,7 @@ const segmentClass =
     description="Upload or save a new visual reference for shoots, products, and creators."
   >
     <form :id="formId" class="flex flex-col gap-3.5 md:gap-4" @submit.prevent="submit">
-      <!-- TODO(ui): VSegmented (Figma "CMS / Desktop / Segment", "CMS / Mobile / Segment"). -->
-      <div
-        role="group"
-        aria-label="Reference source"
-        class="flex rounded-2xl bg-muted p-1 md:bg-subtle"
-      >
-        <VButton
-          variant="ghost"
-          :aria-pressed="source === 'upload'"
-          :class="segmentClass"
-          @click="source = 'upload'"
-        >
-          <VIcon name="upload-01" :size="16" class="md:hidden" />
-          <VIcon name="upload-square-02" :size="16" class="hidden md:block" />
-          Upload files
-        </VButton>
-        <VButton
-          variant="ghost"
-          :aria-pressed="source === 'link'"
-          :class="segmentClass"
-          @click="source = 'link'"
-        >
-          <VIcon name="copy-link" :size="16" />
-          Paste link
-        </VButton>
-      </div>
+      <VSegmented v-model="source" :options="sourceOptions" aria-label="Reference source" />
 
       <template v-if="source === 'upload'">
         <VDropzone
