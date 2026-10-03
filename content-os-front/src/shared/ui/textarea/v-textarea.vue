@@ -7,11 +7,15 @@ defineOptions({ inheritAttrs: false })
 // Textarea of Figma "CMS / Shared / Field": label, box, error message.
 const {
   label,
+  required = false,
   error,
   rows = 4,
   class: className,
 } = defineProps<{
   label?: string
+  // Marks the label with an asterisk and sets aria-required. Not the native
+  // attribute: the browser's own popup would stop the form's validation.
+  required?: boolean
   // Error message; a non-empty string switches the field to the error state.
   error?: string
   // Visible lines; 4 gives the 96px box from Figma. Give the root a height
@@ -33,7 +37,7 @@ const errorId = computed(() => `${id.value}-error`)
 <template>
   <div :class="cn('flex min-w-0 flex-col gap-2', className)">
     <label v-if="label" :for="id" class="text-p3 font-medium text-secondary">
-      {{ label }}
+      {{ label }}<span v-if="required" aria-hidden="true" class="text-red-400"> *</span>
     </label>
 
     <textarea
@@ -41,6 +45,7 @@ const errorId = computed(() => `${id.value}-error`)
       :id="id"
       v-model="model"
       :rows="rows"
+      :aria-required="required || undefined"
       :aria-invalid="error ? true : undefined"
       :aria-describedby="error ? errorId : undefined"
       :class="[

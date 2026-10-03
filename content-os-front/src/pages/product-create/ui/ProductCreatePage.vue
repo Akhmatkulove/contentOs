@@ -13,7 +13,7 @@ import { statusOptions, useProductCreateForm } from '../model/product-create-for
 import { photoAccept } from '../model/product-photos'
 import SectionCard from './SectionCard.vue'
 
-const { form, photos, addPhotos, removePhoto, rejectPhotos, addReference, cancel, submit } =
+const { form, errors, photos, addPhotos, removePhoto, rejectPhotos, addReference, cancel, submit } =
   useProductCreateForm()
 const dropzone = useTemplateRef('dropzone')
 
@@ -55,7 +55,13 @@ const emptyListClass =
     <div class="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_374px]">
       <SectionCard title="Product details">
         <div class="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
-          <VInput v-model="form.name" label="Product name" placeholder="Enter product name" />
+          <VInput
+            v-model="form.name"
+            label="Product name"
+            required
+            placeholder="Enter product name"
+            :error="errors.name"
+          />
           <VTagsInput v-model="form.tags" label="Tags" placeholder="Add tags" />
           <VInput v-model="form.collection" label="Collection" placeholder="Enter collection" />
           <VInput v-model="form.category" label="Category" placeholder="Enter category" />
@@ -66,7 +72,14 @@ const emptyListClass =
             label="Status"
             placeholder="Select status"
           />
-          <VTextarea v-model="form.about" label="About" placeholder="About" class="md:col-span-2" />
+          <VTextarea
+            v-model="form.about"
+            label="About"
+            required
+            placeholder="About"
+            :error="errors.about"
+            class="md:col-span-2"
+          />
         </div>
       </SectionCard>
 
@@ -81,7 +94,7 @@ const emptyListClass =
       </SectionCard>
     </div>
 
-    <SectionCard title="Photos">
+    <SectionCard title="Photos" required>
       <VDropzone
         ref="dropzone"
         :accept="photoAccept"
@@ -90,6 +103,8 @@ const emptyListClass =
         @select="addPhotos"
         @reject="rejectPhotos"
       />
+      <!-- TODO(ui): error state of VDropzone, if Figma has one; until then only the message. -->
+      <p v-if="errors.photos" class="text-p3 font-medium text-red-400">{{ errors.photos }}</p>
       <!-- Mobile: one scrollable row ending with "Add more"; desktop: wraps. -->
       <ul
         v-if="photos.length"

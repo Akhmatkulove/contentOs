@@ -42,4 +42,18 @@ describe('VTextarea', () => {
     expect(textarea.attributes('aria-invalid')).toBe('true')
     expect(textarea.attributes('aria-describedby')).toBe(message.attributes('id'))
   })
+
+  it('marks a required field without the native attribute', () => {
+    const wrapper = mount(VTextarea, { props: { label: 'About', required: true } })
+    const field = wrapper.find('textarea')
+    expect(wrapper.find('label').text()).toBe('About *')
+    expect(field.attributes('aria-required')).toBe('true')
+    expect(field.attributes('required')).toBeUndefined()
+  })
+
+  it('leaves an optional field unmarked', () => {
+    const wrapper = mount(VTextarea, { props: { label: 'About' } })
+    expect(wrapper.find('label').text()).toBe('About')
+    expect(wrapper.find('textarea').attributes('aria-required')).toBeUndefined()
+  })
 })

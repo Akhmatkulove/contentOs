@@ -8,10 +8,14 @@ defineOptions({ inheritAttrs: false })
 
 const {
   label,
+  required = false,
   error,
   class: className,
 } = defineProps<{
   label?: string
+  // Marks the label with an asterisk and sets aria-required. Not the native
+  // attribute: the browser's own popup would stop the form's validation.
+  required?: boolean
   // Error message; a non-empty string switches the field to the error state.
   error?: string
   // Applied to the root wrapper. Other attributes (placeholder, type,
@@ -30,7 +34,7 @@ const errorId = computed(() => `${id.value}-error`)
 <template>
   <div :class="cn('flex w-full flex-col gap-2', className)">
     <label v-if="label" :for="id" class="text-p3 font-medium text-secondary">
-      {{ label }}
+      {{ label }}<span v-if="required" aria-hidden="true" class="text-red-400"> *</span>
     </label>
 
     <!-- The box carries border and background so prefix and suffix sit inside it. -->
@@ -48,6 +52,7 @@ const errorId = computed(() => `${id.value}-error`)
         v-bind="attrs"
         :id="id"
         v-model="model"
+        :aria-required="required || undefined"
         :aria-invalid="error ? true : undefined"
         :aria-describedby="error ? errorId : undefined"
         class="h-full w-full min-w-0 flex-1 bg-transparent text-p2 font-medium text-brand outline-none placeholder:text-neutral-600 disabled:cursor-not-allowed disabled:text-secondary"

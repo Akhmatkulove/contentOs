@@ -47,4 +47,18 @@ describe('VInput', () => {
     expect(wrapper.find('p').exists()).toBe(false)
     expect(wrapper.find('input').attributes('aria-invalid')).toBeUndefined()
   })
+
+  it('marks a required field without the native attribute', () => {
+    const wrapper = mount(VInput, { props: { label: 'About', required: true } })
+    const field = wrapper.find('input')
+    expect(wrapper.find('label').text()).toBe('About *')
+    expect(field.attributes('aria-required')).toBe('true')
+    expect(field.attributes('required')).toBeUndefined()
+  })
+
+  it('leaves an optional field unmarked', () => {
+    const wrapper = mount(VInput, { props: { label: 'About' } })
+    expect(wrapper.find('label').text()).toBe('About')
+    expect(wrapper.find('input').attributes('aria-required')).toBeUndefined()
+  })
 })
