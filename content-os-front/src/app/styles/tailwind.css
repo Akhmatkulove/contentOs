@@ -228,3 +228,30 @@
     cursor: pointer;
   }
 }
+
+/*
+ * Browser autofill paints its own background and text color, which Chrome
+ * won't let us override directly. Keep the field's own look: the text color
+ * is forced back, and the background change is delayed by a transition that
+ * never finishes.
+ */
+@layer base {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: currentColor;
+    caret-color: currentColor;
+    transition:
+      background-color 600000s 0s,
+      color 600000s 0s;
+  }
+
+  input:autofill,
+  textarea:autofill,
+  select:autofill {
+    background-color: transparent;
+  }
+}
