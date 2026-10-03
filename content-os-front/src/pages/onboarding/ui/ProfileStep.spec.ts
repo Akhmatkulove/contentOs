@@ -58,6 +58,18 @@ describe('ProfileStep', () => {
     expect(router.currentRoute.value.name).toBe('onboarding-review')
   })
 
+  it('does not send a name longer than 100 characters', async () => {
+    const patch = vi.spyOn(http, 'patch')
+    const { wrapper } = mountStep()
+
+    await wrapper.get('input[name="name"]').setValue('a'.repeat(101))
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(patch).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Use at most 100 characters.')
+  })
+
   it('uploads the photo right away and shows the stored one', async () => {
     const put = vi
       .spyOn(http, 'put')
