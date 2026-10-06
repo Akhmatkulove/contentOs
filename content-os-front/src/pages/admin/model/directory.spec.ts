@@ -5,6 +5,7 @@ import {
   linkRef,
   matchesSearch,
   partnerNoun,
+  removeLinkMessage,
   sectionsOf,
   type ManagedUser,
 } from './directory'
@@ -116,5 +117,23 @@ describe('matchesSearch', () => {
     expect(matchesSearch(brand, 'BRAND@')).toBe(true)
     expect(matchesSearch(brand, 'dana')).toBe(false)
     expect(matchesSearch(brand, '')).toBe(true)
+  })
+})
+
+describe('removeLinkMessage', () => {
+  it('warns that the art director leaves the brand deliverables', () => {
+    const [artDirectors] = sectionsOf(entry('brand', 'brand'))
+    const [brands] = sectionsOf(entry('art_director', 'ad'))
+    const message =
+      'Dana will no longer work with Acme. They will be taken off its deliverables and lose access to its products.'
+    expect(removeLinkMessage(artDirectors!, brand, director)).toBe(message)
+    expect(removeLinkMessage(brands!, director, brand)).toBe(message)
+  })
+
+  it('keeps the creator link message short', () => {
+    const [, creators] = sectionsOf(entry('art_director', 'ad'))
+    expect(removeLinkMessage(creators!, director, creator)).toBe(
+      'creator@example.com will no longer work with Dana.',
+    )
   })
 })

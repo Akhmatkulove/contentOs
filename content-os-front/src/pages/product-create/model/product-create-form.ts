@@ -11,6 +11,7 @@ import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
 import { createProduct, uploadFile, type ProductCreate } from '../api/products'
 import { openAddReference } from './add-reference'
+import { toRequest as deliverableRequest } from './deliverable-draft'
 import { useDeliverables } from './deliverables'
 import { useProductPhotos } from './product-photos'
 import { draftCard, previewFile, toRequest, type ReferenceDraft } from './reference-draft'
@@ -45,7 +46,8 @@ export function splitBySizes<T>(items: T[], sizes: number[]): T[][] {
 }
 
 // Everything is saved by Create product at once: photos and reference files
-// are uploaded first, then the product goes with their ids (docs/adr/0003).
+// are uploaded first, then the product goes with their ids and the
+// deliverables (docs/adr/0003, 0004).
 export function useProductCreateForm() {
   const router = useRouter()
   const queryCache = useQueryCache()
@@ -140,6 +142,7 @@ export function useProductCreateForm() {
         references: drafts.value.map(({ draft }, index) =>
           toRequest(draft, referenceIds[index] ?? []),
         ),
+        deliverables: deliverables.deliverables.value.map(deliverableRequest),
       }
       return createProduct(body)
     },

@@ -1,4 +1,5 @@
 import { useQuery } from '@pinia/colada'
+import { useSessionStore } from '@/entities/session'
 import { computed, ref, watch } from 'vue'
 import { fetchProducts } from '../api/products'
 import { toProduct } from './product'
@@ -8,6 +9,9 @@ export const PRODUCTS_PER_PAGE = 8
 // The products the user sees, searched and paged on the backend.
 // TODO(ui): Collection, Status and Sort filters need the VSelect filter variant.
 export function useProductsList() {
+  const session = useSessionStore()
+  // Brands add products; art directors get them through deliverables (docs/adr/0004).
+  const canCreate = computed(() => session.me?.role === 'brand')
   const search = ref('')
   const page = ref(1)
 
@@ -34,5 +38,5 @@ export function useProductsList() {
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && data.value === undefined)
 
-  return { products, total, isEmpty, loading, search, page }
+  return { products, total, isEmpty, loading, search, page, canCreate }
 }

@@ -19,7 +19,14 @@ const deliverables: DeliverableDraft[] = [
     dueDate: '',
     brief: '',
   },
-  { id: '3', name: 'Detail', assignee: null, status: 'needs_changes', dueDate: '', brief: '' },
+  {
+    id: '3',
+    name: 'Detail',
+    assignee: { id: 'c', name: null, photo_url: null },
+    status: 'needs_changes',
+    dueDate: '',
+    brief: '',
+  },
 ]
 
 const rows = (wrapper: ReturnType<typeof mount>) =>
@@ -45,7 +52,7 @@ describe('DeliverablesTable', () => {
     expect(rows(wrapper)).toEqual([
       ['Walking transitionProduct movement video', 'Amina', 'To shoot', 'Sep 18, 2024', ''],
       ['Fabric close-up', 'OOdina', 'Approved', '—', ''],
-      ['Detail', 'Unassigned', 'Needs changes', '—', ''],
+      ['Detail', 'UUnnamed', 'Needs changes', '—', ''],
     ])
     expect(wrapper.find('img').attributes('src')).toBe('/amina.webp')
   })
@@ -57,7 +64,6 @@ describe('DeliverablesTable', () => {
     expect(cards[0]!.text()).toBe(
       'Walking transitionProduct movement videoTo shootAssigneeAminaDue date Sep 18, 2024',
     )
-    expect(cards[2]!.text()).toContain('Unassigned')
     expect(wrapper.find('li input[type="checkbox"]').exists()).toBe(false)
     expect(cards[0]!.find('[aria-label="Remove Walking transition"]').exists()).toBe(true)
   })

@@ -306,6 +306,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/references': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List References
+     * @description Поиск по названию и коллекции, без учёта регистра.
+     */
+    get: operations['list_references_api_references_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -388,6 +408,47 @@ export interface components {
        */
       assigned_at: string
     }
+    /**
+     * DeliverableDraft
+     * @description Новый deliverable. Исполнитель — арт-директор из связок бренда (docs/adr/0002).
+     */
+    DeliverableDraft: {
+      /** Name */
+      name: string
+      /**
+       * Assignee Id
+       * Format: uuid
+       */
+      assignee_id: string
+      /** @default to_shoot */
+      status: components['schemas']['DeliverableStatus']
+      /** Due Date */
+      due_date?: string | null
+      /** Brief */
+      brief?: string | null
+    }
+    /** DeliverableResponse */
+    DeliverableResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Assignee Id */
+      assignee_id: string | null
+      status: components['schemas']['DeliverableStatus']
+      /** Due Date */
+      due_date: string | null
+      /** Brief */
+      brief: string | null
+    }
+    /**
+     * DeliverableStatus
+     * @enum {string}
+     */
+    DeliverableStatus: 'to_shoot' | 'in_progress' | 'needs_changes' | 'approved'
     /**
      * FileKind
      * @enum {string}
@@ -501,6 +562,8 @@ export interface components {
       photo_ids: string[]
       /** References */
       references?: components['schemas']['ReferenceDraft'][]
+      /** Deliverables */
+      deliverables?: components['schemas']['DeliverableDraft'][]
     }
     /** ProductList */
     ProductList: {
@@ -556,6 +619,8 @@ export interface components {
       photos: components['schemas']['FileResponse'][]
       /** References */
       references: components['schemas']['ReferenceResponse'][]
+      /** Deliverables */
+      deliverables: components['schemas']['DeliverableResponse'][]
       /**
        * Created At
        * Format: date-time
@@ -583,6 +648,13 @@ export interface components {
       tags?: string[]
       /** Notes */
       notes?: string | null
+    }
+    /** ReferenceList */
+    ReferenceList: {
+      /** Items */
+      items: components['schemas']['ReferenceResponse'][]
+      /** Total */
+      total: number
     }
     /** ReferenceResponse */
     ReferenceResponse: {
@@ -1353,6 +1425,41 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ProductResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_references_api_references_get: {
+    parameters: {
+      query?: {
+        search?: string
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReferenceList']
         }
       }
       /** @description Validation Error */

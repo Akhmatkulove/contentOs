@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
+
+// Art directors can't add products: theirs come from deliverables.
+const { canCreate } = defineProps<{ canCreate: boolean }>()
 </script>
 
 <!-- Not in Figma yet: built from the page's tokens.
@@ -22,12 +25,15 @@ import { VIcon } from '@/shared/ui/icon'
     </div>
 
     <h2 class="mt-6 text-h6 text-brand md:text-h4">No products yet</h2>
-    <p class="mt-2 max-w-[360px] text-p2 font-medium text-secondary">
+    <p v-if="canCreate" class="mt-2 max-w-[360px] text-p2 font-medium text-secondary">
       Add your first product to plan its shoots, track deliverables and keep all its content in one
       place.
     </p>
+    <p v-else class="mt-2 max-w-[360px] text-p2 font-medium text-secondary">
+      Products show up here once a brand assigns you a deliverable.
+    </p>
 
-    <VButton as-child class="mt-6 w-full max-w-[280px] md:w-auto">
+    <VButton v-if="canCreate" as-child class="mt-6 w-full max-w-[280px] md:w-auto">
       <RouterLink :to="{ name: 'product-create' }">
         <VIcon name="plus-sign" />
         Add product

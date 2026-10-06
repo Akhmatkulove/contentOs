@@ -1,4 +1,4 @@
-import type { Reference } from '@/entities/reference'
+import { linkHost, type Reference } from '@/entities/reference'
 import type { Schemas } from '@/shared/api'
 import { isVideo } from './uploads'
 
@@ -27,14 +27,6 @@ export function toRequest(draft: ReferenceDraft, fileIds: string[]): Schemas['Re
     tags: draft.tags,
     notes: draft.notes || null,
     ...(draft.source === 'upload' ? { file_ids: fileIds } : { link: draft.link }),
-  }
-}
-
-function linkHost(link: string): string {
-  try {
-    return new URL(link).hostname.replace(/^www\./, '')
-  } catch {
-    return link
   }
 }
 

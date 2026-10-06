@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.models import BrandArtDirector
 from app.auth.models import Role, Status, User
 from app.core.config import Settings
 from app.core.db import get_session
@@ -294,3 +295,128 @@ async def test_team_sees_nothing_until_assigned(
 async def test_list_rejects_bad_paging(client: AsyncClient) -> None:
     for params in ({"page": 0}, {"per_page": 51}, {"search": "x" * 101}):
         assert (await client.get("/api/products", params=params)).status_code == 422
+
+
+# --- Deliverables ---
+
+
+async def log_in(client: AsyncClient, email: str) -> None:
+    client.cookies.clear()
+    response = await client.post("/api/auth/login", json={"email": email, "password": "password"})
+    assert response.status_code == 200
+
+
+async def user_id(db: AsyncSession, email: str) -> uuid.UUID:
+    found = await db.scalar(select(User.id).where(User.email == email))
+    assert found is not None
+    return found
+
+
+async def art_director(
+    client: AsyncClient, db: AsyncSession, email: str, name: str, brand: str = "brand@example.com"
+) -> str:
+    """Арт-директор в связке с брендом; клиент снова входит брендом."""
+    await sign_up(client, db, email, Role.ART_DIRECTOR, name)
+    db.add(
+        BrandArtDirector(
+            brand_id=await user_id(db, brand), art_director_id=await user_id(db, email)
+        )
+    )
+    await db.flush()
+    await log_in(client, brand)
+    return str(await user_id(db, email))
+
+
+def deliverable(assignee_id: str, **fields: Any) -> dict[str, Any]:
+    return {"name": "Walking transition", "assignee_id": assignee_id, **fields}
+
+
+async def test_creates_deliverables_in_order(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    photo = await upload(client, image_bytes())
+
+    body = await create(
+        client,
+        product(
+            [photo["id"]],
+            deliverables=[
+                deliverable(amina, due_date="2024-09-18", brief="  Slow walk "),
+                deliverable(amina, name=" Fabric close-up ", status="approved", brief=""),
+            ],
+        ),
+    )
+
+    assert [
+        (d["name"], d["assignee_id"], d["status"], d["due_date"], d["brief"])
+        for d in body["deliverables"]
+    ] == [
+        ("Walking transition", amina, "to_shoot", "2024-09-18", "Slow walk"),
+        ("Fabric close-up", amina, "approved", None, None),
+    ]
+
+
+async def test_deliverable_needs_name_and_assignee(client: AsyncClient) -> None:
+    photo = await upload(client, image_bytes())
+    for draft in ({"name": "Walk"}, {"name": " ", "assignee_id": str(uuid.uuid4())}):
+        response = await client.post(
+            "/api/products", json=product([photo["id"]], deliverables=[draft])
+        )
+        assert response.status_code == 422
+
+
+async def test_assignee_must_be_the_brands_art_director(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await art_director(client, db_session, "own@example.com", "Own")
+    await sign_up(client, db_session, "rival@example.com", Role.BRAND, "Rival")
+    rivals = await art_director(
+        client, db_session, "rivals@example.com", "Rival's", brand="rival@example.com"
+    )
+    await sign_up(client, db_session, "creator@example.com", Role.CREATOR, "Creator")
+    creator = str(await user_id(db_session, "creator@example.com"))
+    await log_in(client, "brand@example.com")
+    photo = await upload(client, image_bytes())
+
+    for assignee in (rivals, creator, str(uuid.uuid4())):
+        response = await client.post(
+            "/api/products", json=product([photo["id"]], deliverables=[deliverable(assignee)])
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Assignee is not the brand's art director"
+    assert await db_session.scalar(select(func.count()).select_from(Product)) == 0
+
+
+async def test_unapproved_art_director_cannot_be_assigned(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await db_session.execute(
+        update(User).where(User.email == "amina@example.com").values(status=Status.REJECTED)
+    )
+    photo = await upload(client, image_bytes())
+
+    response = await client.post(
+        "/api/products", json=product([photo["id"]], deliverables=[deliverable(amina)])
+    )
+
+    assert response.status_code == 422
+
+
+async def test_art_director_sees_products_with_their_deliverables(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    for name, assignees in (("Abaya", [amina, odina]), ("Hijab", [odina]), ("Plain", [])):
+        photo = await upload(client, image_bytes())
+        await create(
+            client,
+            product([photo["id"]], name=name, deliverables=[deliverable(a) for a in assignees]),
+        )
+
+    await log_in(client, "amina@example.com")
+    assert [item["name"] for item in (await listing(client))["items"]] == ["Abaya"]
+    await log_in(client, "odina@example.com")
+    body = await listing(client, search="hij")
+    assert [item["name"] for item in body["items"]] == ["Hijab"]
+    assert (await listing(client))["total"] == 2

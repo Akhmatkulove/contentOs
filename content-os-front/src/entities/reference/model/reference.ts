@@ -1,5 +1,5 @@
-// TODO(api): replace with the reference type from `Schemas` once the backend
-// has a references endpoint.
+// What ReferenceCard shows. Built from the backend's ReferenceResponse on the
+// references page and from in-memory drafts on the product page.
 export type ReferenceKind = 'video' | 'image'
 
 export interface Reference {
@@ -29,4 +29,13 @@ export function formatDuration(totalSec: number): string {
   const m = Math.floor((sec % 3600) / 60)
   const s = String(sec % 60).padStart(2, '0')
   return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
+}
+
+// Card title of a link reference without a title: "instagram.com".
+export function linkHost(link: string): string {
+  try {
+    return new URL(link).hostname.replace(/^www\./, '')
+  } catch {
+    return link
+  }
 }

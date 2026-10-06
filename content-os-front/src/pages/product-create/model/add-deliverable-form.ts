@@ -48,10 +48,13 @@ export function useAddDeliverableForm() {
   async function submit(): Promise<DeliverableDraft | null> {
     const { valid, data } = await r$.$validate()
     if (!valid) return null
+    // The select only offers loaded art directors, so the pick is among them.
+    const assignee = artDirectors.value?.find((member) => member.id === data.assigneeId)
+    if (!assignee) return null
     return {
       id: crypto.randomUUID(),
       name: data.name,
-      assignee: artDirectors.value?.find((member) => member.id === data.assigneeId) ?? null,
+      assignee,
       status: form.status ?? 'to_shoot',
       dueDate: form.dueDate,
       brief: data.brief,

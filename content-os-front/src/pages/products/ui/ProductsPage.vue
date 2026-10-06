@@ -9,7 +9,7 @@ import { PRODUCTS_PER_PAGE, useProductsList } from '../model/products-list'
 import ProductCard from './ProductCard.vue'
 import ProductsEmpty from './ProductsEmpty.vue'
 
-const { products, total, isEmpty, loading, search, page } = useProductsList()
+const { products, total, isEmpty, loading, search, page, canCreate } = useProductsList()
 
 // TODO(ui): VSelect variant for filters (40px pill, no label, value inline as
 // "Collection: …") — replace these static triggers, wire them to the query.
@@ -29,7 +29,7 @@ const filters = [
       </div>
 
       <div class="flex items-center gap-3">
-        <VButton v-if="!isEmpty && !loading" as-child class="hidden md:inline-flex">
+        <VButton v-if="canCreate && !isEmpty && !loading" as-child class="hidden md:inline-flex">
           <RouterLink :to="{ name: 'product-create' }">
             <VIcon name="plus-sign" />
             Add product
@@ -42,7 +42,7 @@ const filters = [
 
     <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 
-    <ProductsEmpty v-else-if="isEmpty" />
+    <ProductsEmpty v-else-if="isEmpty" :can-create="canCreate" />
 
     <template v-else>
       <section
@@ -73,7 +73,7 @@ const filters = [
         </button>
       </section>
 
-      <VButton as-child class="w-full md:hidden">
+      <VButton v-if="canCreate" as-child class="w-full md:hidden">
         <RouterLink :to="{ name: 'product-create' }">
           <VIcon name="plus-sign" />
           Add product

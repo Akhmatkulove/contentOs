@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
@@ -12,6 +12,8 @@ from sqlalchemy.orm import InstrumentedAttribute
 from app.admin.models import AdminAction, AdminActionType, ArtDirectorCreator, BrandArtDirector
 from app.auth.models import Role, Status, User, UserSession
 from app.auth.service import hash_password
+from app.deliverables.models import Deliverable
+from app.products.models import Product
 
 
 @dataclass
@@ -96,8 +98,20 @@ async def unassign(
         .where(kind.owner == owner_id, kind.member == member_id)
         .returning(kind.owner)
     )
-    if deleted is not None:
-        _log(db, admin, kind, kind.unassign, owner_id, member_id)
+    if deleted is None:
+        return
+    _log(db, admin, kind, kind.unassign, owner_id, member_id)
+    # Связка — пул назначений: без неё арт-директор снимается с deliverables бренда
+    # и перестаёт видеть его продукты (docs/adr/0002, 0004).
+    if kind is BRAND_ART_DIRECTOR:
+        await db.execute(
+            update(Deliverable)
+            .where(
+                Deliverable.assignee_id == member_id,
+                Deliverable.product_id.in_(select(Product.id).where(Product.brand_id == owner_id)),
+            )
+            .values(assignee_id=None)
+        )
 
 
 def _log(

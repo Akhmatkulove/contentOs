@@ -41,7 +41,8 @@ export const router = createRouter({
           path: 'products/new',
           name: 'product-create',
           component: ProductCreatePage,
-          meta: { section: 'products' },
+          // Only brands create products; the team gets them through deliverables.
+          meta: { section: 'products', roles: ['brand'] },
         },
         { path: 'content', name: 'content', component: ContentPage },
         {

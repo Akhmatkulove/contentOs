@@ -5,6 +5,7 @@ from typing import Annotated, Self
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 from app.core.text import LongText, ShortText, Tags
+from app.deliverables.schemas import DeliverableDraft, DeliverableResponse
 from app.files.schemas import FileResponse
 from app.products.models import ProductStatus
 from app.references.schemas import ReferenceDraft, ReferenceResponse
@@ -25,6 +26,8 @@ class ProductCreate(BaseModel):
     # Загруженные заранее (POST /api/uploads), в этом порядке.
     photo_ids: list[uuid.UUID] = Field(min_length=1, max_length=20)
     references: list[ReferenceDraft] = Field(default_factory=list, max_length=20)
+    # Назначенные арт-директора начинают видеть продукт (docs/adr/0004).
+    deliverables: list[DeliverableDraft] = Field(default_factory=list, max_length=50)
 
     def file_ids(self) -> list[uuid.UUID]:
         """Все файлы запроса: фото и файлы референсов."""
@@ -50,6 +53,7 @@ class ProductResponse(BaseModel):
     tags: list[str]
     photos: list[FileResponse]
     references: list[ReferenceResponse]
+    deliverables: list[DeliverableResponse]
     created_at: datetime
 
 

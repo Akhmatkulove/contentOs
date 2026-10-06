@@ -3,7 +3,7 @@ import { openAddDeliverable } from './add-deliverable'
 import type { DeliverableDraft } from './deliverable-draft'
 
 // The product's deliverables, added through the modal and listed in the table.
-// TODO(api): deliverables — kept here until the backend takes them with the product.
+// They are saved with the product by Create product.
 export function useDeliverables(productName: () => string) {
   const deliverables = shallowRef<DeliverableDraft[]>([])
 

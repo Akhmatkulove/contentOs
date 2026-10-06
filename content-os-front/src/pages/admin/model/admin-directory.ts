@@ -6,11 +6,11 @@ import { assignLink, fetchAdminUsers, unassignLink, type LinkRef } from '../api/
 import {
   assignCandidates,
   buildDirectory,
-  displayName,
   linkRef,
   matchesSearch,
   MEMBER_NOUN,
   partnerNoun,
+  removeLinkMessage,
   type DirectoryEntry,
   type DirectoryTab,
   type LinkSection,
@@ -80,9 +80,7 @@ export function useAdminDirectory() {
   async function confirmRemove(entry: DirectoryEntry, section: LinkSection, partner: ManagedUser) {
     const confirmed = await openModal(ConfirmModal, {
       title: `Remove ${partnerNoun(section)}?`,
-      description: section.owner
-        ? `${displayName(partner)} will no longer work with ${displayName(entry.user)}.`
-        : `${displayName(entry.user)} will no longer work with ${displayName(partner)}.`,
+      description: removeLinkMessage(section, entry.user, partner),
       confirmLabel: 'Remove',
     })
     if (confirmed) unassign.mutate(linkRef(section, entry.user, partner))

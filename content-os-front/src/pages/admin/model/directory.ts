@@ -140,6 +140,20 @@ export function displayName(user: ManagedUser): string {
   return user.name || user.email
 }
 
+// Text of the "Remove …?" confirmation. Without a brand link the art director
+// is taken off the brand's deliverables and stops seeing its products
+// (docs/adr/0004).
+export function removeLinkMessage(
+  section: LinkSection,
+  user: ManagedUser,
+  partner: ManagedUser,
+): string {
+  const [owner, member] = section.owner ? [user, partner] : [partner, user]
+  const unlinked = `${displayName(member)} will no longer work with ${displayName(owner)}.`
+  if (section.kind !== 'brand-art-director') return unlinked
+  return `${unlinked} They will be taken off its deliverables and lose access to its products.`
+}
+
 export const STATUS_LABEL: Record<Status, string> = {
   onboarding: 'Onboarding',
   pending_review: 'Under review',

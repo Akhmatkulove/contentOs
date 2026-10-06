@@ -63,3 +63,9 @@ class ReferenceResponse(BaseModel):
             files=[FileResponse.of(file, storage) for file in files],
             created_at=reference.created_at,
         )
+
+
+class ReferenceList(BaseModel):
+    items: list[ReferenceResponse]
+    # Сколько всего подходит под поиск: для пагинации.
+    total: int

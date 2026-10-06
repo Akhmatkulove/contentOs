@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.admin.models import AdminAction, AdminActionType
 from app.admin.service import NotAnAdminError, create_or_reset_admin
 from app.auth.models import Role, Status, User, UserSession
+from app.deliverables.models import Deliverable
+from app.products.models import Product
 
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "admin-long-password"  # noqa: S105
@@ -205,6 +207,33 @@ async def test_assigns_and_unassigns_art_director(
         (AdminActionType.ASSIGN_ART_DIRECTOR, brand),
         (AdminActionType.UNASSIGN_ART_DIRECTOR, brand),
     ]
+
+
+async def test_unassigned_art_director_leaves_the_brands_deliverables(
+    admin_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    brand = await add_user(admin_client, db_session, "brand@example.com", Role.BRAND)
+    other = await add_user(admin_client, db_session, "other@example.com", Role.BRAND)
+    director = await add_user(admin_client, db_session, "ad@example.com", Role.ART_DIRECTOR)
+    await login(admin_client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    for owner in (brand, other):
+        assert (await admin_client.put(link_path(owner, director))).status_code == 204
+        product = Product(brand_id=owner, name="Abaya", about="Black abaya")
+        db_session.add(product)
+        await db_session.flush()
+        db_session.add(
+            Deliverable(product_id=product.id, position=0, assignee_id=director, name="Walk")
+        )
+    await db_session.flush()
+
+    assert (await admin_client.delete(link_path(brand, director))).status_code == 204
+
+    rows = await db_session.execute(
+        select(Product.brand_id, Deliverable.assignee_id).join(
+            Product, Product.id == Deliverable.product_id
+        )
+    )
+    assert {row.brand_id: row.assignee_id for row in rows} == {brand: None, other: director}
 
 
 async def test_repeated_calls_change_nothing_and_are_not_logged(

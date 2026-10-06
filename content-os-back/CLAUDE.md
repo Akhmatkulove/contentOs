@@ -22,8 +22,9 @@ src/app/onboarding/    ответы онбординга, отправка и о
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
 src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/
-src/app/products/      продукты: POST /api/products вместе с фото и референсами (docs/adr/0003)
-src/app/references/    референсы общего пула (модели, схемы; создаются пока только из продукта)
+src/app/products/      продукты: POST /api/products вместе с фото, референсами и deliverables (docs/adr/0003, 0004)
+src/app/deliverables/  deliverables продукта (модели, схемы; создаются из продукта): назначенный арт-директор видит продукт
+src/app/references/    референсы общего пула: GET /api/references (арт-директор — референсы своих продуктов, docs/adr/0004); создаются пока только из продукта
 src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора из связок бренда)
 src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py

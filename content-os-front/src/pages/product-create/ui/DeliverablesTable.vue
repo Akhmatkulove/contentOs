@@ -57,11 +57,8 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
         <div class="flex min-w-0 flex-col gap-2">
           <dt class="text-p4 font-medium text-secondary">Assignee</dt>
           <dd class="flex h-7 items-center gap-2 text-table font-medium text-primary">
-            <template v-if="item.assignee">
-              <AssigneeAvatar :member="item.assignee" />
-              <span class="truncate">{{ item.assignee.name || 'Unnamed' }}</span>
-            </template>
-            <span v-else class="text-secondary">Unassigned</span>
+            <AssigneeAvatar :member="item.assignee" />
+            <span class="truncate">{{ item.assignee.name || 'Unnamed' }}</span>
           </dd>
         </div>
         <div class="flex min-w-0 flex-col gap-2">
@@ -107,13 +104,12 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
           </div>
         </div>
         <div role="cell" class="min-w-0">
-          <div v-if="item.assignee" class="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <AssigneeAvatar :member="item.assignee" />
             <span class="truncate text-p3 font-medium text-primary">
               {{ item.assignee.name || 'Unnamed' }}
             </span>
           </div>
-          <span v-else class="text-p3 font-medium text-secondary">Unassigned</span>
         </div>
         <div role="cell">
           <VStatus :tone="deliverableStatuses[item.status].tone" class="w-full">

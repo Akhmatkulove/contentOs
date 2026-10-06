@@ -68,7 +68,9 @@ describe('accessRedirect', () => {
 
   it('keeps brands to Home, Products and Content', () => {
     const brand = me({ role: 'brand', status: 'approved', onboarding_step: null })
-    for (const path of ['/', '/products', '/content']) expect(redirect(path, brand)).toBe(true)
+    for (const path of ['/', '/products', '/products/new', '/content']) {
+      expect(redirect(path, brand)).toBe(true)
+    }
     for (const path of ['/tasks', '/shoots', '/references', '/activity']) {
       expect(redirect(path, brand)).toBe('home')
     }
@@ -94,6 +96,7 @@ describe('accessRedirect', () => {
     for (const path of ['/', '/tasks', '/shoots', '/products', '/content', '/activity']) {
       expect(redirect(path, user)).toBe(true)
     }
+    expect(redirect('/products/new', user)).toBe('home')
   })
 })
 

@@ -5,7 +5,10 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
 import { http } from '@/shared/api'
 import { VDropzone } from '@/shared/ui/dropzone'
+import { openAddDeliverable } from '../model/add-deliverable'
 import ProductCreatePage from './ProductCreatePage.vue'
+
+vi.mock('../model/add-deliverable', () => ({ openAddDeliverable: vi.fn() }))
 
 async function mountPage() {
   const router = createRouter({
@@ -73,7 +76,48 @@ describe('ProductCreatePage', () => {
       status: 'active',
       photo_ids: ['file-1', 'file-2'],
       references: [],
+      deliverables: [],
     })
     expect(router.currentRoute.value.name).toBe('products')
+  })
+
+  it('sends the deliverables with the product, each to its art director', async () => {
+    vi.mocked(openAddDeliverable).mockResolvedValueOnce({
+      id: 'draft-1',
+      name: 'Walking transition',
+      assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
+      status: 'to_shoot',
+      dueDate: '2024-09-18',
+      brief: '',
+    })
+    const post = vi.spyOn(http, 'post').mockImplementation(async (url: string) => ({
+      data: { id: url === '/uploads' ? 'file-1' : 'product-1' },
+    }))
+    const { wrapper } = await mountPage()
+
+    await wrapper.get('input[placeholder="Enter product name"]').setValue('Abaya')
+    await wrapper.get('textarea[placeholder="About"]').setValue('Black abaya')
+    wrapper.getComponent(VDropzone).vm.$emit('select', [jpeg('a.jpg')])
+    const add = wrapper.findAll('button').find((b) => b.text() === 'Add deliverable')!
+    await add.trigger('click')
+    await flushPromises()
+    expect(openAddDeliverable).toHaveBeenCalledWith({ product: 'Abaya' })
+    expect(wrapper.text()).toContain('Walking transition')
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    const [, body] = post.mock.calls.find(([url]) => url === '/products')!
+    expect(body).toMatchObject({
+      deliverables: [
+        {
+          name: 'Walking transition',
+          assignee_id: 'ad-1',
+          status: 'to_shoot',
+          due_date: '2024-09-18',
+          brief: null,
+        },
+      ],
+    })
   })
 })

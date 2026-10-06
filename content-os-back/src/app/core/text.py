@@ -27,3 +27,8 @@ LongText = Annotated[
 ]
 Tag = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
 Tags = Annotated[list[Tag], Field(max_length=20), AfterValidator(_unique)]
+
+
+def escape_like(text: str) -> str:
+    """Поиск ищет буквально: % и _ не должны работать как шаблоны LIKE (escape="\\")."""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
