@@ -6,7 +6,7 @@ import { VSearch } from '@/shared/ui/search'
 import type { SelectOption } from '@/shared/ui/select'
 
 // One section of Figma "Sheet / Filters": label, optional search, options with
-// a check on the picked one. Creator options carry a photo for the avatar.
+// a check on the picked one. Options with `photoUrl` (people) get an avatar.
 const {
   label,
   options,

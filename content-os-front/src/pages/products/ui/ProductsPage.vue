@@ -20,6 +20,8 @@ const {
   filters,
   collections,
   setSort,
+  filtersActive,
+  openFilters,
   page,
   canCreate,
 } = useProductsList()
@@ -51,7 +53,7 @@ const {
 
     <template v-else>
       <section
-        aria-label="Filters"
+        aria-label="Search and filters"
         class="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 shadow-[0_8px_32px_4px_rgb(29_42_60/0.05)] md:p-3 md:shadow-none"
       >
         <VSearch
@@ -60,8 +62,15 @@ const {
           aria-label="Search products"
           class="w-auto min-w-0 flex-1 md:min-w-60"
         />
-        <!-- TODO(ui): VSheet (bottom sheet) with the filters, opened by this button. -->
-        <VButton variant="secondary" size="icon-32" aria-label="Filters" class="md:hidden">
+        <!-- Figma "CMS / Mobile / Filter button": active once something is filtered. -->
+        <VButton
+          variant="secondary"
+          size="icon-32"
+          aria-label="Filters"
+          :aria-pressed="filtersActive"
+          :class="['md:hidden', filtersActive && 'border-violet-400 bg-status-accent']"
+          @click="openFilters"
+        >
           <VIcon name="filter-horizontal" :size="16" />
         </VButton>
         <!-- Figma "Field / Collection: All collections" and the rest: desktop only. -->

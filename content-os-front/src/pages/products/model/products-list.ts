@@ -2,6 +2,7 @@ import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, watch } from 'vue'
 import { useSessionStore } from '@/entities/session'
 import { fetchProductFilters, fetchProducts, type ProductSort } from '../api/products'
+import { openFiltersSheet } from './filters-sheet'
 import { toProduct } from './product'
 import {
   collectionOptions,
@@ -14,7 +15,7 @@ import {
 export const PRODUCTS_PER_PAGE = 8
 
 // The products the user sees: searched, filtered, sorted and paged on the backend.
-// TODO(ui): mobile filters sheet — the filter button does nothing yet.
+// Desktop filters are selects in the toolbar; mobile ones live in a sheet.
 export function useProductsList() {
   const session = useSessionStore()
   // Brands add products; art directors get them through deliverables (docs/adr/0004).
@@ -58,6 +59,11 @@ export function useProductsList() {
     if (value) filters.sort = value as ProductSort
   }
 
+  async function openFilters() {
+    const applied = await openFiltersSheet({ ...filters }, collections.value)
+    if (applied) Object.assign(filters, applied)
+  }
+
   const products = computed(() => (data.value?.items ?? []).map(toProduct))
   const total = computed(() => data.value?.total ?? 0)
 
@@ -79,6 +85,8 @@ export function useProductsList() {
     filters,
     collections,
     setSort,
+    filtersActive: computed(() => isFiltered(filters)),
+    openFilters,
     page,
     canCreate,
   }
