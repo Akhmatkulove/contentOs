@@ -23,6 +23,7 @@ function response(overrides: Partial<Schemas['ReferenceResponse']> = {}) {
     product_id: 'p1',
     author: 'Acme',
     files: [],
+    favorite: false,
     created_at: '2026-10-06T10:00:00Z',
     ...overrides,
   } satisfies Schemas['ReferenceResponse']

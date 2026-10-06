@@ -16,11 +16,19 @@ const reference: Reference = {
 }
 
 describe('ReferenceCard', () => {
-  it('shows the favourite button by default', () => {
+  it('shows the favourite button by default and asks to toggle it', async () => {
     const wrapper = mount(ReferenceCard, { props: { reference } })
-    expect(wrapper.find('[aria-label="Add Linen texture details to favorites"]').exists()).toBe(
-      true,
-    )
+    const star = wrapper.get('[aria-label="Favorite Linen texture details"]')
+    expect(star.attributes('aria-pressed')).toBe('false')
+    await star.trigger('click')
+    expect(wrapper.emitted('toggleFavorite')).toHaveLength(1)
+  })
+
+  it('fills the star of a favourite', () => {
+    const wrapper = mount(ReferenceCard, { props: { reference: { ...reference, favorite: true } } })
+    const star = wrapper.get('[aria-label="Favorite Linen texture details"]')
+    expect(star.attributes('aria-pressed')).toBe('true')
+    expect(star.classes()).toContain('[--icon-fill:currentColor]')
   })
 
   it('shows how many files the reference holds, and the tags', () => {
@@ -59,6 +67,6 @@ describe('ReferenceCard', () => {
       slots: { action: '<button aria-label="Remove">x</button>' },
     })
     expect(wrapper.find('[aria-label="Remove"]').exists()).toBe(true)
-    expect(wrapper.find('[aria-label$="to favorites"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label^="Favorite"]').exists()).toBe(false)
   })
 })

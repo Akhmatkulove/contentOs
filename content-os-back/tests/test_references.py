@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
@@ -244,3 +245,62 @@ async def test_others_see_an_empty_pool(
 async def test_list_rejects_bad_paging(client: AsyncClient) -> None:
     for params in ({"page": 0}, {"per_page": 51}, {"search": "x" * 101}):
         assert (await client.get("/api/references", params=params)).status_code == 422
+
+
+async def favorite(client: AsyncClient, reference_id: str, on: bool = True) -> int:
+    path = f"/api/references/{reference_id}/favorite"
+    response = await (client.put(path) if on else client.delete(path))
+    return response.status_code
+
+
+async def test_adds_and_removes_favorites(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await product_with_references(
+        client,
+        "Abaya",
+        [amina],
+        [{"title": t, "link": f"https://example.com/{t}"} for t in ("Walk", "Drape")],
+    )
+    await log_in(client, "amina@example.com")
+    walk = next(i for i in (await listing(client))["items"] if i["title"] == "Walk")
+
+    assert await favorite(client, walk["id"]) == 204
+    # Повторный вызов ничего не меняет.
+    assert await favorite(client, walk["id"]) == 204
+    marks = {i["title"]: i["favorite"] for i in (await listing(client))["items"]}
+    assert marks == {"Walk": True, "Drape": False}
+
+    assert await favorite(client, walk["id"], on=False) == 204
+    assert await favorite(client, walk["id"], on=False) == 204
+    assert all(not i["favorite"] for i in (await listing(client))["items"])
+
+
+async def test_favorites_are_personal(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(
+        client, "Abaya", [amina, odina], [{"title": "Walk", "link": "https://example.com/"}]
+    )
+    await log_in(client, "amina@example.com")
+    [walk] = (await listing(client))["items"]
+    assert await favorite(client, walk["id"]) == 204
+
+    await log_in(client, "odina@example.com")
+    [seen] = (await listing(client))["items"]
+    assert seen["favorite"] is False
+
+
+async def test_only_visible_references_can_be_favorited(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Walk", "link": "https://example.com/"}]
+    )
+    await log_in(client, "amina@example.com")
+    [walk] = (await listing(client))["items"]
+
+    await log_in(client, "odina@example.com")
+    assert await favorite(client, walk["id"]) == 404
+    assert await favorite(client, str(uuid.uuid4())) == 404

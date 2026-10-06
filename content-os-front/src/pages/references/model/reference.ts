@@ -19,7 +19,6 @@ export function toReference(item: ReferenceResponse): Reference {
     imageCount: item.files.length - videoCount,
     videoCount,
     tags: item.tags,
-    // TODO(api): favorites.
-    favorite: false,
+    favorite: item.favorite,
   }
 }

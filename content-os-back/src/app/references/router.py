@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.auth.deps import ApprovedUser
 from app.core.config import SettingsDep
@@ -40,3 +40,17 @@ async def list_filters(
 ) -> ReferenceFilters:
     """Варианты для фильтров Product, Creator и Tags."""
     return await service.list_filters(db, user, settings)
+
+
+@router.put("/{reference_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
+async def add_favorite(reference_id: uuid.UUID, user: ApprovedUser, db: SessionDep) -> None:
+    """Добавить в избранное; повторный вызов ничего не меняет."""
+    await service.set_favorite(db, user, reference_id, favorite=True)
+    await db.commit()
+
+
+@router.delete("/{reference_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_favorite(reference_id: uuid.UUID, user: ApprovedUser, db: SessionDep) -> None:
+    """Убрать из избранного; если его там нет, ничего не меняет."""
+    await service.set_favorite(db, user, reference_id, favorite=False)
+    await db.commit()

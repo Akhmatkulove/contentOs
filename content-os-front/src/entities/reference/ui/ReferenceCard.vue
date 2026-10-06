@@ -6,6 +6,9 @@ import { formatDuration, referenceKindLabels, type Reference } from '../model/re
 
 const { reference } = defineProps<{ reference: Reference }>()
 
+// The star asks the screen to flip the favourite; the screen owns the request.
+const emit = defineEmits<{ toggleFavorite: [] }>()
+
 const duration = computed(() =>
   reference.durationSec === null ? null : formatDuration(reference.durationSec),
 )
@@ -70,13 +73,17 @@ const badges = computed(() => {
              own 26px action here instead (product create: remove). -->
         <div class="ml-auto">
           <slot name="action">
-            <!-- TODO(api): toggle favorite; TODO(ui): filled star for favorites. -->
+            <!-- Selected: the star fills (--icon-fill in the sprite's star). -->
             <VButton
               variant="surface"
               size="icon-24"
-              :aria-label="`Add ${reference.title} to favorites`"
+              :aria-label="`Favorite ${reference.title}`"
               :aria-pressed="reference.favorite"
-              class="size-6.5"
+              :class="[
+                'size-6.5 hover:bg-status-accent active:bg-violet-200',
+                reference.favorite ? 'text-link [--icon-fill:currentColor]' : 'text-neutral-800',
+              ]"
+              @click="emit('toggleFavorite')"
             >
               <VIcon name="star" :size="13" />
             </VButton>

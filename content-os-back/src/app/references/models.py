@@ -49,3 +49,18 @@ class ReferenceFile(Base):
     file_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("files.id", ondelete="CASCADE"), unique=True
     )
+
+
+class ReferenceFavorite(Base):
+    """Референс в избранном пользователя. У каждого своё избранное."""
+
+    __tablename__ = "reference_favorites"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    # Индекс для обратного поиска: кто добавил референс в избранное.
+    reference_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("references.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

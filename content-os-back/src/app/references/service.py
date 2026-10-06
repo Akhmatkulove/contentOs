@@ -6,10 +6,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
+from fastapi import HTTPException, status
 from sqlalchemy import (
     ColumnElement,
     Select,
     UnaryExpression,
+    delete,
     exists,
     false,
     func,
@@ -17,6 +19,7 @@ from sqlalchemy import (
     or_,
     select,
 )
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
@@ -26,7 +29,7 @@ from app.core.text import escape_like
 from app.deliverables.models import Deliverable
 from app.files.models import StoredFile
 from app.products.models import Product
-from app.references.models import Reference, ReferenceFile, ReferenceType
+from app.references.models import Reference, ReferenceFavorite, ReferenceFile, ReferenceType
 from app.references.schemas import (
     FilterProduct,
     ReferenceFilters,
@@ -136,10 +139,23 @@ async def list_references(
         )
     }
 
+    favorites = set(
+        await db.scalars(
+            select(ReferenceFavorite.reference_id).where(
+                ReferenceFavorite.user_id == user.id,
+                ReferenceFavorite.reference_id.in_([reference.id for reference in references]),
+            )
+        )
+    )
+
     return ReferenceList(
         items=[
             ReferenceResponse.of(
-                reference, authors.get(reference.owner_id), files[reference.id], storage
+                reference,
+                authors.get(reference.owner_id),
+                files[reference.id],
+                storage,
+                favorite=reference.id in favorites,
             )
             for reference in references
         ],
@@ -165,3 +181,31 @@ async def list_filters(db: AsyncSession, user: User, settings: Settings) -> Refe
         authors=[TeamMember.of(author, settings) for author in authors],
         tags=tags,
     )
+
+
+async def set_favorite(
+    db: AsyncSession, user: User, reference_id: uuid.UUID, favorite: bool
+) -> None:
+    """Добавляет в избранное или убирает; повторный вызов ничего не меняет. Коммитит вызывающий.
+
+    В избранное можно добавить только видимый референс; невидимый отвечает 404,
+    как несуществующий.
+    """
+    visible = await db.scalar(
+        select(Reference.id).where(Reference.id == reference_id, _visible(user))
+    )
+    if visible is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reference not found")
+    if favorite:
+        await db.execute(
+            insert(ReferenceFavorite)
+            .values(user_id=user.id, reference_id=reference_id)
+            .on_conflict_do_nothing()
+        )
+    else:
+        await db.execute(
+            delete(ReferenceFavorite).where(
+                ReferenceFavorite.user_id == user.id,
+                ReferenceFavorite.reference_id == reference_id,
+            )
+        )

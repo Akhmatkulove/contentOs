@@ -45,11 +45,18 @@ class ReferenceResponse(BaseModel):
     # Имя автора (поле Creator): бренд, если референс создан в продукте.
     author: str | None
     files: list[FileResponse]
+    # В избранном у того, кто запрашивает.
+    favorite: bool
     created_at: datetime
 
     @classmethod
     def of(
-        cls, reference: Reference, author: str | None, files: list[StoredFile], storage: Storage
+        cls,
+        reference: Reference,
+        author: str | None,
+        files: list[StoredFile],
+        storage: Storage,
+        favorite: bool = False,
     ) -> "ReferenceResponse":
         return cls(
             id=reference.id,
@@ -62,6 +69,7 @@ class ReferenceResponse(BaseModel):
             product_id=reference.product_id,
             author=author,
             files=[FileResponse.of(file, storage) for file in files],
+            favorite=favorite,
             created_at=reference.created_at,
         )
 

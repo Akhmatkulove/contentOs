@@ -36,3 +36,9 @@ export async function fetchReferences(query: ReferencesQuery): Promise<Reference
 export async function fetchReferenceFilters(): Promise<ReferenceFilterOptions> {
   return (await http.get<ReferenceFilterOptions>('/references/filters')).data
 }
+
+// Idempotent on the backend: repeating either call changes nothing.
+export async function setFavorite(id: string, favorite: boolean): Promise<void> {
+  const url = `/references/${id}/favorite`
+  await (favorite ? http.put(url) : http.delete(url))
+}

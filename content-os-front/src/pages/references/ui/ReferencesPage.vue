@@ -20,6 +20,7 @@ const {
   searchPlaceholder,
   filtersActive,
   openFilters,
+  toggleFavorite,
 } = useReferencesList()
 
 function setSort(value: string | undefined) {
@@ -30,7 +31,8 @@ function setSort(value: string | undefined) {
 <!--
   Figma "References" (desktop) and its mobile screen.
   TODO(ui): tabs My references, Recent, Favorites, Collections; Add reference and
-  the "…" menu — no data for them yet (own references, favorites, collections).
+  the "…" menu — no data for them yet (own references, collections; favorites
+  can be set, the tab isn't built).
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
@@ -129,7 +131,7 @@ function setSort(value: string | undefined) {
         class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-x-5 md:gap-y-6"
       >
         <li v-for="reference in references" :key="reference.id">
-          <ReferenceCard :reference="reference" />
+          <ReferenceCard :reference="reference" @toggle-favorite="toggleFavorite(reference)" />
         </li>
       </ul>
       <VPagination

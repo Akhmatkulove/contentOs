@@ -2,6 +2,7 @@ import { useQuery } from '@pinia/colada'
 import { useMediaQuery } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { fetchReferenceFilters, fetchReferences } from '../api/references'
+import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
 import { toReference } from './reference'
 import {
@@ -45,7 +46,10 @@ export function useReferencesList() {
   })
   const options = computed(() => filterOptions(optionsData.value))
 
-  const references = computed(() => (data.value?.items ?? []).map(toReference))
+  const favorites = useFavorites()
+  const references = computed(() =>
+    (data.value?.items ?? []).map((item) => favorites.withPending(toReference(item))),
+  )
   const total = computed(() => data.value?.total ?? 0)
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && data.value === undefined)
@@ -74,5 +78,6 @@ export function useReferencesList() {
     searchPlaceholder,
     filtersActive: computed(() => isFiltered(filters)),
     openFilters,
+    toggleFavorite: favorites.toggle,
   }
 }
