@@ -12,6 +12,7 @@ import { VTextarea } from '@/shared/ui/textarea'
 import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
 import { statusOptions, useProductCreateForm } from '../model/product-create-form'
 import { photoAccept } from '../model/product-photos'
+import DeliverablesTable from './DeliverablesTable.vue'
 import SectionCard from './SectionCard.vue'
 
 const {
@@ -24,7 +25,9 @@ const {
   references,
   addReference,
   removeReference,
+  deliverables,
   addDeliverable,
+  removeDeliverable,
   cancel,
   submit,
   creating,
@@ -185,7 +188,6 @@ const emptyListClass =
       <p v-else :class="emptyListClass">The References you've added will be displayed here</p>
     </SectionCard>
 
-    <!-- TODO(ui): deliverable rows — no design yet; added drafts aren't listed. -->
     <SectionCard
       title="Deliverables"
       description="Plan and track the content pieces required for this product."
@@ -200,7 +202,13 @@ const emptyListClass =
           Add deliverable
         </VButton>
       </template>
-      <p :class="emptyListClass">The Deliverables you've added will be displayed here</p>
+      <DeliverablesTable
+        v-if="deliverables.length"
+        :deliverables="deliverables"
+        :disabled="creating"
+        @remove="removeDeliverable"
+      />
+      <p v-else :class="emptyListClass">The Deliverables you've added will be displayed here</p>
     </SectionCard>
 
     <!-- On mobile the actions stay above the tab bar. -->

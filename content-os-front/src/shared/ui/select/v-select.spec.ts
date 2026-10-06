@@ -56,6 +56,11 @@ describe('VSelect', () => {
     expect(trigger.attributes('aria-describedby')).toBe(message.attributes('id'))
   })
 
+  it('marks a required field with an asterisk', () => {
+    const wrapper = mountSelect({ required: true })
+    expect(wrapper.find('label').text()).toBe('Collection *')
+  })
+
   it('opens the plain list from the keyboard and picks an option', async () => {
     const wrapper = mountSelect()
     await wrapper.get('button').trigger('keydown', { key: 'Enter' })

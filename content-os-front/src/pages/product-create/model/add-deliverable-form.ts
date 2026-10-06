@@ -8,6 +8,7 @@ import type { DeliverableDraft, DeliverableStatus } from './deliverable-draft'
 
 export const deliverableSchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.nonEmpty('Enter the deliverable.')),
+  assigneeId: v.pipe(v.string('Select an assignee.'), v.nonEmpty('Select an assignee.')),
   brief: v.pipe(v.string(), v.trim()),
 })
 
@@ -27,7 +28,10 @@ export function useAddDeliverableForm() {
 
   // rewardEarly: a field turns valid as soon as it is fixed, but turns invalid only on submit.
   const { r$ } = useRegleSchema(form, deliverableSchema, { rewardEarly: true })
-  const errors = computed(() => ({ name: r$.name.$errors[0] ?? '' }))
+  const errors = computed(() => ({
+    name: r$.name.$errors[0] ?? '',
+    assigneeId: r$.assigneeId.$errors[0] ?? '',
+  }))
 
   const { data: artDirectors, isLoading: assigneesLoading } = useQuery({
     key: ['team', 'art-directors'],
@@ -47,7 +51,7 @@ export function useAddDeliverableForm() {
     return {
       id: crypto.randomUUID(),
       name: data.name,
-      assigneeId: form.assigneeId,
+      assignee: artDirectors.value?.find((member) => member.id === data.assigneeId) ?? null,
       status: form.status ?? 'to_shoot',
       dueDate: form.dueDate,
       brief: data.brief,

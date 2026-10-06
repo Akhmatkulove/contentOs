@@ -131,6 +131,7 @@
   --background-color-overlay-scrim: rgb(13 13 18 / 0.45);
 
   --border-color-default: var(--color-neutral-300);
+  --border-color-subtle: var(--color-neutral-200);
 
   /*
    * Typography — Figma "Web Design" text styles. Each text-* sets size,

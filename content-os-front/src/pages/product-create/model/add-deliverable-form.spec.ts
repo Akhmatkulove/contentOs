@@ -2,12 +2,21 @@ import * as v from 'valibot'
 import { assigneeOptions, deliverableSchema } from './add-deliverable-form'
 
 describe('deliverableSchema', () => {
-  it('needs a name and trims the text', () => {
-    const empty = v.safeParse(deliverableSchema, { name: '  ', brief: '' })
-    expect(v.flatten(empty.issues!).nested).toEqual({ name: ['Enter the deliverable.'] })
+  it('needs a name and an assignee', () => {
+    const empty = v.safeParse(deliverableSchema, { name: '  ', assigneeId: undefined, brief: '' })
+    expect(v.flatten(empty.issues!).nested).toEqual({
+      name: ['Enter the deliverable.'],
+      assigneeId: ['Select an assignee.'],
+    })
+  })
 
-    const filled = v.safeParse(deliverableSchema, { name: ' Walk ', brief: ' Slow ' })
-    expect(filled.output).toEqual({ name: 'Walk', brief: 'Slow' })
+  it('trims the text', () => {
+    const filled = v.safeParse(deliverableSchema, {
+      name: ' Walk ',
+      assigneeId: 'a',
+      brief: ' Slow ',
+    })
+    expect(filled.output).toEqual({ name: 'Walk', assigneeId: 'a', brief: 'Slow' })
   })
 })
 

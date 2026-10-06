@@ -45,6 +45,8 @@ const formId = useId()
           v-model="form.assigneeId"
           :options="assignees"
           label="Assignee"
+          required
+          :error="errors.assigneeId"
           :placeholder="assigneesLoading ? 'Loading…' : 'Select art director'"
         />
         <VSelect

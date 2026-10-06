@@ -14,6 +14,7 @@ const {
   options,
   label,
   placeholder = 'Select…',
+  required = false,
   error,
   disabled = false,
   searchable = false,
@@ -24,6 +25,10 @@ const {
   options: readonly SelectOption[]
   label?: string
   placeholder?: string
+  // Marks the label with an asterisk. No aria-required: Reka sets it on the
+  // trigger from its own `required`, which would also make the hidden native
+  // <select> required and let the browser stop the form before validation.
+  required?: boolean
   // Error message; a non-empty string switches the field to the error state.
   error?: string
   disabled?: boolean
@@ -53,7 +58,7 @@ const triggerAttrs = computed(() => ({
 <template>
   <div :class="cn('flex min-w-0 flex-col gap-2', className)">
     <label v-if="label" :for="id" class="text-p3 font-medium text-secondary">
-      {{ label }}
+      {{ label }}<span v-if="required" aria-hidden="true" class="text-red-400"> *</span>
     </label>
 
     <SelectSearchable

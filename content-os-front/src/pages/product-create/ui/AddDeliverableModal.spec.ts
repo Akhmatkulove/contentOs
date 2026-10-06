@@ -34,6 +34,15 @@ const input = (label: string) => {
   return document.getElementById(el.htmlFor) as HTMLInputElement
 }
 
+async function pickAssignee() {
+  input('Assignee').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  await flushPromises()
+  document
+    .querySelector('[role="option"]')!
+    .dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
+  await flushPromises()
+}
+
 afterEach(() => {
   // Close and drop modals left open, without waiting for the exit animation.
   vi.useFakeTimers()
@@ -61,11 +70,12 @@ describe('AddDeliverableModal', () => {
     expect(options.map((option) => option.textContent?.trim())).toEqual(['Amina'])
   })
 
-  it('asks for a name before adding', async () => {
+  it('asks for a name and an assignee before adding', async () => {
     await open()
     button('Add deliverable').click()
     await flushPromises()
     expect(document.body.textContent).toContain('Enter the deliverable.')
+    expect(document.body.textContent).toContain('Select an assignee.')
     expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   })
 
@@ -77,13 +87,14 @@ describe('AddDeliverableModal', () => {
     const brief = input('Brief')
     brief.value = 'Slow walk to the window'
     brief.dispatchEvent(new Event('input'))
+    await pickAssignee()
     button('Add deliverable').click()
     await flushPromises()
 
     expect(await result).toEqual({
       id: expect.any(String),
       name: 'Walking transition',
-      assigneeId: undefined,
+      assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
       status: 'to_shoot',
       dueDate: '',
       brief: 'Slow walk to the window',

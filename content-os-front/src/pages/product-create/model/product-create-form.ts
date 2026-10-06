@@ -10,9 +10,8 @@ import type { Schemas } from '@/shared/api'
 import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
 import { createProduct, uploadFile, type ProductCreate } from '../api/products'
-import { openAddDeliverable } from './add-deliverable'
 import { openAddReference } from './add-reference'
-import type { DeliverableDraft } from './deliverable-draft'
+import { useDeliverables } from './deliverables'
 import { useProductPhotos } from './product-photos'
 import { draftCard, previewFile, toRequest, type ReferenceDraft } from './reference-draft'
 import { uploadAll } from './uploads'
@@ -104,13 +103,7 @@ export function useProductCreateForm() {
     drafts.value = drafts.value.filter((item) => item !== entry)
   }
 
-  // TODO(api): deliverables — kept here until the backend takes them with the product.
-  const deliverables = shallowRef<DeliverableDraft[]>([])
-
-  async function addDeliverable() {
-    const draft = await openAddDeliverable({ product: form.name.trim() || 'New product' })
-    if (draft) deliverables.value = [...deliverables.value, draft]
-  }
+  const deliverables = useDeliverables(() => form.name.trim())
 
   onScopeDispose(() => {
     drafts.value.forEach(({ previewUrl }) => previewUrl && URL.revokeObjectURL(previewUrl))
@@ -173,8 +166,7 @@ export function useProductCreateForm() {
     references,
     addReference,
     removeReference,
-    deliverables,
-    addDeliverable,
+    ...deliverables,
     cancel,
     submit,
     creating,
