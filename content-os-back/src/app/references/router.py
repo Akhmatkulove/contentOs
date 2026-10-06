@@ -10,7 +10,7 @@ from app.core.storage import StorageDep
 from app.references import service
 from app.references.models import ReferenceType
 from app.references.schemas import ReferenceFilters, ReferenceList
-from app.references.service import ReferenceQuery, ReferenceSort
+from app.references.service import ReferenceQuery, ReferenceScope, ReferenceSort
 
 router = APIRouter(prefix="/references", tags=["references"])
 
@@ -26,11 +26,15 @@ async def list_references(
     author_id: uuid.UUID | None = None,
     tag: Annotated[str | None, Query(max_length=50)] = None,
     sort: ReferenceSort = ReferenceSort.NEWEST,
+    scope: ReferenceScope = ReferenceScope.ALL,
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> ReferenceList:
-    """Поиск по названию, описанию, тегам и коллекции, без учёта регистра."""
-    params = ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort)
+    """Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
+
+    `scope=favorites` — только избранное пользователя; `counts` — размеры обеих вкладок.
+    """
+    params = ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort, scope)
     return await service.list_references(db, user, storage, params, page, per_page)
 
 

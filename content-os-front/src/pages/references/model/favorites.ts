@@ -17,7 +17,7 @@ export function useFavorites() {
     },
     // The list refetches with the saved state, then the local flip isn't needed.
     onSuccess: async (_data, { id }) => {
-      await queryCache.invalidateQueries({ key: ['references'] })
+      await queryCache.invalidateQueries({ key: ['references', 'list'] })
       pending.delete(id)
     },
   })

@@ -74,10 +74,18 @@ class ReferenceResponse(BaseModel):
         )
 
 
+class ReferenceCounts(BaseModel):
+    """Сколько референсов на каждой вкладке под текущими поиском и фильтрами."""
+
+    all: int
+    favorites: int
+
+
 class ReferenceList(BaseModel):
     items: list[ReferenceResponse]
-    # Сколько всего подходит под поиск: для пагинации.
+    # Сколько всего подходит под поиск на выбранной вкладке: для пагинации.
     total: int
+    counts: ReferenceCounts
 
 
 class FilterProduct(BaseModel):

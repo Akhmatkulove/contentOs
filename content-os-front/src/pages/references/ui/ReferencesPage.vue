@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { ReferenceCard } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
@@ -9,12 +10,15 @@ import { sortOptions, typeOptions, type ReferenceFilters } from '../model/refere
 import { REFERENCES_PER_PAGE, useReferencesList } from '../model/references-list'
 
 const {
+  scope,
+  tabs,
   search,
   filters,
   options,
   references,
   total,
   loading,
+  refreshing,
   page,
   filtered,
   searchPlaceholder,
@@ -30,9 +34,8 @@ function setSort(value: string | undefined) {
 
 <!--
   Figma "References" (desktop) and its mobile screen.
-  TODO(ui): tabs My references, Recent, Favorites, Collections; Add reference and
-  the "…" menu — no data for them yet (own references, collections; favorites
-  can be set, the tab isn't built).
+  TODO(ui): tabs My references, Recent, Collections; Add reference and the "…"
+  menu — no data for them yet (own references, collections).
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
@@ -45,17 +48,25 @@ function setSort(value: string | undefined) {
       </p>
     </header>
 
-    <!-- Only one tab for now. Mobile: Figma "CMS / Mobile / Tab" (equal-width,
-         underlined); desktop: the tab bar of the references page. -->
-    <div role="tablist" aria-label="References" class="flex">
-      <span
-        role="tab"
-        aria-selected="true"
-        class="flex flex-1 items-center justify-center border-b-2 border-violet-500 px-1 py-2 text-p2 font-medium text-primary md:flex-none md:border-violet-400 md:p-2.5 md:text-link"
-      >
-        All references ({{ total }})
-      </span>
-    </div>
+    <!-- Mobile: Figma "CMS / Mobile / Tab" (equal-width, underlined); desktop: the
+         tab bar of the references page. The tabs only switch the list below, so
+         there are no panels: Reka gives roving focus, arrows and aria-selected. -->
+    <TabsRoot v-model="scope" activation-mode="automatic">
+      <TabsList aria-label="References" class="relative flex">
+        <TabsTrigger
+          v-for="tab in tabs"
+          :key="tab.value"
+          :value="tab.value"
+          class="flex flex-1 items-center justify-center px-1 py-2 text-p2 font-medium whitespace-nowrap text-secondary transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-violet-300 data-[state=active]:text-primary md:flex-none md:p-2.5 md:text-link"
+        >
+          {{ tab.label }} ({{ tab.count }})
+        </TabsTrigger>
+        <!-- One underline slides between the tabs (Reka sizes it to the active one). -->
+        <TabsIndicator
+          class="absolute bottom-0 left-0 h-0.5 w-(--reka-tabs-indicator-size) translate-x-(--reka-tabs-indicator-position) bg-violet-500 transition-[width,translate] duration-200 motion-reduce:transition-none md:bg-violet-400"
+        />
+      </TabsList>
+    </TabsRoot>
 
     <section
       aria-label="Search and filters"
@@ -126,9 +137,14 @@ function setSort(value: string | undefined) {
     <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 
     <template v-else-if="references.length">
-      <!-- Desktop: Figma card width (≈230px) per column, so one card doesn't stretch. -->
+      <!-- Desktop: Figma card width (≈230px) per column, so one card doesn't stretch.
+           Old cards stay dimmed while the next page or filter loads. -->
       <ul
-        class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-x-5 md:gap-y-6"
+        :aria-busy="refreshing"
+        :class="[
+          'grid grid-cols-2 gap-3 transition-opacity duration-200 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-x-5 md:gap-y-6',
+          refreshing && 'pointer-events-none opacity-60',
+        ]"
       >
         <li v-for="reference in references" :key="reference.id">
           <ReferenceCard :reference="reference" @toggle-favorite="toggleFavorite(reference)" />
@@ -146,6 +162,12 @@ function setSort(value: string | undefined) {
     <!-- TODO(ui): empty and "nothing found" states — not in Figma yet. -->
     <p v-else-if="filtered" class="py-10 text-center text-p2 font-medium text-secondary">
       No references match your search or filters.
+    </p>
+    <p
+      v-else-if="scope === 'favorites'"
+      class="py-10 text-center text-p2 font-medium text-secondary"
+    >
+      Star a reference to keep it here.
     </p>
     <p v-else class="py-10 text-center text-p2 font-medium text-secondary">
       References show up here once a brand assigns you a deliverable.

@@ -32,6 +32,7 @@ from app.products.models import Product
 from app.references.models import Reference, ReferenceFavorite, ReferenceFile, ReferenceType
 from app.references.schemas import (
     FilterProduct,
+    ReferenceCounts,
     ReferenceFilters,
     ReferenceList,
     ReferenceResponse,
@@ -46,6 +47,13 @@ class ReferenceSort(enum.StrEnum):
     TITLE_DESC = "title_desc"
 
 
+class ReferenceScope(enum.StrEnum):
+    """Вкладка пула: все видимые референсы или избранные пользователем."""
+
+    ALL = "all"
+    FAVORITES = "favorites"
+
+
 @dataclass(frozen=True)
 class ReferenceQuery:
     search: str = ""
@@ -54,6 +62,7 @@ class ReferenceQuery:
     author_id: uuid.UUID | None = None
     tag: str | None = None
     sort: ReferenceSort = ReferenceSort.NEWEST
+    scope: ReferenceScope = ReferenceScope.ALL
 
 
 def _visible(user: User) -> ColumnElement[bool]:
@@ -69,7 +78,14 @@ def _visible(user: User) -> ColumnElement[bool]:
     )
 
 
+def _favorite(user: User, reference_id: Any) -> ColumnElement[bool]:
+    return exists().where(
+        ReferenceFavorite.user_id == user.id, ReferenceFavorite.reference_id == reference_id
+    )
+
+
 def _filtered(user: User, params: ReferenceQuery) -> Select[Reference]:
+    """Видимые референсы под поиском и фильтрами, без учёта вкладки."""
     query = select(Reference).where(_visible(user))
     if params.search:
         pattern = f"%{escape_like(params.search)}%"
@@ -115,7 +131,21 @@ async def list_references(
     per_page: int,
 ) -> ReferenceList:
     query = _filtered(user, params)
-    total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    # Счётчики обеих вкладок одним проходом: поиск и фильтры у них общие.
+    matched = query.subquery()
+    sizes = (
+        await db.execute(
+            select(
+                func.count().label("all"),
+                func.count().filter(_favorite(user, matched.c.id)).label("favorites"),
+            ).select_from(matched)
+        )
+    ).one()
+    counts = ReferenceCounts(all=sizes.all, favorites=sizes.favorites)
+    total = counts.all
+    if params.scope == ReferenceScope.FAVORITES:
+        query = query.where(_favorite(user, Reference.id))
+        total = counts.favorites
     references = list(
         await db.scalars(
             query.order_by(*_ORDER[params.sort]).offset((page - 1) * per_page).limit(per_page)
@@ -160,6 +190,7 @@ async def list_references(
             for reference in references
         ],
         total=total,
+        counts=counts,
     )
 
 

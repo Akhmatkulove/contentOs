@@ -39,6 +39,9 @@ async def client(settings: Settings, db_session: AsyncSession) -> AsyncIterator[
         yield client
 
 
+EMPTY = {"items": [], "total": 0, "counts": {"all": 0, "favorites": 0}}
+
+
 async def product_with_references(
     client: AsyncClient, name: str, assignees: list[str], references: list[dict[str, Any]]
 ) -> None:
@@ -224,7 +227,7 @@ async def test_references_go_with_the_deliverables(
     # Так снимает с deliverables админка, когда убирает связку с брендом (docs/adr/0004).
     await db_session.execute(update(Deliverable).values(assignee_id=None))
 
-    assert await listing(client) == {"items": [], "total": 0}
+    assert await listing(client) == EMPTY
 
 
 @pytest.mark.parametrize("role", [Role.BRAND, Role.CREATOR])
@@ -237,7 +240,7 @@ async def test_others_see_an_empty_pool(
     )
     await sign_up(client, db_session, "member@example.com", role, "Member")
 
-    assert await listing(client) == {"items": [], "total": 0}
+    assert await listing(client) == EMPTY
     filters = (await client.get("/api/references/filters")).json()
     assert filters == {"products": [], "authors": [], "tags": []}
 
@@ -304,3 +307,63 @@ async def test_only_visible_references_can_be_favorited(
     await log_in(client, "odina@example.com")
     assert await favorite(client, walk["id"]) == 404
     assert await favorite(client, str(uuid.uuid4())) == 404
+
+
+async def test_favorites_tab_lists_only_favorites_with_tab_counts(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(
+        client,
+        "Abaya",
+        [amina, odina],
+        [
+            {"title": t, "link": f"https://example.com/{t}", "tags": [tag]}
+            for t, tag in (("Walk", "street"), ("Drape", "studio"), ("Turn", "street"))
+        ],
+    )
+    await log_in(client, "amina@example.com")
+    ids = {i["title"]: i["id"] for i in (await listing(client))["items"]}
+    for title in ("Walk", "Drape"):
+        assert await favorite(client, ids[title]) == 204
+
+    body = await listing(client, scope="favorites")
+    assert {i["title"] for i in body["items"]} == {"Walk", "Drape"}
+    assert all(i["favorite"] for i in body["items"])
+    assert body["total"] == 2
+    assert body["counts"] == {"all": 3, "favorites": 2}
+
+    # Поиск и фильтры общие у обеих вкладок, счётчики тоже под ними.
+    body = await listing(client, scope="favorites", tag="street")
+    assert [i["title"] for i in body["items"]] == ["Walk"]
+    assert body["counts"] == {"all": 2, "favorites": 1}
+    body = await listing(client, tag="street", per_page=1)
+    assert body["total"] == 2
+    assert body["counts"] == {"all": 2, "favorites": 1}
+
+    # Избранное своё: у другого арт-директора вкладка пуста.
+    await log_in(client, "odina@example.com")
+    body = await listing(client, scope="favorites")
+    assert body["items"] == []
+    assert body["counts"] == {"all": 3, "favorites": 0}
+
+
+async def test_lost_access_hides_favorites(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Walk", "link": "https://example.com/"}]
+    )
+    await log_in(client, "amina@example.com")
+    [walk] = (await listing(client))["items"]
+    assert await favorite(client, walk["id"]) == 204
+
+    await db_session.execute(update(Deliverable).values(assignee_id=None))
+    body = await listing(client, scope="favorites")
+    assert body["items"] == []
+    assert body["counts"] == {"all": 0, "favorites": 0}
+
+
+async def test_list_rejects_unknown_scope(client: AsyncClient) -> None:
+    response = await client.get("/api/references", params={"scope": "mine"})
+    assert response.status_code == 422

@@ -3,6 +3,8 @@ import { http, type Schemas } from '@/shared/api'
 export type ReferenceList = Schemas['ReferenceList']
 export type ReferenceFilterOptions = Schemas['ReferenceFilters']
 export type ReferenceSort = Schemas['ReferenceSort']
+export type ReferenceScope = Schemas['ReferenceScope']
+export type ReferenceCounts = Schemas['ReferenceCounts']
 export type ReferenceType = Schemas['ReferenceType']
 
 export interface ReferencesQuery {
@@ -12,6 +14,8 @@ export interface ReferencesQuery {
   authorId?: string
   tag?: string
   sort: ReferenceSort
+  // Favorites: only what the user starred; the counts come for every tab.
+  scope: ReferenceScope
   page: number
   perPage: number
 }
@@ -26,6 +30,7 @@ export async function fetchReferences(query: ReferencesQuery): Promise<Reference
     author_id: query.authorId,
     tag: query.tag,
     sort: query.sort,
+    scope: query.scope,
     page: query.page,
     per_page: query.perPage,
   }

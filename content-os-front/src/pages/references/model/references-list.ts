@@ -1,7 +1,8 @@
 import { useQuery } from '@pinia/colada'
 import { useMediaQuery } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
-import { fetchReferenceFilters, fetchReferences } from '../api/references'
+import { useRoute, useRouter } from 'vue-router'
+import { fetchReferenceFilters, fetchReferences, type ReferenceScope } from '../api/references'
 import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
 import { toReference } from './reference'
@@ -12,6 +13,7 @@ import {
   isFiltered,
   type ReferenceFilters,
 } from './reference-filters'
+import { queryForScope, referenceTabs, scopeFromQuery } from './reference-tabs'
 
 export const REFERENCES_PER_PAGE = 20
 
@@ -22,15 +24,32 @@ export function useReferencesList() {
   const filters = reactive<ReferenceFilters>({ ...defaultFilters })
   const page = ref(1)
 
-  // A new search or filter starts from the first page.
-  watch([search, () => ({ ...filters })], () => {
-    page.value = 1
+  const route = useRoute()
+  const router = useRouter()
+  const scope = computed<ReferenceScope>({
+    get: () => scopeFromQuery(route.query),
+    set: (value) => void router.replace({ query: queryForScope(route.query, value) }),
   })
 
-  const { data, isLoading } = useQuery({
-    key: () => ['references', { search: search.value, ...filters, page: page.value }],
+  // A new tab, search or filter starts from the first page. Sync, so the query
+  // key never pairs the new tab with the old page (one request, not two).
+  watch(
+    [scope, search, () => ({ ...filters })],
+    () => {
+      page.value = 1
+    },
+    { flush: 'sync' },
+  )
+
+  const { data, isLoading, isPlaceholderData } = useQuery({
+    key: () => [
+      'references',
+      'list',
+      { scope: scope.value, search: search.value, ...filters, page: page.value },
+    ],
     query: () =>
       fetchReferences({
+        scope: scope.value,
         search: search.value,
         ...filterParams(filters),
         page: page.value,
@@ -51,8 +70,11 @@ export function useReferencesList() {
     (data.value?.items ?? []).map((item) => favorites.withPending(toReference(item))),
   )
   const total = computed(() => data.value?.total ?? 0)
+  const tabs = computed(() => referenceTabs(data.value?.counts))
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && data.value === undefined)
+  // Old cards on screen while the new page or filter loads: dimmed.
+  const refreshing = computed(() => isPlaceholderData.value)
   const filtered = computed(() => isFiltered(filters) || search.value !== '')
 
   // Figma: the long placeholder on desktop, a short one in the narrow mobile field.
@@ -67,12 +89,15 @@ export function useReferencesList() {
   }
 
   return {
+    scope,
+    tabs,
     search,
     filters,
     options,
     references,
     total,
     loading,
+    refreshing,
     page,
     filtered,
     searchPlaceholder,

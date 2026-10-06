@@ -316,6 +316,8 @@ export interface paths {
     /**
      * List References
      * @description Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
+     *
+     *     `scope=favorites` — только избранное пользователя; `counts` — размеры обеих вкладок.
      */
     get: operations['list_references_api_references_get']
     put?: never
@@ -687,6 +689,16 @@ export interface components {
      */
     ProductStatus: 'active' | 'archived'
     /**
+     * ReferenceCounts
+     * @description Сколько референсов на каждой вкладке под текущими поиском и фильтрами.
+     */
+    ReferenceCounts: {
+      /** All */
+      all: number
+      /** Favorites */
+      favorites: number
+    }
+    /**
      * ReferenceDraft
      * @description Новый референс: файлы (уже загруженные, POST /api/uploads) или ссылка.
      */
@@ -721,6 +733,7 @@ export interface components {
       items: components['schemas']['ReferenceResponse'][]
       /** Total */
       total: number
+      counts: components['schemas']['ReferenceCounts']
     }
     /** ReferenceResponse */
     ReferenceResponse: {
@@ -754,6 +767,12 @@ export interface components {
        */
       created_at: string
     }
+    /**
+     * ReferenceScope
+     * @description Вкладка пула: все видимые референсы или избранные пользователем.
+     * @enum {string}
+     */
+    ReferenceScope: 'all' | 'favorites'
     /**
      * ReferenceSort
      * @enum {string}
@@ -1520,6 +1539,7 @@ export interface operations {
         author_id?: string | null
         tag?: string | null
         sort?: components['schemas']['ReferenceSort']
+        scope?: components['schemas']['ReferenceScope']
         page?: number
         per_page?: number
       }
