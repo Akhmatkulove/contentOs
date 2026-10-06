@@ -45,6 +45,8 @@ export function draftCard(
   author: string,
   previewUrl: string | null,
 ): Reference {
+  const files = draft.source === 'upload' ? draft.files : []
+  const videoCount = files.filter(isVideo).length
   const first = draft.files[0]
   return {
     id: draft.id,
@@ -53,7 +55,8 @@ export function draftCard(
     author,
     previewUrl,
     durationSec: null,
-    fileCount: draft.source === 'upload' ? draft.files.length : null,
+    imageCount: files.length - videoCount,
+    videoCount,
     tags: draft.tags,
     favorite: false,
   }

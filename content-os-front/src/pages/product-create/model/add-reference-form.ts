@@ -95,6 +95,16 @@ export function useAddReferenceForm() {
     typeChosen = true
   }
 
+  // Previews not shown yet; the reference can't be added until they are.
+  const loadedIds = reactive(new Set<string>())
+  const loading = computed(
+    () => source.value === 'upload' && files.value.some((item) => !loadedIds.has(item.id)),
+  )
+
+  function markLoaded(id: string) {
+    loadedIds.add(id)
+  }
+
   function rejectFiles(rejected: File[]) {
     toast.error(rejectedFilesMessage(rejected.length))
   }
@@ -117,6 +127,7 @@ export function useAddReferenceForm() {
 
   // The draft to hand to the product page, or null while something is missing.
   function submit(): ReferenceDraft | null {
+    if (loading.value) return null
     submitted.value = true
     if (errors.value.files || errors.value.link) return null
     const upload = source.value === 'upload'
@@ -141,6 +152,8 @@ export function useAddReferenceForm() {
     removeFile,
     rejectFiles,
     chooseType,
+    loading,
+    markLoaded,
     linkPreview,
     removeLink,
     submit,

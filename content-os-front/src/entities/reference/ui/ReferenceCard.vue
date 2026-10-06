@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { VButton } from '@/shared/ui/button'
-import { VIcon } from '@/shared/ui/icon'
+import { type IconName, VIcon } from '@/shared/ui/icon'
 import { formatDuration, referenceKindLabels, type Reference } from '../model/reference'
 
 const { reference } = defineProps<{ reference: Reference }>()
@@ -10,13 +10,22 @@ const duration = computed(() =>
   reference.durationSec === null ? null : formatDuration(reference.durationSec),
 )
 
-const video = computed(() => reference.kind === 'video')
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? '' : 's'}`
+}
 
-// "Video, 2 files", "3 files", "Video".
-const badgeLabel = computed(() => {
-  const count = reference.fileCount
-  const files = count ? `${count} ${count === 1 ? 'file' : 'files'}` : ''
-  return video.value ? (files ? `Video, ${files}` : 'Video') : files
+// One badge per kind of file: "🎥 1" and "🖼 2" for a mixed moodboard.
+// A video link has no files, so it gets the video icon alone.
+const badges = computed(() => {
+  const { videoCount, imageCount, kind } = reference
+  const list: { icon: IconName; count: number | null; label: string }[] = []
+  if (videoCount)
+    list.push({ icon: 'video-01', count: videoCount, label: plural(videoCount, 'video') })
+  else if (!imageCount && kind === 'video')
+    list.push({ icon: 'video-01', count: null, label: 'Video' })
+  if (imageCount)
+    list.push({ icon: 'image-02', count: imageCount, label: plural(imageCount, 'image') })
+  return list
 })
 </script>
 
@@ -45,16 +54,18 @@ const badgeLabel = computed(() => {
           <VIcon name="play" :size="11" />
           {{ duration }}
         </span>
-        <!-- Figma "Reference / …" › Type: how many files the reference holds.
-             A video icon tells videos apart, even a link with no file count. -->
-        <span
-          v-else-if="reference.fileCount || video"
-          :aria-label="badgeLabel"
-          class="flex items-center gap-1 rounded-md bg-overlay-media px-2 py-1 text-p4 font-medium text-inverse"
-        >
-          <VIcon :name="video ? 'video-01' : 'image-02'" :size="12" />
-          {{ reference.fileCount }}
-        </span>
+        <!-- Figma "Reference / …" › Type: how many videos and images the reference holds. -->
+        <div v-else-if="badges.length" class="flex items-center gap-1">
+          <span
+            v-for="badge in badges"
+            :key="badge.icon"
+            :aria-label="badge.label"
+            class="flex items-center gap-1 rounded-md bg-overlay-media px-2 py-1 text-p4 font-medium text-inverse"
+          >
+            <VIcon :name="badge.icon" :size="12" />
+            {{ badge.count }}
+          </span>
+        </div>
         <!-- Figma "CMS / Desktop / Favourite button" by default. A screen can put its
              own 26px action here instead (product create: remove). -->
         <div class="ml-auto">

@@ -37,6 +37,8 @@ const {
   removeFile,
   rejectFiles,
   chooseType,
+  loading,
+  markLoaded,
   linkPreview,
   removeLink,
   submit,
@@ -83,6 +85,7 @@ const dropzone = useTemplateRef('dropzone')
               :alt="item.file.name"
               :video="item.file.type.startsWith('video/')"
               @remove="removeFile(item.id)"
+              @load="markLoaded(item.id)"
             />
           </li>
           <li>
@@ -180,7 +183,7 @@ const dropzone = useTemplateRef('dropzone')
         >
           Cancel
         </VButton>
-        <VButton type="submit" :form="formId" class="flex-1 md:flex-none">
+        <VButton type="submit" :form="formId" :disabled="loading" class="flex-1 md:flex-none">
           <VIcon name="plus-sign" />
           Add reference
         </VButton>

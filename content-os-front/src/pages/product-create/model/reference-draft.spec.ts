@@ -39,14 +39,26 @@ describe('draftCard', () => {
       kind: 'image',
       author: 'Acme',
       previewUrl: 'blob:1',
-      fileCount: 1,
+      imageCount: 1,
+      videoCount: 0,
     })
     const link = draft({ source: 'link', files: [], link: 'https://www.instagram.com/p/1' })
-    expect(draftCard(link, 'Acme', null)).toMatchObject({ title: 'instagram.com', fileCount: null })
+    expect(draftCard(link, 'Acme', null)).toMatchObject({
+      title: 'instagram.com',
+      imageCount: 0,
+      videoCount: 0,
+    })
   })
 
   it('shows a video when the first file is one', () => {
     expect(draftCard(draft({ files: [video, image] }), 'Acme', null).kind).toBe('video')
+  })
+
+  it('counts images and videos apart', () => {
+    expect(draftCard(draft({ files: [video, image, image] }), 'Acme', null)).toMatchObject({
+      imageCount: 2,
+      videoCount: 1,
+    })
   })
 })
 

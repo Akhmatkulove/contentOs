@@ -68,6 +68,25 @@ describe('useAddReferenceForm', () => {
   })
 })
 
+describe('useAddReferenceForm loading', () => {
+  it('waits for every preview before it adds the reference', () => {
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    const scope = effectScope()
+    const { files, addFiles, loading, markLoaded, submit } = scope.run(() => useAddReferenceForm())!
+    expect(loading.value).toBe(false)
+
+    addFiles([image(), video()])
+    expect(loading.value).toBe(true)
+    expect(submit()).toBeNull()
+
+    files.value.forEach((item) => markLoaded(item.id))
+    expect(loading.value).toBe(false)
+    expect(submit()?.files).toHaveLength(2)
+    scope.stop()
+  })
+})
+
 describe('referenceErrors', () => {
   it('needs files for an upload', () => {
     expect(referenceErrors('upload', 0, '')).toEqual({ files: 'Add at least one file.', link: '' })

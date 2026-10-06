@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
+import { ref, type HTMLAttributes } from 'vue'
 import { cn } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
@@ -19,7 +19,18 @@ const {
   class?: HTMLAttributes['class']
 }>()
 
-defineEmits<{ remove: [] }>()
+// `load` fires once the preview is ready to show, or has failed to load:
+// either way there is nothing more to wait for.
+const emit = defineEmits<{ remove: []; load: [] }>()
+
+// Until then the card fills up from the bottom. The browser gives no progress
+// for a local preview, so the fill eases towards 90% and jumps to the top on load.
+const loaded = ref(false)
+
+function onLoad() {
+  loaded.value = true
+  emit('load')
+}
 </script>
 
 <template>
@@ -37,8 +48,32 @@ defineEmits<{ remove: [] }>()
       playsinline
       preload="metadata"
       class="size-full object-cover"
+      @loadeddata="onLoad"
+      @error="onLoad"
     />
-    <img v-else :src="src" :alt="alt" class="size-full object-cover" />
+    <img
+      v-else
+      :src="src"
+      :alt="alt"
+      class="size-full object-cover"
+      @load="onLoad"
+      @error="onLoad"
+    />
+    <Transition
+      leave-active-class="transition-opacity delay-150 duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="!loaded" data-loading class="absolute inset-0 bg-muted">
+        <div
+          :class="
+            cn(
+              'absolute inset-x-0 bottom-0 bg-status-accent',
+              loaded ? 'h-full transition-[height] duration-150' : 'fill-up motion-reduce:h-full',
+            )
+          "
+        />
+      </div>
+    </Transition>
     <!-- Tells a video apart from an image at a glance; the remove button has the other corner. -->
     <span
       v-if="video"
@@ -62,3 +97,24 @@ defineEmits<{ remove: [] }>()
     </VButton>
   </div>
 </template>
+
+<style scoped>
+.fill-up {
+  animation: fill-up 4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes fill-up {
+  from {
+    height: 0;
+  }
+  to {
+    height: 90%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill-up {
+    animation: none;
+  }
+}
+</style>

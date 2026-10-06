@@ -9,7 +9,8 @@ const reference: Reference = {
   author: 'Studio',
   previewUrl: null,
   durationSec: null,
-  fileCount: null,
+  imageCount: 0,
+  videoCount: 0,
   tags: [],
   favorite: false,
 }
@@ -24,19 +25,22 @@ describe('ReferenceCard', () => {
 
   it('shows how many files the reference holds, and the tags', () => {
     const wrapper = mount(ReferenceCard, {
-      props: { reference: { ...reference, fileCount: 3, tags: ['Fabric', 'Texture'] } },
+      props: { reference: { ...reference, imageCount: 3, tags: ['Fabric', 'Texture'] } },
     })
-    expect(wrapper.get('[aria-label="3 files"]').text()).toBe('3')
+    expect(wrapper.get('[aria-label="3 images"]').text()).toBe('3')
     expect(wrapper.findAll('li').map((li) => li.text())).toEqual(['Fabric', 'Texture'])
   })
 
-  it('marks a video with a video icon', () => {
+  it('counts videos and images in separate badges', () => {
     const wrapper = mount(ReferenceCard, {
-      props: { reference: { ...reference, kind: 'video', fileCount: 2 } },
+      props: { reference: { ...reference, kind: 'video', videoCount: 1, imageCount: 2 } },
     })
-    const badge = wrapper.get('[aria-label="Video, 2 files"]')
-    expect(badge.text()).toBe('2')
-    expect(badge.get('use').attributes('href')).toMatch(/#video-01$/)
+    const video = wrapper.get('[aria-label="1 video"]')
+    expect(video.text()).toBe('1')
+    expect(video.get('use').attributes('href')).toMatch(/#video-01$/)
+    const images = wrapper.get('[aria-label="2 images"]')
+    expect(images.text()).toBe('2')
+    expect(images.get('use').attributes('href')).toMatch(/#image-02$/)
   })
 
   it('marks a video link with just the icon', () => {
@@ -46,7 +50,7 @@ describe('ReferenceCard', () => {
 
   it('has no file count for a link', () => {
     const wrapper = mount(ReferenceCard, { props: { reference } })
-    expect(wrapper.find('[aria-label$="file"], [aria-label$="files"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label$="image"], [aria-label$="images"]').exists()).toBe(false)
   })
 
   it('puts a screen action in its place', () => {
