@@ -24,6 +24,7 @@ src/app/review/        проверка заявок: Telegram (webhook, кно�
 src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/
 src/app/products/      продукты: POST /api/products вместе с фото и референсами (docs/adr/0003)
 src/app/references/    референсы общего пула (модели, схемы; создаются пока только из продукта)
+src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора из связок бренда)
 src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic

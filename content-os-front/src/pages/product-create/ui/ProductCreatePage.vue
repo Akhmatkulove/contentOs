@@ -24,6 +24,7 @@ const {
   references,
   addReference,
   removeReference,
+  addDeliverable,
   cancel,
   submit,
   creating,
@@ -184,17 +185,17 @@ const emptyListClass =
       <p v-else :class="emptyListClass">The References you've added will be displayed here</p>
     </SectionCard>
 
-    <!-- TODO(ui): deliverable form and rows — no design yet; the buttons do nothing. -->
+    <!-- TODO(ui): deliverable rows — no design yet; added drafts aren't listed. -->
     <SectionCard
       title="Deliverables"
       description="Plan and track the content pieces required for this product."
     >
       <template #action>
-        <VButton variant="secondary" class="w-full md:hidden">
+        <VButton variant="secondary" class="w-full md:hidden" @click="addDeliverable">
           <VIcon name="plus-sign" />
           Add deliverable
         </VButton>
-        <VButton class="hidden md:inline-flex">
+        <VButton class="hidden md:inline-flex" @click="addDeliverable">
           <VIcon name="plus-sign" />
           Add deliverable
         </VButton>

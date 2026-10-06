@@ -18,6 +18,7 @@ from app.products.router import router as products_router
 from app.profile.router import router as profile_router
 from app.review.router import dev_router as review_dev_router
 from app.review.router import router as review_router
+from app.team.router import router as team_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -57,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     product = APIRouter(dependencies=[Depends(get_approved_user)])
     product.include_router(files_router)
     product.include_router(products_router)
+    product.include_router(team_router)
     api.include_router(product)
     app.include_router(api)
 
