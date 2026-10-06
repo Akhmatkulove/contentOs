@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useId, useTemplateRef } from 'vue'
+import { useMutation } from '@pinia/colada'
+import { computed, toValue, useId, useTemplateRef } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
@@ -10,22 +11,26 @@ import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
 import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
-import type { ReferenceContext } from '../model/add-reference'
+import type { AddReferenceOptions } from '../model/add-reference'
 import {
+  COLLECTION_MAX,
   fileAccept,
+  productOptions,
   sourceOptions,
   typeOptions,
   useAddReferenceForm,
 } from '../model/add-reference-form'
 import type { ReferenceDraft } from '../model/reference-draft'
-// import FavoriteToggle from './FavoriteToggle.vue'
+import FavoriteToggle from './FavoriteToggle.vue'
 import LinkPreview from './LinkPreview.vue'
 
 // Figma "Modal / Add reference" (desktop) and "Sheet / Add reference" (mobile).
-// Product, collection and creator come from the product being created.
-const { context } = defineProps<{ context: ReferenceContext }>()
+// From a product being created, product and collection come from it; in the
+// pool the product is picked, the collection typed, and the reference saved here.
+const { options } = defineProps<{ options: AddReferenceOptions }>()
 
-// Closes with the new draft; nothing when cancelled.
+// Closes with the new draft (already saved when `options.save` is given);
+// nothing when cancelled.
 const emit = defineEmits<{ close: [draft?: ReferenceDraft] }>()
 
 const {
@@ -44,9 +49,26 @@ const {
   submit,
 } = useAddReferenceForm()
 
-function onSubmit() {
+const products = computed(() => productOptions(toValue(options.products) ?? []))
+
+// A failed save keeps the modal open with everything filled in; the global
+// handler shows the error toast.
+const { mutateAsync: save, isLoading: saving } = useMutation({
+  mutation: (draft: ReferenceDraft) => options.save!(draft),
+})
+
+async function onSubmit() {
+  if (saving.value) return
   const draft = submit()
-  if (draft) emit('close', draft)
+  if (!draft) return
+  if (options.save) {
+    try {
+      await save(draft)
+    } catch {
+      return
+    }
+  }
+  emit('close', draft)
 }
 
 // The submit button sits in the modal footer, outside the <form>.
@@ -132,18 +154,33 @@ const dropzone = useTemplateRef('dropzone')
           placeholder="Select type"
           @update:model-value="chooseType"
         />
-        <!-- Taken from the product, so not editable here. -->
-        <VInput :model-value="context.product" label="Product" disabled />
-        <VInput :model-value="context.creator" label="Creator" disabled />
-        <!-- Temporarily hidden: shoot (no shoots yet).
-        <VSelect
-          v-model="form.shoot"
-          :options="shootOptions"
-          label="Shoot"
-          placeholder="Select shoot"
-          searchable
-        />
-        -->
+
+        <template v-if="options.fixed">
+          <!-- Taken from the product, so not editable here. -->
+          <VInput :model-value="options.fixed.product" label="Product" disabled />
+          <VInput :model-value="options.creator" label="Creator" disabled />
+        </template>
+        <template v-else>
+          <VSelect
+            v-model="form.productId"
+            :options="products"
+            label="Product"
+            placeholder="Select product"
+            searchable
+            search-placeholder="Search products…"
+          />
+          <!-- TODO(api): Shoot — shoots don't exist yet; enable once they do. -->
+          <VSelect
+            :model-value="undefined"
+            :options="[]"
+            label="Shoot"
+            placeholder="Select shoot"
+            disabled
+          />
+          <!-- The author is whoever adds the reference. -->
+          <VInput :model-value="options.creator" label="Creator" disabled />
+        </template>
+
         <VTagsInput
           v-model="form.tags"
           label="Tags"
@@ -151,10 +188,19 @@ const dropzone = useTemplateRef('dropzone')
           class="col-span-2 md:col-span-1"
         />
         <VInput
-          :model-value="context.collection"
+          v-if="options.fixed"
+          :model-value="options.fixed.collection"
           label="Collection"
           placeholder="No collection"
           disabled
+          class="col-span-2 md:col-span-1"
+        />
+        <VInput
+          v-else
+          v-model="form.collection"
+          label="Collection"
+          placeholder="Enter collection"
+          :maxlength="COLLECTION_MAX"
           class="col-span-2 md:col-span-1"
         />
       </div>
@@ -166,26 +212,32 @@ const dropzone = useTemplateRef('dropzone')
         :rows="2"
       />
 
-      <!-- Temporarily hidden: add to favorites.
-      <FavoriteToggle v-model="form.favorite" class="md:hidden" />
-      -->
+      <FavoriteToggle v-if="options.save" v-model="form.favorite" class="md:hidden" />
     </form>
 
     <template #footer>
       <div class="flex items-center gap-2.5 md:justify-end">
-        <!-- Temporarily hidden: add to favorites.
-        <FavoriteToggle v-model="form.favorite" class="hidden md:flex md:flex-1" />
-        -->
+        <FavoriteToggle
+          v-if="options.save"
+          v-model="form.favorite"
+          class="hidden md:flex md:flex-1"
+        />
         <VButton
           variant="secondary"
+          :disabled="saving"
           class="flex-1 md:w-[150px] md:flex-none"
           @click="emit('close')"
         >
           Cancel
         </VButton>
-        <VButton type="submit" :form="formId" :disabled="loading" class="flex-1 md:flex-none">
+        <VButton
+          type="submit"
+          :form="formId"
+          :disabled="loading || saving"
+          class="flex-1 md:flex-none"
+        >
           <VIcon name="plus-sign" />
-          Add reference
+          {{ saving ? 'Adding…' : 'Add reference' }}
         </VButton>
       </div>
     </template>

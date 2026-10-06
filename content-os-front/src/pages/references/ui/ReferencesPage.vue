@@ -6,6 +6,7 @@ import { VIcon } from '@/shared/ui/icon'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
+import { useAddReference } from '../model/add-reference'
 import { sortOptions, typeOptions, type ReferenceFilters } from '../model/reference-filters'
 import { REFERENCES_PER_PAGE, useReferencesList } from '../model/references-list'
 
@@ -26,6 +27,7 @@ const {
   openFilters,
   toggleFavorite,
 } = useReferencesList()
+const { addReference } = useAddReference()
 
 function setSort(value: string | undefined) {
   if (value) filters.sort = value as ReferenceFilters['sort']
@@ -34,18 +36,24 @@ function setSort(value: string | undefined) {
 
 <!--
   Figma "References" (desktop) and its mobile screen.
-  TODO(ui): tabs My references, Recent, Collections; Add reference and the "…"
-  menu — no data for them yet (own references, collections).
+  TODO(ui): tabs My references, Recent, Collections and the "…" menu — no data
+  for them yet (collections).
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
     <!-- Below lg the app topbar carries the title. -->
-    <header class="hidden min-h-16 flex-col justify-center gap-1.5 lg:flex">
-      <h1 class="text-h3 text-brand">References</h1>
-      <p class="text-p2 font-medium text-secondary">
-        A shared library of visual references for shoots, products, and creators. Save, organize,
-        and reuse inspiration.
-      </p>
+    <header class="hidden min-h-16 items-center justify-between gap-4 lg:flex">
+      <div class="flex min-w-0 flex-col gap-1.5">
+        <h1 class="text-h3 text-brand">References</h1>
+        <p class="text-p2 font-medium text-secondary">
+          A shared library of visual references for shoots, products, and creators. Save, organize,
+          and reuse inspiration.
+        </p>
+      </div>
+      <VButton class="shrink-0" @click="addReference">
+        <VIcon name="plus-sign" />
+        Add reference
+      </VButton>
     </header>
 
     <!-- Mobile: Figma "CMS / Mobile / Tab" (equal-width, underlined); desktop: the
@@ -133,6 +141,13 @@ function setSort(value: string | undefined) {
         />
       </div>
     </section>
+
+    <!-- Figma "Button / ＋ Add reference" on the mobile screen: full width under
+         the search card. On desktop the button sits in the header instead. -->
+    <VButton class="h-10.5 w-full gap-1.5 px-5 lg:hidden" @click="addReference">
+      <VIcon name="plus-sign" />
+      Add reference
+    </VButton>
 
     <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 

@@ -7,7 +7,7 @@ from app.auth.models import Role, User
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
 from app.products import service
-from app.products.schemas import ProductCreate, ProductList, ProductResponse
+from app.products.schemas import ProductCreate, ProductList, ProductOption, ProductResponse
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -25,6 +25,12 @@ async def list_products(
 ) -> ProductList:
     """Поиск по названию, SKU и коллекции, без учёта регистра."""
     return await service.list_products(db, user, storage, search.strip(), page, per_page)
+
+
+@router.get("/options")
+async def list_options(user: ApprovedUser, db: SessionDep) -> list[ProductOption]:
+    """Все продукты, которые видит пользователь, по названию: для поля Product."""
+    return await service.list_options(db, user)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

@@ -28,11 +28,13 @@ from app.core.storage import Storage
 from app.core.text import escape_like
 from app.deliverables.models import Deliverable
 from app.files.models import StoredFile
+from app.files.service import claim_files
 from app.products.models import Product
 from app.references.models import Reference, ReferenceFavorite, ReferenceFile, ReferenceType
 from app.references.schemas import (
     FilterProduct,
     ReferenceCounts,
+    ReferenceCreate,
     ReferenceFilters,
     ReferenceList,
     ReferenceResponse,
@@ -65,17 +67,23 @@ class ReferenceQuery:
     scope: ReferenceScope = ReferenceScope.ALL
 
 
+def _assigned(user: User, product_id: Any) -> ColumnElement[bool]:
+    """На пользователя назначен deliverable продукта."""
+    return exists().where(Deliverable.product_id == product_id, Deliverable.assignee_id == user.id)
+
+
 def _visible(user: User) -> ColumnElement[bool]:
     """Что из пула видит пользователь.
 
-    Арт-директор — референсы продуктов, где на него назначен deliverable
-    (docs/adr/0004). Креатор получит их через съёмки, бренд страницы пула не видит.
+    Свои референсы, а арт-директор ещё и референсы продуктов, где на него назначен
+    deliverable (docs/adr/0004). Креатор получит чужие через съёмки, бренд страницы
+    пула не видит.
     """
-    if user.role != Role.ART_DIRECTOR:
-        return false()
-    return exists().where(
-        Deliverable.product_id == Reference.product_id, Deliverable.assignee_id == user.id
-    )
+    if user.role == Role.ART_DIRECTOR:
+        return or_(Reference.owner_id == user.id, _assigned(user, Reference.product_id))
+    if user.role == Role.CREATOR:
+        return Reference.owner_id == user.id
+    return false()
 
 
 def _favorite(user: User, reference_id: Any) -> ColumnElement[bool]:
@@ -191,6 +199,45 @@ async def list_references(
         ],
         total=total,
         counts=counts,
+    )
+
+
+async def create_reference(
+    db: AsyncSession, user: User, body: ReferenceCreate, storage: Storage
+) -> ReferenceResponse:
+    """Свой референс в пуле. Коммитит вызывающий.
+
+    Продукт — только из тех, где на автора назначен deliverable; иначе 422,
+    как у несуществующего.
+    """
+    if body.product_id is not None and not await db.scalar(
+        select(_assigned(user, body.product_id))
+    ):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Product not found")
+    files = await claim_files(db, user, body.file_ids)
+
+    reference = Reference(
+        owner_id=user.id,
+        product_id=body.product_id,
+        title=body.title,
+        type=body.type,
+        link=str(body.link) if body.link else None,
+        collection=body.collection,
+        notes=body.notes,
+        tags=body.tags,
+    )
+    db.add(reference)
+    await db.flush()
+    reference_files = [files[file_id] for file_id in body.file_ids]
+    db.add_all(
+        ReferenceFile(reference_id=reference.id, position=index, file_id=file.id)
+        for index, file in enumerate(reference_files)
+    )
+    if body.favorite:
+        db.add(ReferenceFavorite(user_id=user.id, reference_id=reference.id))
+    await db.flush()
+    return ReferenceResponse.of(
+        reference, user.name, reference_files, storage, favorite=body.favorite
     )
 
 

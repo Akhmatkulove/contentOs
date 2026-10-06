@@ -68,6 +68,13 @@ class ProductListItem(BaseModel):
     created_at: datetime
 
 
+class ProductOption(BaseModel):
+    """Продукт в выпадающем списке: только то, что нужно для выбора."""
+
+    id: uuid.UUID
+    name: str
+
+
 class ProductList(BaseModel):
     items: list[ProductListItem]
     # Сколько всего подходит под поиск: для пагинации.

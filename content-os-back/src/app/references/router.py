@@ -1,18 +1,27 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
-from app.auth.deps import ApprovedUser
+from app.auth.deps import ApprovedUser, require_role
+from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
 from app.references import service
 from app.references.models import ReferenceType
-from app.references.schemas import ReferenceFilters, ReferenceList
+from app.references.schemas import (
+    ReferenceCreate,
+    ReferenceFilters,
+    ReferenceList,
+    ReferenceResponse,
+)
 from app.references.service import ReferenceQuery, ReferenceScope, ReferenceSort
 
 router = APIRouter(prefix="/references", tags=["references"])
+
+# Пул — для команды: бренд создаёт референсы только в продукте.
+TeamUser = Annotated[User, Depends(require_role(Role.ART_DIRECTOR, Role.CREATOR))]
 
 
 @router.get("")
@@ -36,6 +45,16 @@ async def list_references(
     """
     params = ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort, scope)
     return await service.list_references(db, user, storage, params, page, per_page)
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_reference(
+    body: ReferenceCreate, user: TeamUser, db: SessionDep, storage: StorageDep
+) -> ReferenceResponse:
+    """Свой референс: файлы (уже загруженные, POST /api/uploads) или ссылка."""
+    reference = await service.create_reference(db, user, body, storage)
+    await db.commit()
+    return reference
 
 
 @router.get("/filters")

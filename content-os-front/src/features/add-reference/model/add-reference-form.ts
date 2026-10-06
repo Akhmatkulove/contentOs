@@ -1,12 +1,18 @@
 import * as v from 'valibot'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
-import { usePickedFiles } from '@/shared/lib'
+import {
+  IMAGE_ACCEPT,
+  isVideo,
+  tooLarge,
+  tooLargeMessage,
+  usePickedFiles,
+  VIDEO_ACCEPT,
+} from '@/shared/lib'
 import type { IconName } from '@/shared/ui/icon'
 import type { SegmentedOption } from '@/shared/ui/segmented'
 import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
 import type { ReferenceDraft, ReferenceSource, ReferenceType } from './reference-draft'
-import { IMAGE_ACCEPT, isVideo, tooLarge, tooLargeMessage, VIDEO_ACCEPT } from './uploads'
 
 export type { ReferenceSource } from './reference-draft'
 
@@ -22,6 +28,17 @@ export const typeOptions = [
   { value: 'video', label: 'Video' },
   { value: 'moodboard', label: 'Moodboard' },
 ] as const satisfies readonly (SelectOption & { value: ReferenceType })[]
+
+// Reka Select can't hold an empty value, so "No product" is this sentinel.
+export const NO_PRODUCT = 'none'
+
+// The product is optional: the list starts with a way back to none.
+export function productOptions(products: readonly SelectOption[]): SelectOption[] {
+  return [{ value: NO_PRODUCT, label: 'No product' }, ...products]
+}
+
+// Same limit as the backend (references.collection).
+export const COLLECTION_MAX = 100
 
 // The type the uploaded files suggest: only videos make a video, only images
 // an image, images with videos a moodboard.
@@ -72,6 +89,8 @@ export function useAddReferenceForm() {
     type: undefined as ReferenceType | undefined,
     tags: [] as string[],
     notes: '',
+    productId: undefined as string | undefined,
+    collection: '',
     favorite: false,
   })
 
@@ -125,7 +144,7 @@ export function useAddReferenceForm() {
       : { files: '', link: '' },
   )
 
-  // The draft to hand to the product page, or null while something is missing.
+  // The draft to hand to the screen, or null while something is missing.
   function submit(): ReferenceDraft | null {
     if (loading.value) return null
     submitted.value = true
@@ -140,6 +159,9 @@ export function useAddReferenceForm() {
       type: form.type,
       tags: form.tags,
       notes: form.notes.trim(),
+      productId: form.productId === NO_PRODUCT ? undefined : form.productId,
+      collection: form.collection.trim(),
+      favorite: form.favorite,
     }
   }
 

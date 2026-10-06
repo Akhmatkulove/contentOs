@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import exists, func, or_, select, union_all
+from sqlalchemy import ColumnElement, exists, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.models import BrandArtDirector
@@ -14,11 +14,13 @@ from app.deliverables.models import Deliverable
 from app.deliverables.schemas import DeliverableResponse
 from app.files.models import FileKind, StoredFile
 from app.files.schemas import FileResponse
+from app.files.service import claim_files
 from app.products.models import Product, ProductPhoto
 from app.products.schemas import (
     ProductCreate,
     ProductList,
     ProductListItem,
+    ProductOption,
     ProductResponse,
 )
 from app.references.models import Reference, ReferenceFile
@@ -27,30 +29,6 @@ from app.references.schemas import ReferenceResponse
 
 def _unprocessable(detail: str) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
-
-
-async def _claim_files(
-    db: AsyncSession, owner: User, ids: list[uuid.UUID]
-) -> dict[uuid.UUID, StoredFile]:
-    """Файлы, которые owner загрузил сам и ещё нигде не использовал."""
-    files = {
-        file.id: file
-        for file in await db.scalars(
-            select(StoredFile).where(StoredFile.id.in_(ids), StoredFile.owner_id == owner.id)
-        )
-    }
-    # Чужой файл отвечает так же, как несуществующий: не подтверждаем, что он есть.
-    if len(files) != len(set(ids)):
-        raise _unprocessable("Unknown file")
-    used = await db.scalar(
-        union_all(
-            select(ProductPhoto.file_id).where(ProductPhoto.file_id.in_(ids)),
-            select(ReferenceFile.file_id).where(ReferenceFile.file_id.in_(ids)),
-        ).limit(1)
-    )
-    if used is not None:
-        raise _unprocessable("File is already used")
-    return files
 
 
 async def _require_own_art_directors(db: AsyncSession, brand: User, ids: set[uuid.UUID]) -> None:
@@ -78,7 +56,7 @@ async def create_product(
     db: AsyncSession, brand: User, body: ProductCreate, storage: Storage
 ) -> ProductResponse:
     await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
-    files = await _claim_files(db, brand, body.file_ids())
+    files = await claim_files(db, brand, body.file_ids())
     photos = [files[file_id] for file_id in body.photo_ids]
     if any(photo.kind != FileKind.IMAGE for photo in photos):
         raise _unprocessable("Product photos must be images")
@@ -145,22 +123,34 @@ async def create_product(
     )
 
 
+def _visible(user: User) -> ColumnElement[bool]:
+    """Продукты, которые видит пользователь.
+
+    Бренд видит свои, арт-директор — те, где на него назначен хотя бы один deliverable
+    (docs/adr/0004). Креатор увидит продукты по съёмкам; их пока нет.
+    """
+    if user.role == Role.BRAND:
+        return Product.brand_id == user.id
+    if user.role == Role.ART_DIRECTOR:
+        return exists().where(
+            Deliverable.product_id == Product.id, Deliverable.assignee_id == user.id
+        )
+    return false()
+
+
+async def list_options(db: AsyncSession, user: User) -> list[ProductOption]:
+    """Все видимые продукты по названию: варианты для поля Product."""
+    rows = await db.execute(
+        select(Product.id, Product.name).where(_visible(user)).order_by(Product.name, Product.id)
+    )
+    return [ProductOption(id=row.id, name=row.name) for row in rows]
+
+
 async def list_products(
     db: AsyncSession, user: User, storage: Storage, search: str, page: int, per_page: int
 ) -> ProductList:
-    """Продукты, которые видит пользователь, новые первыми.
-
-    Бренд видит свои, арт-директор — те, где на него назначен хотя бы один deliverable
-    (docs/adr/0004). Креатор увидит продукты по съёмкам; их пока нет, список пустой.
-    """
-    if user.role == Role.BRAND:
-        query = select(Product).where(Product.brand_id == user.id)
-    elif user.role == Role.ART_DIRECTOR:
-        query = select(Product).where(
-            exists().where(Deliverable.product_id == Product.id, Deliverable.assignee_id == user.id)
-        )
-    else:
-        return ProductList(items=[], total=0)
+    """Продукты, которые видит пользователь (_visible), новые первыми."""
+    query = select(Product).where(_visible(user))
 
     if search:
         pattern = f"%{escape_like(search)}%"

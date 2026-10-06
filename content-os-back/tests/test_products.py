@@ -292,6 +292,19 @@ async def test_team_sees_nothing_until_assigned(
     assert await listing(client) == {"items": [], "total": 0}
 
 
+async def test_options_list_every_visible_product_by_name(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await make_products(client, "Silk dress", "Abaya")
+    response = await client.get("/api/products/options")
+    assert response.status_code == 200
+    assert [option["name"] for option in response.json()] == ["Abaya", "Silk dress"]
+    assert set(response.json()[0]) == {"id", "name"}
+
+    await sign_up(client, db_session, "other@example.com", Role.BRAND, "Other")
+    assert (await client.get("/api/products/options")).json() == []
+
+
 async def test_list_rejects_bad_paging(client: AsyncClient) -> None:
     for params in ({"page": 0}, {"per_page": 51}, {"search": "x" * 101}):
         assert (await client.get("/api/products", params=params)).status_code == 422

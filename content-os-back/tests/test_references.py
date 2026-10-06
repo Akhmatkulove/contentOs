@@ -367,3 +367,120 @@ async def test_lost_access_hides_favorites(client: AsyncClient, db_session: Asyn
 async def test_list_rejects_unknown_scope(client: AsyncClient) -> None:
     response = await client.get("/api/references", params={"scope": "mine"})
     assert response.status_code == 422
+
+
+# --- Свои референсы ---
+
+
+async def add_reference(client: AsyncClient, **body: Any) -> dict[str, Any]:
+    response = await client.post("/api/references", json=body)
+    assert response.status_code == 201, response.text
+    created: dict[str, Any] = response.json()
+    return created
+
+
+async def product_options(client: AsyncClient) -> dict[str, str]:
+    response = await client.get("/api/products/options")
+    assert response.status_code == 200, response.text
+    return {option["name"]: option["id"] for option in response.json()}
+
+
+async def test_art_director_adds_own_reference_to_an_assigned_product(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(client, "Abaya", [amina, odina], [])
+    await log_in(client, "amina@example.com")
+    abaya = (await product_options(client))["Abaya"]
+    files = [await upload(client, image_bytes()), await upload(client, MP4)]
+
+    created = await add_reference(
+        client,
+        title="Linen inspiration",
+        type="moodboard",
+        file_ids=[f["id"] for f in files],
+        product_id=abaya,
+        collection="Summer 26",
+        tags=["linen"],
+        notes="Soft light",
+        favorite=True,
+    )
+    assert created["author"] == "Amina"
+    assert created["product_id"] == abaya
+    assert created["collection"] == "Summer 26"
+    assert created["favorite"] is True
+    assert [f["id"] for f in created["files"]] == [f["id"] for f in files]
+
+    [listed] = (await listing(client, scope="favorites"))["items"]
+    assert listed["id"] == created["id"]
+    # Референс продукта виден всем, кто на нём работает; избранное — только автору.
+    await log_in(client, "odina@example.com")
+    [seen] = (await listing(client))["items"]
+    assert seen["id"] == created["id"]
+    assert seen["favorite"] is False
+
+
+async def test_reference_without_product_is_visible_only_to_its_author(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await art_director(client, db_session, "amina@example.com", "Amina")
+    await art_director(client, db_session, "odina@example.com", "Odina")
+    await sign_up(client, db_session, "creator@example.com", Role.CREATOR, "Kai")
+    await log_in(client, "amina@example.com")
+    created = await add_reference(client, link="https://www.instagram.com/p/abc/")
+    assert created["product_id"] is None
+    assert created["favorite"] is False
+    assert [i["id"] for i in (await listing(client))["items"]] == [created["id"]]
+
+    await log_in(client, "odina@example.com")
+    assert await listing(client) == EMPTY
+
+    # Креатор тоже ведёт свои референсы.
+    await log_in(client, "creator@example.com")
+    own = await add_reference(client, link="https://example.com/")
+    assert [i["id"] for i in (await listing(client))["items"]] == [own["id"]]
+
+
+async def test_product_must_be_assigned_to_the_author(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(client, "Abaya", [amina], [])
+    await log_in(client, "amina@example.com")
+    abaya = (await product_options(client))["Abaya"]
+
+    await log_in(client, "odina@example.com")
+    for product_id in (abaya, str(uuid.uuid4())):
+        response = await client.post(
+            "/api/references", json={"link": "https://example.com/", "product_id": product_id}
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Product not found"
+
+
+async def test_own_reference_needs_own_unused_files_or_a_link(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await art_director(client, db_session, "amina@example.com", "Amina")
+    brand_file = await upload(client, image_bytes())
+    await log_in(client, "amina@example.com")
+
+    for body in (
+        {},
+        {"link": "ftp://example.com/"},
+        {"file_ids": [brand_file["id"]]},
+        {"link": "https://example.com/", "collection": "x" * 101},
+    ):
+        assert (await client.post("/api/references", json=body)).status_code == 422
+
+    file = await upload(client, image_bytes())
+    await add_reference(client, file_ids=[file["id"]])
+    response = await client.post("/api/references", json={"file_ids": [file["id"]]})
+    assert response.json()["detail"] == "File is already used"
+
+
+async def test_brand_cannot_add_references_to_the_pool(client: AsyncClient) -> None:
+    response = await client.post("/api/references", json={"link": "https://example.com/"})
+    assert response.status_code == 403

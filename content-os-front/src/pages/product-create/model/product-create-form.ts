@@ -5,17 +5,16 @@ import { computed, onScopeDispose, reactive, shallowRef, toRef } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Reference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
-import type { PickedFile } from '@/shared/lib'
-import type { Schemas } from '@/shared/api'
+import { openAddReference, toRequest, type ReferenceDraft } from '@/features/add-reference'
+import { uploadAll, type PickedFile } from '@/shared/lib'
+import { uploadFile, type Schemas } from '@/shared/api'
 import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
-import { createProduct, uploadFile, type ProductCreate } from '../api/products'
-import { openAddReference } from './add-reference'
+import { createProduct, type ProductCreate } from '../api/products'
 import { toRequest as deliverableRequest } from './deliverable-draft'
 import { useDeliverables } from './deliverables'
 import { useProductPhotos } from './product-photos'
-import { draftCard, previewFile, toRequest, type ReferenceDraft } from './reference-draft'
-import { uploadAll } from './uploads'
+import { draftCard, previewFile } from './reference-draft'
 
 type ProductStatus = Schemas['ProductStatus']
 
@@ -86,9 +85,8 @@ export function useProductCreateForm() {
 
   async function addReference() {
     const draft = await openAddReference({
-      product: form.name.trim() || 'New product',
-      collection: form.collection.trim(),
       creator: brandName.value,
+      fixed: { product: form.name.trim() || 'New product', collection: form.collection.trim() },
     })
     if (!draft) return
     const preview = previewFile(draft)

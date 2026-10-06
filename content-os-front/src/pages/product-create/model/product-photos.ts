@@ -1,6 +1,5 @@
-import { usePickedFiles } from '@/shared/lib'
+import { IMAGE_ACCEPT, tooLarge, tooLargeMessage, usePickedFiles } from '@/shared/lib'
 import { toast } from '@/shared/ui/toast'
-import { IMAGE_ACCEPT, tooLarge, tooLargeMessage } from './uploads'
 
 export const photoAccept = IMAGE_ACCEPT
 

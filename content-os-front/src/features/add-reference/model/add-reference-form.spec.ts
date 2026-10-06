@@ -1,5 +1,7 @@
 import { effectScope, nextTick } from 'vue'
 import {
+  NO_PRODUCT,
+  productOptions,
   referenceErrors,
   rejectedFilesMessage,
   typeForFiles,
@@ -100,5 +102,26 @@ describe('referenceErrors', () => {
       'Enter a link starting with http:// or https://.',
     )
     expect(referenceErrors('link', 0, ' https://example.com/a ').link).toBe('')
+  })
+})
+
+describe('product choice', () => {
+  it('offers a way back to no product', () => {
+    expect(productOptions([{ value: 'p1', label: 'Abaya' }])).toEqual([
+      { value: NO_PRODUCT, label: 'No product' },
+      { value: 'p1', label: 'Abaya' },
+    ])
+  })
+
+  it('sends no product for the "No product" choice', () => {
+    const scope = effectScope()
+    const { source, form, submit } = scope.run(() => useAddReferenceForm())!
+    source.value = 'link'
+    form.link = 'https://example.com/'
+    form.productId = 'p1'
+    expect(submit()?.productId).toBe('p1')
+    form.productId = NO_PRODUCT
+    expect(submit()?.productId).toBeUndefined()
+    scope.stop()
   })
 })

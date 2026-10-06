@@ -306,6 +306,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/products/options': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Options
+     * @description Все продукты, которые видит пользователь, по названию: для поля Product.
+     */
+    get: operations['list_options_api_products_options_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/references': {
     parameters: {
       query?: never
@@ -321,7 +341,11 @@ export interface paths {
      */
     get: operations['list_references_api_references_get']
     put?: never
-    post?: never
+    /**
+     * Create Reference
+     * @description Свой референс: файлы (уже загруженные, POST /api/uploads) или ссылка.
+     */
+    post: operations['create_reference_api_references_post']
     delete?: never
     options?: never
     head?: never
@@ -649,6 +673,19 @@ export interface components {
        */
       created_at: string
     }
+    /**
+     * ProductOption
+     * @description Продукт в выпадающем списке: только то, что нужно для выбора.
+     */
+    ProductOption: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
     /** ProductResponse */
     ProductResponse: {
       /**
@@ -697,6 +734,32 @@ export interface components {
       all: number
       /** Favorites */
       favorites: number
+    }
+    /**
+     * ReferenceCreate
+     * @description Свой референс из пула: автор — тот, кто создаёт (docs/adr/0004).
+     */
+    ReferenceCreate: {
+      /** Title */
+      title?: string | null
+      type?: components['schemas']['ReferenceType'] | null
+      /** Link */
+      link?: string | null
+      /** File Ids */
+      file_ids?: string[]
+      /** Tags */
+      tags?: string[]
+      /** Notes */
+      notes?: string | null
+      /** Product Id */
+      product_id?: string | null
+      /** Collection */
+      collection?: string | null
+      /**
+       * Favorite
+       * @default false
+       */
+      favorite: boolean
     }
     /**
      * ReferenceDraft
@@ -1530,6 +1593,37 @@ export interface operations {
       }
     }
   }
+  list_options_api_products_options_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductOption'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_references_api_references_get: {
     parameters: {
       query?: {
@@ -1558,6 +1652,41 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ReferenceList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_reference_api_references_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReferenceCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReferenceResponse']
         }
       }
       /** @description Validation Error */

@@ -5,7 +5,7 @@ from typing import Annotated, Self
 from pydantic import BaseModel, Field, HttpUrl, UrlConstraints, model_validator
 
 from app.core.storage import Storage
-from app.core.text import LongText, Tags, Title
+from app.core.text import LongText, ShortText, Tags, Title
 from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.references.models import Reference, ReferenceType
@@ -31,6 +31,16 @@ class ReferenceDraft(BaseModel):
         if len(set(self.file_ids)) != len(self.file_ids):
             raise ValueError("Files repeat")
         return self
+
+
+class ReferenceCreate(ReferenceDraft):
+    """Свой референс из пула: автор — тот, кто создаёт (docs/adr/0004)."""
+
+    # Продукт из тех, что видит автор; без продукта референс виден только автору.
+    product_id: uuid.UUID | None = None
+    collection: ShortText = None
+    # Сразу добавить в избранное автора.
+    favorite: bool = False
 
 
 class ReferenceResponse(BaseModel):
