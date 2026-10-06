@@ -109,7 +109,12 @@ const filters = [
         v-if="products.length"
         class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 xl:grid-cols-4"
       >
-        <ProductCard v-for="product in products" :key="product.id" :product="product" />
+        <ProductCard
+          v-for="product in products"
+          :key="product.id"
+          :product="product"
+          :can-edit="canCreate"
+        />
       </div>
       <!-- TODO(ui): "nothing found" state — not in Figma yet. -->
       <p v-else class="py-10 text-center text-p2 font-medium text-secondary">

@@ -1,3 +1,5 @@
+import type { Schemas } from '@/shared/api'
+
 // What ReferenceCard shows. Built from the backend's ReferenceResponse on the
 // references page and from in-memory drafts on the product page.
 export type ReferenceKind = 'video' | 'image'
@@ -37,5 +39,25 @@ export function linkHost(link: string): string {
     return new URL(link).hostname.replace(/^www\./, '')
   } catch {
     return link
+  }
+}
+
+// A saved reference as ReferenceCard shows it. The preview is the first image;
+// videos have none yet (docs/adr/0003).
+export function toReference(item: Schemas['ReferenceResponse']): Reference {
+  const videoCount = item.files.filter((file) => file.kind === 'video').length
+  const first = item.files[0]
+  return {
+    id: item.id,
+    title: item.title || (item.link ? linkHost(item.link) : 'Untitled'),
+    kind: item.type === 'video' || first?.kind === 'video' ? 'video' : 'image',
+    author: item.author ?? '',
+    previewUrl: item.files.find((file) => file.kind === 'image')?.url ?? null,
+    // TODO(api): video duration — not computed yet (needs ffmpeg).
+    durationSec: null,
+    imageCount: item.files.length - videoCount,
+    videoCount,
+    tags: item.tags,
+    favorite: item.favorite,
   }
 }

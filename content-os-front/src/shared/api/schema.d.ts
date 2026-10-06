@@ -297,7 +297,7 @@ export interface paths {
     put?: never
     /**
      * Create Product
-     * @description Продукт с фото и референсами одной транзакцией (docs/adr/0003).
+     * @description Продукт с фото, референсами и deliverables одной транзакцией (docs/adr/0003).
      */
     post: operations['create_product_api_products_post']
     delete?: never
@@ -324,6 +324,34 @@ export interface paths {
     options?: never
     head?: never
     patch?: never
+    trace?: never
+  }
+  '/api/products/{product_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Product
+     * @description Страница продукта: бренду-владельцу и арт-директорам с его deliverables (docs/adr/0005).
+     */
+    get: operations['get_product_api_products__product_id__get']
+    /**
+     * Update Product
+     * @description Форма редактирования целиком: поля, фото, референсы и deliverables (docs/adr/0005).
+     */
+    put: operations['update_product_api_products__product_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /**
+     * Patch Product
+     * @description Статус продукта из меню «…»: Archive product и обратно (docs/adr/0005).
+     */
+    patch: operations['patch_product_api_products__product_id__patch']
     trace?: never
   }
   '/api/references': {
@@ -506,8 +534,7 @@ export interface components {
       id: string
       /** Name */
       name: string
-      /** Assignee Id */
-      assignee_id: string | null
+      assignee: components['schemas']['TeamMember'] | null
       status: components['schemas']['DeliverableStatus']
       /** Due Date */
       due_date: string | null
@@ -686,6 +713,13 @@ export interface components {
       /** Name */
       name: string
     }
+    /**
+     * ProductPatch
+     * @description Частичное изменение без формы: меню «…» продукта (архив и возврат).
+     */
+    ProductPatch: {
+      status: components['schemas']['ProductStatus']
+    }
     /** ProductResponse */
     ProductResponse: {
       /**
@@ -719,12 +753,50 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /** Can Edit */
+      can_edit: boolean
     }
     /**
      * ProductStatus
      * @enum {string}
      */
     ProductStatus: 'active' | 'archived'
+    /**
+     * ProductUpdate
+     * @description Полное состояние продукта из формы редактирования (docs/adr/0005).
+     *
+     *     `photo_ids` — все фото по порядку: оставшиеся и новые загруженные. `references` и
+     *     `deliverables` — только новые; из уже сохранённых остаются перечисленные в
+     *     `reference_ids` и `deliverable_ids`, остальные удаляются.
+     */
+    ProductUpdate: {
+      /** Name */
+      name: string
+      /** About */
+      about: string
+      /** Notes */
+      notes?: string | null
+      /** Collection */
+      collection?: string | null
+      /** Category */
+      category?: string | null
+      /** Sku */
+      sku?: string | null
+      /** @default active */
+      status: components['schemas']['ProductStatus']
+      /** Tags */
+      tags?: string[]
+      /** Photo Ids */
+      photo_ids: string[]
+      /** References */
+      references?: components['schemas']['ReferenceDraft'][]
+      /** Deliverables */
+      deliverables?: components['schemas']['DeliverableDraft'][]
+      /** Reference Ids */
+      reference_ids?: string[]
+      /** Deliverable Ids */
+      deliverable_ids?: string[]
+    }
     /**
      * ReferenceCounts
      * @description Сколько референсов на каждой вкладке под текущими поиском и фильтрами.
@@ -818,6 +890,11 @@ export interface components {
       tags: string[]
       /** Product Id */
       product_id: string | null
+      /**
+       * Author Id
+       * Format: uuid
+       */
+      author_id: string
       /** Author */
       author: string | null
       /** Files */
@@ -1611,6 +1688,113 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ProductOption'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_product_api_products__product_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        product_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_product_api_products__product_id__put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        product_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductUpdate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  patch_product_api_products__product_id__patch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        product_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductPatch']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductResponse']
         }
       }
       /** @description Validation Error */

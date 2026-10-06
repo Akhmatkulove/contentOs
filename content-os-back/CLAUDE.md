@@ -22,7 +22,7 @@ src/app/onboarding/    ответы онбординга, отправка и о
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
 src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/; claim_files — передача файлов в продукт или референс
-src/app/products/      продукты: POST /api/products вместе с фото, референсами и deliverables (docs/adr/0003, 0004)
+src/app/products/      продукты: список, страница GET /api/products/{id}, создание POST и редактирование PUT вместе с фото, референсами и deliverables (docs/adr/0003, 0004, 0005)
 src/app/deliverables/  deliverables продукта (модели, схемы; создаются из продукта): назначенный арт-директор видит продукт
 src/app/references/    референсы общего пула: GET /api/references (свои + референсы назначенных продуктов, docs/adr/0004), POST /api/references (свой референс)
 src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора из связок бренда)

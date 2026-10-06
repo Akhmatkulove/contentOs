@@ -52,7 +52,8 @@ class ReferenceResponse(BaseModel):
     notes: str | None
     tags: list[str]
     product_id: uuid.UUID | None
-    # Имя автора (поле Creator): бренд, если референс создан в продукте.
+    # Автор (поле Creator): бренд, если референс создан в продукте.
+    author_id: uuid.UUID
     author: str | None
     files: list[FileResponse]
     # В избранном у того, кто запрашивает.
@@ -77,6 +78,7 @@ class ReferenceResponse(BaseModel):
             notes=reference.notes,
             tags=reference.tags,
             product_id=reference.product_id,
+            author_id=reference.owner_id,
             author=author,
             files=[FileResponse.of(file, storage) for file in files],
             favorite=favorite,

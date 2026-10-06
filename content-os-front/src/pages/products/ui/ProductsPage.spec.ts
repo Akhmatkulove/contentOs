@@ -23,6 +23,7 @@ async function mountPage() {
     routes: [
       { path: '/products', name: 'products', component: ProductsPage },
       { path: '/products/new', name: 'product-create', component: { template: '<div />' } },
+      { path: '/products/:id', name: 'product', component: { template: '<div />' } },
     ],
   })
   await router.push('/products')
@@ -52,6 +53,8 @@ describe('ProductsPage', () => {
     ])
     expect(wrapper.text()).toContain('2 products')
     expect(wrapper.text()).toContain('Summer 26')
+    // The title opens the product; the link covers the whole card.
+    expect(wrapper.get('article h3 a').attributes('href')).toBe('/products/1')
   })
 
   it('shows the first-product screen when there are none', async () => {

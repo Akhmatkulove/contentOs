@@ -35,7 +35,12 @@ class Reference(Base):
     collection: Mapped[str | None] = mapped_column(String(100))
     notes: Mapped[str | None] = mapped_column(Text)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # clock_timestamp(), а не now(): now() — время начала транзакции, и референсы,
+    # созданные одним запросом (продукт с референсами), получали бы одно время и
+    # шли в случайном порядке. Так «новые первыми» повторяет порядок создания.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.clock_timestamp()
+    )
 
 
 class ReferenceFile(Base):

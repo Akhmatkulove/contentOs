@@ -1,13 +1,22 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
 from app.auth.deps import ApprovedUser, require_role
 from app.auth.models import Role, User
+from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
 from app.products import service
-from app.products.schemas import ProductCreate, ProductList, ProductOption, ProductResponse
+from app.products.schemas import (
+    ProductCreate,
+    ProductList,
+    ProductOption,
+    ProductPatch,
+    ProductResponse,
+    ProductUpdate,
+)
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -35,9 +44,55 @@ async def list_options(user: ApprovedUser, db: SessionDep) -> list[ProductOption
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_product(
-    body: ProductCreate, brand: BrandUser, db: SessionDep, storage: StorageDep
+    body: ProductCreate,
+    brand: BrandUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
 ) -> ProductResponse:
-    """Продукт с фото и референсами одной транзакцией (docs/adr/0003)."""
-    product = await service.create_product(db, brand, body, storage)
+    """Продукт с фото, референсами и deliverables одной транзакцией (docs/adr/0003)."""
+    product = await service.create_product(db, brand, body)
     await db.commit()
-    return product
+    return await service.product_response(db, brand, storage, settings, product)
+
+
+@router.get("/{product_id}")
+async def get_product(
+    product_id: uuid.UUID,
+    user: ApprovedUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ProductResponse:
+    """Страница продукта: бренду-владельцу и арт-директорам с его deliverables (docs/adr/0005)."""
+    return await service.get_product(db, user, storage, settings, product_id)
+
+
+@router.put("/{product_id}")
+async def update_product(
+    product_id: uuid.UUID,
+    body: ProductUpdate,
+    brand: BrandUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ProductResponse:
+    """Форма редактирования целиком: поля, фото, референсы и deliverables (docs/adr/0005)."""
+    product = await service.update_product(db, brand, product_id, body)
+    await db.commit()
+    return await service.product_response(db, brand, storage, settings, product)
+
+
+@router.patch("/{product_id}")
+async def patch_product(
+    product_id: uuid.UUID,
+    body: ProductPatch,
+    brand: BrandUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ProductResponse:
+    """Статус продукта из меню «…»: Archive product и обратно (docs/adr/0005)."""
+    product = await service.patch_product(db, brand, product_id, body)
+    await db.commit()
+    return await service.product_response(db, brand, storage, settings, product)

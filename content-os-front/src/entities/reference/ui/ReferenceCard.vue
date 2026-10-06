@@ -4,7 +4,11 @@ import { VButton } from '@/shared/ui/button'
 import { type IconName, VIcon } from '@/shared/ui/icon'
 import { formatDuration, referenceKindLabels, type Reference } from '../model/reference'
 
-const { reference } = defineProps<{ reference: Reference }>()
+const { reference, favoriteToggle = true } = defineProps<{
+  reference: Reference
+  // false: no favourite star (screens where the user can't star, like the product page).
+  favoriteToggle?: boolean
+}>()
 
 // The star asks the screen to flip the favourite; the screen owns the request.
 const emit = defineEmits<{ toggleFavorite: [] }>()
@@ -75,6 +79,7 @@ const badges = computed(() => {
           <slot name="action">
             <!-- Selected: the star fills (--icon-fill in the sprite's star). -->
             <VButton
+              v-if="favoriteToggle"
               variant="surface"
               size="icon-24"
               :aria-label="`Favorite ${reference.title}`"

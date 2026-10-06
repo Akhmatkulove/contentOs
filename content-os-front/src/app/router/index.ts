@@ -12,7 +12,8 @@ import {
   OnboardingRoleStep,
   OnboardingStatusPage,
 } from '@/pages/onboarding'
-import { ProductCreatePage } from '@/pages/product-create'
+import { ProductPage } from '@/pages/product'
+import { ProductCreatePage, ProductEditPage } from '@/pages/product-form'
 import { ProductsPage } from '@/pages/products'
 import { ReferencesPage } from '@/pages/references'
 import { ShootsPage } from '@/pages/shoots'
@@ -42,6 +43,21 @@ export const router = createRouter({
           name: 'product-create',
           component: ProductCreatePage,
           // Only brands create products; the team gets them through deliverables.
+          meta: { section: 'products', roles: ['brand'] },
+        },
+        {
+          path: 'products/:id',
+          name: 'product',
+          component: ProductPage,
+          props: true,
+          meta: { section: 'products' },
+        },
+        {
+          path: 'products/:id/edit',
+          name: 'product-edit',
+          component: ProductEditPage,
+          props: true,
+          // The backend lets only the owning brand save; the form sends others to the page.
           meta: { section: 'products', roles: ['brand'] },
         },
         { path: 'content', name: 'content', component: ContentPage },

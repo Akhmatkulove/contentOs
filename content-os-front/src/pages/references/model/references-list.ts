@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { fetchReferenceFilters, fetchReferences, type ReferenceScope } from '../api/references'
 import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
-import { toReference } from './reference'
+import { toReference } from '@/entities/reference'
 import {
   defaultFilters,
   filterOptions,

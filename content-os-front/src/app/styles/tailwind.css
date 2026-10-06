@@ -132,6 +132,8 @@
 
   --border-color-default: var(--color-neutral-300);
   --border-color-subtle: var(--color-neutral-200);
+  /* Underline of inactive mobile tabs. */
+  --border-color-strong: var(--color-neutral-400);
 
   /*
    * Typography — Figma "Web Design" text styles. Each text-* sets size,
@@ -156,6 +158,11 @@
   --text-h4--line-height: 1.75rem;
   --text-h4--letter-spacing: -0.04em;
   --text-h4--font-weight: 600;
+
+  --text-h5: 1.375rem; /* 22/26 */
+  --text-h5--line-height: 1.625rem;
+  --text-h5--letter-spacing: -0.03em;
+  --text-h5--font-weight: 600;
 
   /* Figma sets H6 in Bold; only Medium and SemiBold are loaded, so 600. */
   --text-h6: 1.125rem; /* 18/22 */

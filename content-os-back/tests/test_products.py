@@ -107,7 +107,8 @@ async def test_references_get_product_collection_and_brand_as_author(
         ),
     )
 
-    files_ref, link_ref = body["references"]
+    # Новые первыми: созданный последним идёт первым, даже внутри одного запроса.
+    link_ref, files_ref = body["references"]
     for reference in (files_ref, link_ref):
         assert reference["product_id"] == body["id"]
         assert reference["collection"] == "Summer 26"
@@ -360,7 +361,7 @@ async def test_creates_deliverables_in_order(client: AsyncClient, db_session: As
     )
 
     assert [
-        (d["name"], d["assignee_id"], d["status"], d["due_date"], d["brief"])
+        (d["name"], d["assignee"]["id"], d["status"], d["due_date"], d["brief"])
         for d in body["deliverables"]
     ] == [
         ("Walking transition", amina, "to_shoot", "2024-09-18", "Slow walk"),
@@ -433,3 +434,286 @@ async def test_art_director_sees_products_with_their_deliverables(
     body = await listing(client, search="hij")
     assert [item["name"] for item in body["items"]] == ["Hijab"]
     assert (await listing(client))["total"] == 2
+
+
+# --- Страница продукта ---
+
+
+async def detail(client: AsyncClient, product_id: str) -> dict[str, Any]:
+    response = await client.get(f"/api/products/{product_id}")
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def test_owner_gets_the_whole_product(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    photos = [await upload(client, image_bytes()) for _ in range(2)]
+    image = await upload(client, image_bytes())
+    created = await create(
+        client,
+        product(
+            [photo["id"] for photo in photos],
+            references=[{"title": "Light", "file_ids": [image["id"]]}],
+            deliverables=[deliverable(amina, name="Walk"), deliverable(amina, name="Close-up")],
+        ),
+    )
+
+    body = await detail(client, created["id"])
+
+    assert body == created
+    assert body["can_edit"] is True
+    assert [photo["id"] for photo in body["photos"]] == [photo["id"] for photo in photos]
+    assert [reference["title"] for reference in body["references"]] == ["Light"]
+    assert body["references"][0]["author_id"] == str(await user_id(db_session, "brand@example.com"))
+    assert [d["name"] for d in body["deliverables"]] == ["Walk", "Close-up"]
+    assert body["deliverables"][0]["assignee"] == {"id": amina, "name": "Amina", "photo_url": None}
+
+
+async def test_assigned_art_director_sees_product_but_cannot_edit(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    photo = await upload(client, image_bytes())
+    product_id = (await create(client, product([photo["id"]], deliverables=[deliverable(amina)])))[
+        "id"
+    ]
+    # Свой референс арт-директора в этом продукте тоже на странице.
+    await log_in(client, "amina@example.com")
+    response = await client.post(
+        "/api/references", json={"link": "https://example.com/p", "product_id": product_id}
+    )
+    assert response.status_code == 201
+
+    body = await detail(client, product_id)
+
+    assert body["can_edit"] is False
+    assert [reference["author"] for reference in body["references"]] == ["Amina"]
+    assert (await client.put(f"/api/products/{product_id}", json={})).status_code == 403
+
+
+async def test_product_is_hidden_from_everyone_else(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await art_director(client, db_session, "amina@example.com", "Amina")
+    product_id = (await make_products(client, "Abaya"))[0]
+
+    await sign_up(client, db_session, "rival@example.com", Role.BRAND, "Rival")
+    assert (await client.get(f"/api/products/{product_id}")).status_code == 404
+    await log_in(client, "amina@example.com")
+    assert (await client.get(f"/api/products/{product_id}")).status_code == 404
+    await log_in(client, "brand@example.com")
+    assert (await client.get(f"/api/products/{uuid.uuid4()}")).status_code == 404
+
+
+# --- Редактирование ---
+
+
+def edit_body(current: dict[str, Any], **changes: Any) -> dict[str, Any]:
+    """Форма редактирования без изменений: всё сохранённое остаётся."""
+    return {
+        **{field: current[field] for field in ("name", "about", "notes", "collection")},
+        **{field: current[field] for field in ("category", "sku", "status", "tags")},
+        "photo_ids": [photo["id"] for photo in current["photos"]],
+        "reference_ids": [reference["id"] for reference in current["references"]],
+        "deliverable_ids": [d["id"] for d in current["deliverables"]],
+        **changes,
+    }
+
+
+async def edit(client: AsyncClient, product_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    response = await client.put(f"/api/products/{product_id}", json=body)
+    assert response.status_code == 200, response.text
+    edited: dict[str, Any] = response.json()
+    return edited
+
+
+async def test_edits_fields_and_photos(client: AsyncClient) -> None:
+    first, second = [await upload(client, image_bytes()) for _ in range(2)]
+    current = await create(client, product([first["id"], second["id"]]))
+    added = await upload(client, image_bytes())
+
+    body = await edit(
+        client,
+        current["id"],
+        edit_body(
+            current,
+            name=" Linen shirt v2 ",
+            sku="",
+            tags=["linen"],
+            status="archived",
+            photo_ids=[added["id"], second["id"]],
+        ),
+    )
+
+    assert (body["name"], body["sku"], body["tags"], body["status"]) == (
+        "Linen shirt v2",
+        None,
+        ["linen"],
+        "archived",
+    )
+    assert [photo["id"] for photo in body["photos"]] == [added["id"], second["id"]]
+    assert await detail(client, current["id"]) == body
+    # Убранное фото больше ничьё: его можно снова использовать.
+    other = await create(client, product([first["id"]], name="Other"))
+    assert [photo["id"] for photo in other["photos"]] == [first["id"]]
+
+
+async def test_edits_references(client: AsyncClient, db_session: AsyncSession) -> None:
+    current = await create(
+        client,
+        product(
+            [(await upload(client, image_bytes()))["id"]],
+            collection="Summer 26",
+            references=[{"link": "https://example.com/a"}, {"link": "https://example.com/b"}],
+        ),
+    )
+    kept = next(r for r in current["references"] if r["link"] == "https://example.com/a")
+    image = await upload(client, image_bytes())
+
+    body = await edit(
+        client,
+        current["id"],
+        edit_body(
+            current,
+            reference_ids=[kept["id"]],
+            references=[{"title": "New", "file_ids": [image["id"]]}],
+        ),
+    )
+
+    assert {r["link"] or r["title"] for r in body["references"]} == {"https://example.com/a", "New"}
+    assert all(r["collection"] == "Summer 26" for r in body["references"])
+    # Убранный референс удалён, а не отвязан: без продукта его никто бы не увидел.
+    assert await db_session.scalar(select(func.count()).select_from(Reference)) == 2
+
+
+async def test_brand_cannot_remove_art_directors_references(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    photo = await upload(client, image_bytes())
+    current = await create(client, product([photo["id"]], deliverables=[deliverable(amina)]))
+    await log_in(client, "amina@example.com")
+    response = await client.post(
+        "/api/references", json={"link": "https://example.com/p", "product_id": current["id"]}
+    )
+    theirs = response.json()["id"]
+    await log_in(client, "brand@example.com")
+
+    response = await client.put(
+        f"/api/products/{current['id']}", json=edit_body(current, reference_ids=[theirs])
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Unknown reference"
+
+    # Форма не перечисляет чужие референсы, и они остаются.
+    body = await edit(client, current["id"], edit_body(current))
+    assert [r["id"] for r in body["references"]] == [theirs]
+
+
+async def test_edits_deliverables(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    photo = await upload(client, image_bytes())
+    current = await create(
+        client,
+        product(
+            [photo["id"]],
+            deliverables=[
+                deliverable(amina, name="Walk"),
+                deliverable(odina, name="Turn"),
+                deliverable(amina, name="Close-up"),
+            ],
+        ),
+    )
+    walk, turn, close_up = (d["id"] for d in current["deliverables"])
+
+    body = await edit(
+        client,
+        current["id"],
+        edit_body(
+            current,
+            deliverable_ids=[close_up, walk],
+            deliverables=[deliverable(amina, name="Story")],
+        ),
+    )
+
+    assert [d["name"] for d in body["deliverables"]] == ["Close-up", "Walk", "Story"]
+    assert turn not in {d["id"] for d in body["deliverables"]}
+    # Без deliverables Одина больше не видит продукт.
+    await log_in(client, "odina@example.com")
+    assert (await client.get(f"/api/products/{current['id']}")).status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("changes", "detail"),
+    [
+        ({"deliverable_ids": ["UNKNOWN"]}, "Unknown deliverable"),
+        ({"reference_ids": ["UNKNOWN"]}, "Unknown reference"),
+        ({"photo_ids": ["VIDEO"]}, "Product photos must be images"),
+        ({"deliverables": [{"name": "Walk", "assignee_id": "UNKNOWN"}]}, None),
+    ],
+)
+async def test_invalid_edit_changes_nothing(
+    client: AsyncClient, changes: dict[str, Any], detail: str | None
+) -> None:
+    current = await create(client, product([(await upload(client, image_bytes()))["id"]]))
+    video = await upload(client, MP4)
+    swap = {"UNKNOWN": str(uuid.uuid4()), "VIDEO": video["id"]}
+
+    def resolve(value: Any) -> Any:
+        if isinstance(value, list):
+            return [resolve(item) for item in value]
+        if isinstance(value, dict):
+            return {key: resolve(item) for key, item in value.items()}
+        return swap.get(value, value)
+
+    response = await client.put(
+        f"/api/products/{current['id']}",
+        json=edit_body(current, name="Changed", **resolve(changes)),
+    )
+
+    assert response.status_code == 422
+    if detail:
+        assert response.json()["detail"] == detail
+    assert (await client.get(f"/api/products/{current['id']}")).json()["name"] == "Linen shirt"
+
+
+async def test_only_owner_edits(client: AsyncClient, db_session: AsyncSession) -> None:
+    current = await create(client, product([(await upload(client, image_bytes()))["id"]]))
+    await sign_up(client, db_session, "rival@example.com", Role.BRAND, "Rival")
+    photo = await upload(client, image_bytes())
+
+    response = await client.put(
+        f"/api/products/{current['id']}", json=edit_body(current, photo_ids=[photo["id"]])
+    )
+
+    assert response.status_code == 404
+
+
+async def test_product_limits_count_saved_items(client: AsyncClient) -> None:
+    current = await create(client, product([(await upload(client, image_bytes()))["id"]]))
+    body = edit_body(
+        current,
+        reference_ids=[str(uuid.uuid4()) for _ in range(40)],
+        references=[{"link": f"https://example.com/{i}"} for i in range(11)],
+    )
+
+    response = await client.put(f"/api/products/{current['id']}", json=body)
+
+    assert response.status_code == 422
+
+
+async def test_owner_archives_and_restores(client: AsyncClient, db_session: AsyncSession) -> None:
+    current = await create(client, product([(await upload(client, image_bytes()))["id"]]))
+    url = f"/api/products/{current['id']}"
+
+    archived = await client.patch(url, json={"status": "archived"})
+    assert archived.status_code == 200
+    assert archived.json() == {**current, "status": "archived"}
+    restored = await client.patch(url, json={"status": "active"})
+    assert restored.json()["status"] == "active"
+
+    assert (await client.patch(url, json={"status": "deleted"})).status_code == 422
+    await sign_up(client, db_session, "rival@example.com", Role.BRAND, "Rival")
+    assert (await client.patch(url, json={"status": "archived"})).status_code == 404

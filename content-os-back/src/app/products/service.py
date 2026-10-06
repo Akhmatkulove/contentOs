@@ -1,17 +1,19 @@
-"""Продукты: список и создание вместе с фото и референсами. Коммитит вызывающий."""
+"""Продукты: список, страница продукта, создание и редактирование. Коммитит вызывающий."""
 
 import uuid
+from collections.abc import Sequence
 
 from fastapi import HTTPException, status
-from sqlalchemy import ColumnElement, exists, false, func, or_, select
+from sqlalchemy import ColumnElement, case, delete, exists, false, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.models import BrandArtDirector
 from app.auth.models import Role, Status, User
+from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
 from app.deliverables.models import Deliverable
-from app.deliverables.schemas import DeliverableResponse
+from app.deliverables.schemas import DeliverableDraft, DeliverableResponse
 from app.files.models import FileKind, StoredFile
 from app.files.schemas import FileResponse
 from app.files.service import claim_files
@@ -21,14 +23,26 @@ from app.products.schemas import (
     ProductList,
     ProductListItem,
     ProductOption,
+    ProductPatch,
     ProductResponse,
+    ProductUpdate,
 )
+from app.references import service as references
 from app.references.models import Reference, ReferenceFile
-from app.references.schemas import ReferenceResponse
+from app.references.schemas import ReferenceDraft
+from app.team.schemas import TeamMember
+
+# Поля формы, которые копируются в продукт как есть.
+_FIELDS = ("name", "about", "notes", "collection", "category", "sku", "status", "tags")
 
 
 def _unprocessable(detail: str) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
+
+
+def _not_found() -> HTTPException:
+    # Чужой продукт отвечает так же, как несуществующий.
+    return HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
 
 
 async def _require_own_art_directors(db: AsyncSession, brand: User, ids: set[uuid.UUID]) -> None:
@@ -52,30 +66,32 @@ async def _require_own_art_directors(db: AsyncSession, brand: User, ids: set[uui
         raise _unprocessable("Assignee is not the brand's art director")
 
 
-async def create_product(
-    db: AsyncSession, brand: User, body: ProductCreate, storage: Storage
-) -> ProductResponse:
-    await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
-    files = await claim_files(db, brand, body.file_ids())
-    photos = [files[file_id] for file_id in body.photo_ids]
-    if any(photo.kind != FileKind.IMAGE for photo in photos):
+async def _claim(
+    db: AsyncSession, brand: User, body: ProductCreate, kept_photos: set[uuid.UUID]
+) -> dict[uuid.UUID, StoredFile]:
+    """Новые файлы запроса: фото, которых у продукта ещё нет, и файлы новых референсов."""
+    new = [file_id for file_id in body.file_ids() if file_id not in kept_photos]
+    files = await claim_files(db, brand, new)
+    if any(files[i].kind != FileKind.IMAGE for i in body.photo_ids if i in files):
         raise _unprocessable("Product photos must be images")
+    return files
 
-    product = Product(
-        brand_id=brand.id,
-        **body.model_dump(include={"name", "about", "notes", "collection", "category", "sku"}),
-        status=body.status,
-        tags=body.tags,
-    )
-    db.add(product)
-    await db.flush()
+
+def _add_photos(db: AsyncSession, product: Product, photo_ids: list[uuid.UUID]) -> None:
     db.add_all(
-        ProductPhoto(product_id=product.id, position=index, file_id=photo.id)
-        for index, photo in enumerate(photos)
+        ProductPhoto(product_id=product.id, position=index, file_id=file_id)
+        for index, file_id in enumerate(photo_ids)
     )
 
-    references = []
-    for draft in body.references:
+
+async def _add_references(
+    db: AsyncSession,
+    brand: User,
+    product: Product,
+    drafts: list[ReferenceDraft],
+    files: dict[uuid.UUID, StoredFile],
+) -> None:
+    for draft in drafts:
         reference = Reference(
             owner_id=brand.id,
             product_id=product.id,
@@ -89,19 +105,176 @@ async def create_product(
         )
         db.add(reference)
         await db.flush()
-        reference_files = [files[file_id] for file_id in draft.file_ids]
         db.add_all(
-            ReferenceFile(reference_id=reference.id, position=index, file_id=file.id)
-            for index, file in enumerate(reference_files)
+            ReferenceFile(reference_id=reference.id, position=index, file_id=files[file_id].id)
+            for index, file_id in enumerate(draft.file_ids)
         )
-        references.append((reference, reference_files))
 
-    deliverables = [
-        Deliverable(product_id=product.id, position=index, **draft.model_dump())
-        for index, draft in enumerate(body.deliverables)
-    ]
-    db.add_all(deliverables)
+
+def _add_deliverables(
+    db: AsyncSession, product: Product, drafts: list[DeliverableDraft], start: int = 0
+) -> None:
+    db.add_all(
+        Deliverable(product_id=product.id, position=start + index, **draft.model_dump())
+        for index, draft in enumerate(drafts)
+    )
+
+
+async def create_product(db: AsyncSession, brand: User, body: ProductCreate) -> Product:
+    """Продукт с фото, референсами и deliverables одной транзакцией (docs/adr/0003, 0004)."""
+    await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
+    files = await _claim(db, brand, body, kept_photos=set())
+
+    product = Product(brand_id=brand.id, **body.model_dump(include=set(_FIELDS)))
+    db.add(product)
     await db.flush()
+    _add_photos(db, product, body.photo_ids)
+    await _add_references(db, brand, product, body.references, files)
+    _add_deliverables(db, product, body.deliverables)
+    await db.flush()
+    return product
+
+
+def _require_subset(
+    existing: Sequence[uuid.UUID], kept: list[uuid.UUID], what: str
+) -> set[uuid.UUID]:
+    """Сохранённые id; оставить можно только из них, иначе 422."""
+    if not set(kept) <= set(existing):
+        raise _unprocessable(f"Unknown {what}")
+    return set(existing)
+
+
+async def _own_product(db: AsyncSession, brand: User, product_id: uuid.UUID) -> Product:
+    """Продукт бренда, заблокированный до конца транзакции; чужой — 404, как несуществующий.
+
+    Блокировка: два сохранения подряд не перемешают фото и позиции.
+    """
+    product = await db.scalar(
+        select(Product)
+        .where(Product.id == product_id, Product.brand_id == brand.id)
+        .with_for_update()
+    )
+    if product is None:
+        raise _not_found()
+    return product
+
+
+async def patch_product(
+    db: AsyncSession, brand: User, product_id: uuid.UUID, body: ProductPatch
+) -> Product:
+    """Меняет только переданные поля (сейчас статус: архив и возврат)."""
+    product = await _own_product(db, brand, product_id)
+    product.status = body.status
+    await db.flush()
+    return product
+
+
+async def update_product(
+    db: AsyncSession, brand: User, product_id: uuid.UUID, body: ProductUpdate
+) -> Product:
+    """Сохраняет форму редактирования целиком (docs/adr/0005). Только бренд-владелец."""
+    product = await _own_product(db, brand, product_id)
+    await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
+
+    photos = set(
+        await db.scalars(select(ProductPhoto.file_id).where(ProductPhoto.product_id == product.id))
+    )
+    files = await _claim(db, brand, body, kept_photos=photos)
+
+    own_references = _require_subset(
+        (
+            await db.scalars(
+                select(Reference.id).where(
+                    Reference.product_id == product.id, Reference.owner_id == brand.id
+                )
+            )
+        ).all(),
+        body.reference_ids,
+        "reference",
+    )
+    deliverables = _require_subset(
+        (
+            await db.scalars(select(Deliverable.id).where(Deliverable.product_id == product.id))
+        ).all(),
+        body.deliverable_ids,
+        "deliverable",
+    )
+
+    # Убранные референсы удаляются из пула: бренд пула не видит, а без продукта
+    # их не увидит и арт-директор. Их файлы остаются в files без привязки.
+    if removed := own_references - set(body.reference_ids):
+        await db.execute(delete(Reference).where(Reference.id.in_(removed)))
+    # Без deliverable арт-директор теряет доступ к продукту (docs/adr/0004).
+    if removed := deliverables - set(body.deliverable_ids):
+        await db.execute(delete(Deliverable).where(Deliverable.id.in_(removed)))
+    if body.deliverable_ids:
+        positions = {deliverable_id: i for i, deliverable_id in enumerate(body.deliverable_ids)}
+        await db.execute(
+            update(Deliverable)
+            .where(Deliverable.id.in_(positions))
+            .values(position=case(positions, value=Deliverable.id))
+        )
+
+    # Позиции фото — часть первичного ключа: проще записать их заново.
+    await db.execute(delete(ProductPhoto).where(ProductPhoto.product_id == product.id))
+    for field in _FIELDS:
+        setattr(product, field, getattr(body, field))
+    _add_photos(db, product, body.photo_ids)
+    await _add_references(db, brand, product, body.references, files)
+    _add_deliverables(db, product, body.deliverables, start=len(body.deliverable_ids))
+    await db.flush()
+    return product
+
+
+async def get_product(
+    db: AsyncSession, user: User, storage: Storage, settings: Settings, product_id: uuid.UUID
+) -> ProductResponse:
+    """Страница продукта для того, кто его видит (_visible); остальным 404."""
+    product = await db.scalar(select(Product).where(Product.id == product_id, _visible(user)))
+    if product is None:
+        raise _not_found()
+    return await product_response(db, user, storage, settings, product)
+
+
+async def product_response(
+    db: AsyncSession, user: User, storage: Storage, settings: Settings, product: Product
+) -> ProductResponse:
+    """Продукт со всем, что показывает его страница: фото, референсы, deliverables.
+
+    Референсы продукта видит каждый, кто видит продукт: бренд-владелец и назначенные
+    арт-директора (docs/adr/0004). Число запросов не зависит от размера продукта.
+    """
+    photos = list(
+        await db.scalars(
+            select(StoredFile)
+            .join(ProductPhoto, ProductPhoto.file_id == StoredFile.id)
+            .where(ProductPhoto.product_id == product.id)
+            .order_by(ProductPhoto.position)
+        )
+    )
+    product_references = list(
+        await db.scalars(
+            select(Reference)
+            .where(Reference.product_id == product.id)
+            .order_by(Reference.created_at.desc(), Reference.id.desc())
+        )
+    )
+    deliverables = list(
+        await db.scalars(
+            select(Deliverable)
+            .where(Deliverable.product_id == product.id)
+            .order_by(Deliverable.position, Deliverable.id)
+        )
+    )
+    assignee_ids = {d.assignee_id for d in deliverables if d.assignee_id is not None}
+    assignees = (
+        {
+            member.id: TeamMember.of(member, settings)
+            for member in await db.scalars(select(User).where(User.id.in_(assignee_ids)))
+        }
+        if assignee_ids
+        else {}
+    )
 
     return ProductResponse(
         id=product.id,
@@ -114,12 +287,16 @@ async def create_product(
         status=product.status,
         tags=product.tags,
         photos=[FileResponse.of(photo, storage) for photo in photos],
-        references=[
-            ReferenceResponse.of(reference, brand.name, reference_files, storage)
-            for reference, reference_files in references
+        references=await references.to_responses(db, user, storage, product_references),
+        deliverables=[
+            DeliverableResponse.of(
+                deliverable,
+                assignees.get(deliverable.assignee_id) if deliverable.assignee_id else None,
+            )
+            for deliverable in deliverables
         ],
-        deliverables=[DeliverableResponse.of(deliverable) for deliverable in deliverables],
         created_at=product.created_at,
+        can_edit=product.brand_id == user.id,
     )
 
 

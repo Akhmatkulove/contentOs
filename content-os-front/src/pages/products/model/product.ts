@@ -1,6 +1,5 @@
+import type { ProductStatus } from '@/entities/product'
 import type { Schemas } from '@/shared/api'
-
-export type ProductStatus = Schemas['ProductStatus']
 
 // What a product card shows.
 export interface Product {
@@ -32,13 +31,6 @@ export function productSubtitle({ collection, sku }: Pick<Product, 'collection' 
 export function productsLabel(count: number): string {
   return `${count} ${count === 1 ? 'product' : 'products'}`
 }
-
-// How each status looks in VStatus. The Figma workflow statuses (Approved, In
-// progress, To shoot, Needs changes) come with shoots and deliverables.
-export const productStatuses = {
-  active: { label: 'Active', tone: 'success' },
-  archived: { label: 'Archived', tone: 'warning' },
-} as const satisfies Record<ProductStatus, { label: string; tone: string }>
 
 // Share of finished deliverables, 0–100. No deliverables yet counts as 0%.
 // TODO(api): deliverables — the card's progress bar is hidden until they exist.

@@ -6,6 +6,7 @@ from pydantic import BaseModel, StringConstraints
 
 from app.core.text import LongText
 from app.deliverables.models import Deliverable, DeliverableStatus
+from app.team.schemas import TeamMember
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
@@ -23,17 +24,18 @@ class DeliverableDraft(BaseModel):
 class DeliverableResponse(BaseModel):
     id: uuid.UUID
     name: str
-    assignee_id: uuid.UUID | None
+    # None: исполнителя сняли (связку убрали или аккаунт удалён).
+    assignee: TeamMember | None
     status: DeliverableStatus
     due_date: date | None
     brief: str | None
 
     @classmethod
-    def of(cls, deliverable: Deliverable) -> "DeliverableResponse":
+    def of(cls, deliverable: Deliverable, assignee: TeamMember | None) -> "DeliverableResponse":
         return cls(
             id=deliverable.id,
             name=deliverable.name,
-            assignee_id=deliverable.assignee_id,
+            assignee=assignee,
             status=deliverable.status,
             due_date=deliverable.due_date,
             brief=deliverable.brief,

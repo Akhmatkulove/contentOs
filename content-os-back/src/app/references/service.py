@@ -160,11 +160,26 @@ async def list_references(
         )
     )
 
+    return ReferenceList(
+        items=await to_responses(db, user, storage, references), total=total, counts=counts
+    )
+
+
+async def to_responses(
+    db: AsyncSession, user: User, storage: Storage, references: list[Reference]
+) -> list[ReferenceResponse]:
+    """Референсы для ответа: файлы по порядку, имя автора и избранное пользователя.
+
+    Три запроса на любое число референсов.
+    """
+    ids = [reference.id for reference in references]
+    if not ids:
+        return []
     files: dict[uuid.UUID, list[StoredFile]] = defaultdict(list)
     for row in await db.execute(
         select(ReferenceFile.reference_id, StoredFile)
         .join(StoredFile, StoredFile.id == ReferenceFile.file_id)
-        .where(ReferenceFile.reference_id.in_([reference.id for reference in references]))
+        .where(ReferenceFile.reference_id.in_(ids))
         .order_by(ReferenceFile.reference_id, ReferenceFile.position)
     ):
         files[row.reference_id].append(row.StoredFile)
@@ -176,30 +191,23 @@ async def list_references(
             )
         )
     }
-
     favorites = set(
         await db.scalars(
             select(ReferenceFavorite.reference_id).where(
-                ReferenceFavorite.user_id == user.id,
-                ReferenceFavorite.reference_id.in_([reference.id for reference in references]),
+                ReferenceFavorite.user_id == user.id, ReferenceFavorite.reference_id.in_(ids)
             )
         )
     )
-
-    return ReferenceList(
-        items=[
-            ReferenceResponse.of(
-                reference,
-                authors.get(reference.owner_id),
-                files[reference.id],
-                storage,
-                favorite=reference.id in favorites,
-            )
-            for reference in references
-        ],
-        total=total,
-        counts=counts,
-    )
+    return [
+        ReferenceResponse.of(
+            reference,
+            authors.get(reference.owner_id),
+            files[reference.id],
+            storage,
+            favorite=reference.id in favorites,
+        )
+        for reference in references
+    ]
 
 
 async def create_reference(
