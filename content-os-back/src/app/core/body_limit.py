@@ -7,8 +7,12 @@ FastAPI разбирает тело (в том числе multipart с файл�
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 DEFAULT_LIMIT = 1024 * 1024
-# Фото до 5 МБ плюс накладные расходы multipart.
-PATH_LIMITS = {"/api/me/photo": 6 * 1024 * 1024}
+PATH_LIMITS = {
+    # Фото до 5 МБ плюс накладные расходы multipart.
+    "/api/me/photo": 6 * 1024 * 1024,
+    # Видео до 100 МБ (app.files.media) плюс накладные расходы.
+    "/api/uploads": 101 * 1024 * 1024,
+}
 
 
 class BodyTooLargeError(Exception):

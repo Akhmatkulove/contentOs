@@ -5,6 +5,7 @@ describe('VUploadThumbnail', () => {
   it('shows the image and emits remove', async () => {
     const wrapper = mount(VUploadThumbnail, { props: { src: 'blob:1', alt: 'look.jpg' } })
     expect(wrapper.get('img').attributes('src')).toBe('blob:1')
+    expect(wrapper.find('[data-video-badge]').exists()).toBe(false)
     await wrapper.get('button[aria-label="Remove look.jpg"]').trigger('click')
     expect(wrapper.emitted('remove')).toHaveLength(1)
   })
@@ -15,5 +16,6 @@ describe('VUploadThumbnail', () => {
     })
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.get('video').attributes('src')).toBe('blob:2#t=0.1')
+    expect(wrapper.get('[data-video-badge] use').attributes('href')).toMatch(/#video-01$/)
   })
 })

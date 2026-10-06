@@ -10,6 +10,8 @@ export interface Reference {
   previewUrl: string | null
   // Videos only; null for images.
   durationSec: number | null
+  // Files in the reference (several make a moodboard); null for a link.
+  fileCount: number | null
   tags: string[]
   favorite: boolean
 }

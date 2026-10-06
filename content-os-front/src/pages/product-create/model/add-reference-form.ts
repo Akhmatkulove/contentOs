@@ -1,31 +1,56 @@
-import { reactive, ref, shallowRef } from 'vue'
+import * as v from 'valibot'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { usePickedFiles } from '@/shared/lib'
 import type { IconName } from '@/shared/ui/icon'
 import type { SegmentedOption } from '@/shared/ui/segmented'
 import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
+import type { ReferenceDraft, ReferenceSource, ReferenceType } from './reference-draft'
+import { IMAGE_ACCEPT, isVideo, tooLarge, tooLargeMessage, VIDEO_ACCEPT } from './uploads'
 
-// A reference comes either from files or from a link to a post.
-export type ReferenceSource = 'upload' | 'link'
+export type { ReferenceSource } from './reference-draft'
 
 export const sourceOptions: SegmentedOption<ReferenceSource>[] = [
   { value: 'upload', label: 'Upload files', icon: 'upload-square-02' },
   { value: 'link', label: 'Paste link', icon: 'copy-link' },
 ]
 
-export const fileAccept = 'image/*,video/*'
+export const fileAccept = `${IMAGE_ACCEPT},${VIDEO_ACCEPT}`
 
-// TODO(api): reference types from the backend enum.
-export const typeOptions: SelectOption[] = [
+export const typeOptions = [
   { value: 'image', label: 'Image' },
   { value: 'video', label: 'Video' },
   { value: 'moodboard', label: 'Moodboard' },
-]
+] as const satisfies readonly (SelectOption & { value: ReferenceType })[]
+
+// The type the uploaded files suggest: only videos make a video, only images
+// an image, images with videos a moodboard.
+export function typeForFiles(files: File[]): ReferenceType | undefined {
+  if (!files.length) return undefined
+  if (files.every(isVideo)) return 'video'
+  return files.some(isVideo) ? 'moodboard' : 'image'
+}
 
 export function rejectedFilesMessage(count: number): string {
   return count === 1
     ? 'This file is not an image or a video.'
     : `${count} files are not images or videos.`
+}
+
+// Same rule as the backend: http(s) only.
+export const linkSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.nonEmpty('Paste a link.'),
+  v.url('Enter a valid link.'),
+  v.regex(/^https?:\/\//i, 'Enter a link starting with http:// or https://.'),
+)
+
+// A reference needs either files or a link, depending on the source.
+export function referenceErrors(source: ReferenceSource, fileCount: number, link: string) {
+  if (source === 'upload') return { files: fileCount ? '' : 'Add at least one file.', link: '' }
+  const result = v.safeParse(linkSchema, link)
+  return { files: '', link: result.success ? '' : result.issues[0].message }
 }
 
 // What the backend tells about a pasted link.
@@ -38,31 +63,37 @@ export interface LinkPreview {
   video: boolean
 }
 
-// Layout only for now: the fields keep what the user enters, nothing is sent.
 export function useAddReferenceForm() {
   const source = ref<ReferenceSource>('upload')
 
-  // TODO(api): references endpoint. Replace with the request type from `Schemas`.
   const form = reactive({
     link: '',
     title: '',
-    type: undefined as string | undefined,
-    product: undefined as string | undefined,
-    shoot: undefined as string | undefined,
-    creator: undefined as string | undefined,
+    type: undefined as ReferenceType | undefined,
     tags: [] as string[],
-    collection: undefined as string | undefined,
     notes: '',
     favorite: false,
   })
 
-  // TODO(api): options for products, shoots, creators and collections.
-  const productOptions: SelectOption[] = []
-  const shootOptions: SelectOption[] = []
-  const creatorOptions: SelectOption[] = []
-  const collectionOptions: SelectOption[] = []
+  const { files, add, remove: removeFile } = usePickedFiles()
 
-  const { files, add: addFiles, remove: removeFile } = usePickedFiles()
+  function addFiles(picked: File[]) {
+    const large = picked.filter(tooLarge)
+    if (large.length) toast.error(tooLargeMessage(large.length))
+    add(picked.filter((file) => !tooLarge(file)))
+  }
+
+  // The type follows the files until the user picks one in the select.
+  let typeChosen = false
+  watch(files, (list) => {
+    if (!typeChosen) form.type = typeForFiles(list.map((item) => item.file))
+  })
+
+  // VSelect emits a plain string; it only offers typeOptions.
+  function chooseType(type: string | undefined) {
+    form.type = type as ReferenceType | undefined
+    typeChosen = true
+  }
 
   function rejectFiles(rejected: File[]) {
     toast.error(rejectedFilesMessage(rejected.length))
@@ -76,20 +107,40 @@ export function useAddReferenceForm() {
     linkPreview.value = null
   }
 
-  // TODO(api): create the reference with useMutation, then close the modal with it.
-  function submit() {}
+  // Errors show after the first submit and go away as soon as the field is fixed.
+  const submitted = ref(false)
+  const errors = computed(() =>
+    submitted.value
+      ? referenceErrors(source.value, files.value.length, form.link)
+      : { files: '', link: '' },
+  )
+
+  // The draft to hand to the product page, or null while something is missing.
+  function submit(): ReferenceDraft | null {
+    submitted.value = true
+    if (errors.value.files || errors.value.link) return null
+    const upload = source.value === 'upload'
+    return {
+      id: crypto.randomUUID(),
+      source: source.value,
+      files: upload ? files.value.map((item) => item.file) : [],
+      link: upload ? '' : form.link.trim(),
+      title: form.title.trim(),
+      type: form.type,
+      tags: form.tags,
+      notes: form.notes.trim(),
+    }
+  }
 
   return {
     source,
     form,
-    productOptions,
-    shootOptions,
-    creatorOptions,
-    collectionOptions,
+    errors,
     files,
     addFiles,
     removeFile,
     rejectFiles,
+    chooseType,
     linkPreview,
     removeLink,
     submit,

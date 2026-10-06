@@ -262,6 +262,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/uploads': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Upload File
+     * @description Загружает один файл. Дальше его id передают в продукт или референс (docs/adr/0003).
+     */
+    post: operations['upload_file_api_uploads_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/products': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Products
+     * @description Поиск по названию, SKU и коллекции, без учёта регистра.
+     */
+    get: operations['list_products_api_products_get']
+    put?: never
+    /**
+     * Create Product
+     * @description Продукт с фото и референсами одной транзакцией (docs/adr/0003).
+     */
+    post: operations['create_product_api_products_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -296,6 +340,11 @@ export interface components {
        */
       assigned_at: string
     }
+    /** Body_upload_file_api_uploads_post */
+    Body_upload_file_api_uploads_post: {
+      /** File */
+      file: string
+    }
     /** Body_upload_photo_api_me_photo_put */
     Body_upload_photo_api_me_photo_put: {
       /** Photo */
@@ -318,6 +367,24 @@ export interface components {
        * Format: date-time
        */
       assigned_at: string
+    }
+    /**
+     * FileKind
+     * @enum {string}
+     */
+    FileKind: 'image' | 'video'
+    /** FileResponse */
+    FileResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      kind: components['schemas']['FileKind']
+      /** Content Type */
+      content_type: string
+      /** Url */
+      url: string
     }
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -392,6 +459,146 @@ export interface components {
       /** Name */
       name?: string | null
     }
+    /** ProductCreate */
+    ProductCreate: {
+      /** Name */
+      name: string
+      /** About */
+      about: string
+      /** Notes */
+      notes?: string | null
+      /** Collection */
+      collection?: string | null
+      /** Category */
+      category?: string | null
+      /** Sku */
+      sku?: string | null
+      /** @default active */
+      status: components['schemas']['ProductStatus']
+      /** Tags */
+      tags?: string[]
+      /** Photo Ids */
+      photo_ids: string[]
+      /** References */
+      references?: components['schemas']['ReferenceDraft'][]
+    }
+    /** ProductList */
+    ProductList: {
+      /** Items */
+      items: components['schemas']['ProductListItem'][]
+      /** Total */
+      total: number
+    }
+    /** ProductListItem */
+    ProductListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Collection */
+      collection: string | null
+      /** Sku */
+      sku: string | null
+      status: components['schemas']['ProductStatus']
+      photo: components['schemas']['FileResponse'] | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /** ProductResponse */
+    ProductResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** About */
+      about: string
+      /** Notes */
+      notes: string | null
+      /** Collection */
+      collection: string | null
+      /** Category */
+      category: string | null
+      /** Sku */
+      sku: string | null
+      status: components['schemas']['ProductStatus']
+      /** Tags */
+      tags: string[]
+      /** Photos */
+      photos: components['schemas']['FileResponse'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
+     * ProductStatus
+     * @enum {string}
+     */
+    ProductStatus: 'active' | 'archived'
+    /**
+     * ReferenceDraft
+     * @description Новый референс: файлы (уже загруженные, POST /api/uploads) или ссылка.
+     */
+    ReferenceDraft: {
+      /** Title */
+      title?: string | null
+      type?: components['schemas']['ReferenceType'] | null
+      /** Link */
+      link?: string | null
+      /** File Ids */
+      file_ids?: string[]
+      /** Tags */
+      tags?: string[]
+      /** Notes */
+      notes?: string | null
+    }
+    /** ReferenceResponse */
+    ReferenceResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Title */
+      title: string | null
+      type: components['schemas']['ReferenceType'] | null
+      /** Link */
+      link: string | null
+      /** Collection */
+      collection: string | null
+      /** Notes */
+      notes: string | null
+      /** Tags */
+      tags: string[]
+      /** Product Id */
+      product_id: string | null
+      /** Author */
+      author: string | null
+      /** Files */
+      files: components['schemas']['FileResponse'][]
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
+     * ReferenceType
+     * @enum {string}
+     */
+    ReferenceType: 'image' | 'video' | 'moodboard'
     /**
      * Role
      * @description Кто пользователь в продукте. Решает, что доступно внутри.
@@ -1010,6 +1217,111 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_file_api_uploads_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_file_api_uploads_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FileResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_products_api_products_get: {
+    parameters: {
+      query?: {
+        search?: string
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_product_api_products_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductResponse']
+        }
       }
       /** @description Validation Error */
       422: {

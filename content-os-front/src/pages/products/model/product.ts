@@ -1,27 +1,48 @@
-// TODO(api): replace with the product type from `Schemas` once the backend
-// has a products endpoint.
-export type ProductStatus = 'approved' | 'in_progress' | 'to_shoot' | 'needs_changes'
+import type { Schemas } from '@/shared/api'
 
+export type ProductStatus = Schemas['ProductStatus']
+
+// What a product card shows.
 export interface Product {
   id: string
   name: string
-  collection: string
-  sku: string
+  collection: string | null
+  sku: string | null
   photoUrl: string | null
   status: ProductStatus
-  deliverables: { done: number; total: number }
 }
 
-// How each status looks in VStatus.
+export function toProduct(item: Schemas['ProductListItem']): Product {
+  return {
+    id: item.id,
+    name: item.name,
+    collection: item.collection,
+    sku: item.sku,
+    photoUrl: item.photo?.url ?? null,
+    status: item.status,
+  }
+}
+
+// "Summer 26 · LS-01"; whatever is missing is left out.
+export function productSubtitle({ collection, sku }: Pick<Product, 'collection' | 'sku'>): string {
+  return [collection, sku].filter(Boolean).join(' · ')
+}
+
+// "1 product", "3 products".
+export function productsLabel(count: number): string {
+  return `${count} ${count === 1 ? 'product' : 'products'}`
+}
+
+// How each status looks in VStatus. The Figma workflow statuses (Approved, In
+// progress, To shoot, Needs changes) come with shoots and deliverables.
 export const productStatuses = {
-  approved: { label: 'Approved', tone: 'success' },
-  in_progress: { label: 'In progress', tone: 'info' },
-  to_shoot: { label: 'To shoot', tone: 'info' },
-  needs_changes: { label: 'Needs changes', tone: 'danger' },
+  active: { label: 'Active', tone: 'success' },
+  archived: { label: 'Archived', tone: 'warning' },
 } as const satisfies Record<ProductStatus, { label: string; tone: string }>
 
 // Share of finished deliverables, 0–100. No deliverables yet counts as 0%.
-export function deliveryPercent({ done, total }: Product['deliverables']): number {
+// TODO(api): deliverables — the card's progress bar is hidden until they exist.
+export function deliveryPercent({ done, total }: { done: number; total: number }): number {
   if (total <= 0) return 0
   return Math.round((Math.min(done, total) / total) * 100)
 }

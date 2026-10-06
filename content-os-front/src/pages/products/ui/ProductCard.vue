@@ -3,12 +3,12 @@ import { computed } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
-import { deliveryPercent, productStatuses, type Product } from '../model/product'
+import { productStatuses, productSubtitle, type Product } from '../model/product'
 
 const { product } = defineProps<{ product: Product }>()
 
-const percent = computed(() => deliveryPercent(product.deliverables))
 const status = computed(() => productStatuses[product.status])
+const subtitle = computed(() => productSubtitle(product))
 </script>
 
 <!-- On mobile the photo runs edge to edge and only the text is padded. -->
@@ -38,11 +38,12 @@ const status = computed(() => productStatuses[product.status])
 
     <div class="flex flex-col gap-1 px-3 md:px-0">
       <h3 class="truncate text-p2 font-semibold text-brand md:text-p1">{{ product.name }}</h3>
-      <p class="truncate text-p3 font-medium text-secondary">
-        {{ product.collection }} · {{ product.sku }}
+      <p v-if="subtitle" class="truncate text-p3 font-medium text-secondary">
+        {{ subtitle }}
       </p>
     </div>
 
+    <!-- TODO(api): deliverables. Hidden until products have them (deliveryPercent in model).
     <div class="flex flex-col gap-2 px-3 md:px-0">
       <div class="flex items-center justify-between gap-2 text-p3 font-medium">
         <span class="truncate text-secondary">
@@ -61,5 +62,6 @@ const status = computed(() => productStatuses[product.status])
         <div class="h-full rounded-[3px] bg-violet-400" :style="{ width: `${percent}%` }" />
       </div>
     </div>
+    -->
   </article>
 </template>

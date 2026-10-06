@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     s3_bucket: str | None = None
     # Откуда браузер читает публичные файлы (аватары): адрес бакета или CDN перед ним.
     s3_public_url: str | None = None
+    # Адрес хранилища для браузера в presigned URL приватных файлов, если API ходит
+    # в хранилище по внутреннему адресу (в compose: http://minio:9000). None — S3_ENDPOINT_URL.
+    s3_presign_endpoint_url: str | None = None
 
     @property
     def docs_enabled(self) -> bool:

@@ -39,6 +39,14 @@ defineEmits<{ remove: [] }>()
       class="size-full object-cover"
     />
     <img v-else :src="src" :alt="alt" class="size-full object-cover" />
+    <!-- Tells a video apart from an image at a glance; the remove button has the other corner. -->
+    <span
+      v-if="video"
+      data-video-badge
+      class="absolute top-1 left-1 flex items-center justify-center rounded-md bg-overlay-media p-1 text-inverse"
+    >
+      <VIcon name="video-01" :size="10" />
+    </span>
     <VButton
       variant="ghost"
       size="icon-24"

@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { PickedFile } from '@/shared/lib'
-import { productSchema } from './product-create-form'
+import { productSchema, splitBySizes } from './product-create-form'
 
 const photo = { id: '1', file: new File(['x'], 'a.jpg'), url: 'blob:a' } as PickedFile
 
@@ -24,5 +24,11 @@ describe('productSchema', () => {
       about: 'Daily',
       photos: [photo],
     })
+  })
+})
+
+describe('splitBySizes', () => {
+  it('cuts a flat list back into chunks', () => {
+    expect(splitBySizes(['a', 'b', 'c', 'd'], [1, 0, 3])).toEqual([['a'], [], ['b', 'c', 'd']])
   })
 })

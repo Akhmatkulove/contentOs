@@ -1,5 +1,13 @@
-import { effectScope } from 'vue'
-import { rejectedFilesMessage, useAddReferenceForm } from './add-reference-form'
+import { effectScope, nextTick } from 'vue'
+import {
+  referenceErrors,
+  rejectedFilesMessage,
+  typeForFiles,
+  useAddReferenceForm,
+} from './add-reference-form'
+
+const image = () => new File(['i'], 'a.jpg', { type: 'image/jpeg' })
+const video = () => new File(['v'], 'a.mp4', { type: 'video/mp4' })
 
 describe('rejectedFilesMessage', () => {
   it('counts rejected files', () => {
@@ -8,7 +16,38 @@ describe('rejectedFilesMessage', () => {
   })
 })
 
+describe('typeForFiles', () => {
+  it('picks the type from the files', () => {
+    expect(typeForFiles([])).toBeUndefined()
+    expect(typeForFiles([image()])).toBe('image')
+    expect(typeForFiles([video()])).toBe('video')
+    expect(typeForFiles([video(), video()])).toBe('video')
+    expect(typeForFiles([image(), image()])).toBe('image')
+    expect(typeForFiles([image(), video()])).toBe('moodboard')
+  })
+})
+
 describe('useAddReferenceForm', () => {
+  it('sets the type from the files until the user picks one', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    const scope = effectScope()
+    const { form, addFiles, chooseType } = scope.run(() => useAddReferenceForm())!
+
+    addFiles([video()])
+    await nextTick()
+    expect(form.type).toBe('video')
+    addFiles([image()])
+    await nextTick()
+    expect(form.type).toBe('moodboard')
+
+    chooseType('image')
+    addFiles([video()])
+    await nextTick()
+    expect(form.type).toBe('image')
+    scope.stop()
+  })
+
   it('starts on upload and clears the link with its preview', () => {
     const scope = effectScope()
     const { source, form, linkPreview, removeLink } = scope.run(() => useAddReferenceForm())!
@@ -26,5 +65,21 @@ describe('useAddReferenceForm', () => {
     expect(form.link).toBe('')
     expect(linkPreview.value).toBeNull()
     scope.stop()
+  })
+})
+
+describe('referenceErrors', () => {
+  it('needs files for an upload', () => {
+    expect(referenceErrors('upload', 0, '')).toEqual({ files: 'Add at least one file.', link: '' })
+    expect(referenceErrors('upload', 2, '')).toEqual({ files: '', link: '' })
+  })
+
+  it('needs an http(s) link for a link', () => {
+    expect(referenceErrors('link', 0, ' ').link).toBe('Paste a link.')
+    expect(referenceErrors('link', 0, 'instagram').link).toBe('Enter a valid link.')
+    expect(referenceErrors('link', 0, 'ftp://example.com/a').link).toBe(
+      'Enter a link starting with http:// or https://.',
+    )
+    expect(referenceErrors('link', 0, ' https://example.com/a ').link).toBe('')
   })
 })

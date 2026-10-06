@@ -44,7 +44,7 @@ async def upload_photo(
 
     # Новый ключ на каждую загрузку: URL можно кэшировать навсегда.
     key = f"avatars/{uuid.uuid4()}.webp"
-    await storage.put(key, avatar, "image/webp")
+    await storage.put(key, avatar, "image/webp", public=True)
     old_key, user.photo_key = user.photo_key, key
     await db.commit()
     await _delete_quietly(storage, old_key)

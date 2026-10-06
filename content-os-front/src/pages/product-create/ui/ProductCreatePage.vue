@@ -23,8 +23,10 @@ const {
   rejectPhotos,
   references,
   addReference,
+  removeReference,
   cancel,
   submit,
+  creating,
 } = useProductCreateForm()
 const dropzone = useTemplateRef('dropzone')
 
@@ -55,10 +57,10 @@ const emptyListClass =
         </p>
       </div>
       <div class="hidden shrink-0 items-center gap-2.5 md:flex">
-        <VButton variant="secondary" @click="cancel">Cancel</VButton>
-        <VButton type="submit">
+        <VButton variant="secondary" :disabled="creating" @click="cancel">Cancel</VButton>
+        <VButton type="submit" :disabled="creating">
           <VIcon name="tick-01" />
-          Create product
+          {{ creating ? 'Creating…' : 'Create product' }}
         </VButton>
       </div>
     </header>
@@ -156,15 +158,33 @@ const emptyListClass =
         </VButton>
       </template>
       <!-- TODO(ui): grid of the product's references — the card is from Figma, the grid isn't designed yet. -->
-      <ul v-if="references.length" class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+      <!-- Cards keep the Figma width (230px) instead of stretching across the row. -->
+      <ul
+        v-if="references.length"
+        class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,230px)] md:gap-5"
+      >
         <li v-for="reference in references" :key="reference.id">
-          <ReferenceCard :reference="reference" />
+          <ReferenceCard :reference="reference">
+            <!-- Same 26px surface button as the favourite one, with a cross. -->
+            <template #action>
+              <VButton
+                variant="surface"
+                size="icon-24"
+                :aria-label="`Remove ${reference.title}`"
+                :disabled="creating"
+                class="size-6.5"
+                @click="removeReference(reference.id)"
+              >
+                <VIcon name="multiplication-sign" :size="13" />
+              </VButton>
+            </template>
+          </ReferenceCard>
         </li>
       </ul>
       <p v-else :class="emptyListClass">The References you've added will be displayed here</p>
     </SectionCard>
 
-    <!-- Deliverables hidden for now. TODO(ui): deliverable form and rows — no design yet.
+    <!-- TODO(ui): deliverable form and rows — no design yet; the buttons do nothing. -->
     <SectionCard
       title="Deliverables"
       description="Plan and track the content pieces required for this product."
@@ -181,16 +201,17 @@ const emptyListClass =
       </template>
       <p :class="emptyListClass">The Deliverables you've added will be displayed here</p>
     </SectionCard>
-    -->
 
     <!-- On mobile the actions stay above the tab bar. -->
     <div
       class="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] flex gap-2 bg-card px-4 pt-4 pb-6 md:hidden"
     >
-      <VButton variant="secondary" class="flex-1" @click="cancel">Cancel</VButton>
-      <VButton type="submit" class="flex-1">
+      <VButton variant="secondary" class="flex-1" :disabled="creating" @click="cancel">
+        Cancel
+      </VButton>
+      <VButton type="submit" class="flex-1" :disabled="creating">
         <VIcon name="tick-01" />
-        Create product
+        {{ creating ? 'Creating…' : 'Create product' }}
       </VButton>
     </div>
   </form>

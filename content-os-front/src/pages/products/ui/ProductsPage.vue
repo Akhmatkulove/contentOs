@@ -4,11 +4,12 @@ import { VIcon } from '@/shared/ui/icon'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
+import { productsLabel } from '../model/product'
 import { PRODUCTS_PER_PAGE, useProductsList } from '../model/products-list'
 import ProductCard from './ProductCard.vue'
 import ProductsEmpty from './ProductsEmpty.vue'
 
-const { products, total, isEmpty, search, page } = useProductsList()
+const { products, total, isEmpty, loading, search, page } = useProductsList()
 
 // TODO(ui): VSelect variant for filters (40px pill, no label, value inline as
 // "Collection: …") — replace these static triggers, wire them to the query.
@@ -28,7 +29,7 @@ const filters = [
       </div>
 
       <div class="flex items-center gap-3">
-        <VButton v-if="!isEmpty" as-child class="hidden md:inline-flex">
+        <VButton v-if="!isEmpty && !loading" as-child class="hidden md:inline-flex">
           <RouterLink :to="{ name: 'product-create' }">
             <VIcon name="plus-sign" />
             Add product
@@ -39,7 +40,9 @@ const filters = [
       </div>
     </header>
 
-    <ProductsEmpty v-if="isEmpty" />
+    <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
+
+    <ProductsEmpty v-else-if="isEmpty" />
 
     <template v-else>
       <section
@@ -78,7 +81,7 @@ const filters = [
       </VButton>
 
       <div class="flex items-center justify-between md:min-h-11">
-        <p class="text-p2 font-medium text-secondary">{{ total }} products</p>
+        <p class="text-p2 font-medium text-secondary">{{ productsLabel(total) }}</p>
         <!-- TODO(ui): list view of products — the toggle does nothing yet. -->
         <div role="group" aria-label="View" class="flex items-center gap-1.5">
           <VButton
@@ -108,10 +111,14 @@ const filters = [
       >
         <ProductCard v-for="product in products" :key="product.id" :product="product" />
       </div>
+      <!-- TODO(ui): "nothing found" state — not in Figma yet. -->
+      <p v-else class="py-10 text-center text-p2 font-medium text-secondary">
+        No products match “{{ search }}”.
+      </p>
 
       <div class="flex flex-col items-center gap-3 md:flex-row md:justify-between">
         <p class="text-p3 font-medium text-secondary">
-          Showing {{ products.length }} of {{ total }} products
+          Showing {{ products.length }} of {{ productsLabel(total) }}
         </p>
         <VPagination v-model:page="page" :total="total" :items-per-page="PRODUCTS_PER_PAGE" />
       </div>

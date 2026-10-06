@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
 from io import BytesIO
 
 import pytest
@@ -11,19 +10,9 @@ from app.core.config import Settings
 from app.core.db import get_session
 from app.core.storage import get_storage
 from app.main import create_app
+from tests.fakes import FakeStorage
 
 PUBLIC_URL = "http://files.test/contentos"
-
-
-@dataclass
-class FakeStorage:
-    files: dict[str, tuple[bytes, str]] = field(default_factory=dict)
-
-    async def put(self, key: str, data: bytes, content_type: str) -> None:
-        self.files[key] = (data, content_type)
-
-    async def delete(self, key: str) -> None:
-        self.files.pop(key, None)
 
 
 @pytest.fixture
@@ -83,6 +72,8 @@ async def test_upload_stores_square_webp_avatar(client: AsyncClient, storage: Fa
     avatar = stored_avatar(storage, me["photo_url"])
     assert avatar.format == "WEBP"
     assert avatar.size == (512, 512)
+    # Аватары публичные, в отличие от файлов продуктов.
+    assert storage.public == set(storage.files)
 
 
 async def test_png_with_transparency_is_accepted(client: AsyncClient, storage: FakeStorage) -> None:

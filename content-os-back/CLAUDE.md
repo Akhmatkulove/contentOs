@@ -21,6 +21,9 @@ src/app/auth/          пользователи, сессии, signup/login/logo
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
+src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/
+src/app/products/      продукты: POST /api/products вместе с фото и референсами (docs/adr/0003)
+src/app/references/    референсы общего пула (модели, схемы; создаются пока только из продукта)
 src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
@@ -42,6 +45,7 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 ## Безопасность
 
 - Размер тела ограничивает `BodyLimitMiddleware` (1 МБ, `/api/me/photo` — 6 МБ): FastAPI читает тело до проверки сессии. Новому эндпоинту с файлами добавь лимит в `PATH_LIMITS`.
+- Файлы контента (`files/…`) приватные: наружу только `storage.presigned_url(key)` (живёт час), не `public_url`. Публичный только префикс `avatars/` (`put(..., public=True)`). Тип файла определяй по содержимому (`app.files.media`), не по имени или `Content-Type`.
 - Дорогие или шумные действия (argon2, сообщения в Telegram) закрывай `rate_limit.check(...)` до самой работы.
 - `rate_limit.client_ip` берёт адрес из `request.client`. За reverse proxy запускай uvicorn с `--proxy-headers --forwarded-allow-ips=<адрес прокси>`, иначе у всех клиентов будет один IP и общий лимит.
 

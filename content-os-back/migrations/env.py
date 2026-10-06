@@ -10,6 +10,9 @@ from app.auth.models import User, UserSession  # noqa: F401  # регистри�
 from app.core.config import get_settings
 from app.core.db import Base
 from app.core.rate_limit import RateLimitCounter  # noqa: F401
+from app.files.models import StoredFile  # noqa: F401
+from app.products.models import Product, ProductPhoto  # noqa: F401
+from app.references.models import Reference, ReferenceFile  # noqa: F401
 from app.review.models import ReviewMessage  # noqa: F401
 
 config = context.config

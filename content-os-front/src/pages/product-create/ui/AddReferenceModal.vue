@@ -10,33 +10,42 @@ import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
 import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
+import type { ReferenceContext } from '../model/add-reference'
 import {
   fileAccept,
   sourceOptions,
   typeOptions,
   useAddReferenceForm,
 } from '../model/add-reference-form'
+import type { ReferenceDraft } from '../model/reference-draft'
 // import FavoriteToggle from './FavoriteToggle.vue'
 import LinkPreview from './LinkPreview.vue'
 
 // Figma "Modal / Add reference" (desktop) and "Sheet / Add reference" (mobile).
-const emit = defineEmits<{ close: [] }>()
+// Product, collection and creator come from the product being created.
+const { context } = defineProps<{ context: ReferenceContext }>()
+
+// Closes with the new draft; nothing when cancelled.
+const emit = defineEmits<{ close: [draft?: ReferenceDraft] }>()
 
 const {
   source,
   form,
-  // productOptions,
-  // shootOptions,
-  // creatorOptions,
-  // collectionOptions,
+  errors,
   files,
   addFiles,
   removeFile,
   rejectFiles,
+  chooseType,
   linkPreview,
   removeLink,
   submit,
 } = useAddReferenceForm()
+
+function onSubmit() {
+  const draft = submit()
+  if (draft) emit('close', draft)
+}
 
 // The submit button sits in the modal footer, outside the <form>.
 const formId = useId()
@@ -48,7 +57,9 @@ const dropzone = useTemplateRef('dropzone')
     title="Add reference"
     description="Upload or save a new visual reference for shoots, products, and creators."
   >
-    <form :id="formId" class="flex flex-col gap-3.5 md:gap-4" @submit.prevent="submit">
+    <!-- novalidate: the browser's own check of type="url" would block submit
+         before ours and show its popup instead of the field error. -->
+    <form :id="formId" novalidate class="flex flex-col gap-3.5 md:gap-4" @submit.prevent="onSubmit">
       <VSegmented v-model="source" :options="sourceOptions" aria-label="Reference source" />
 
       <template v-if="source === 'upload'">
@@ -60,6 +71,7 @@ const dropzone = useTemplateRef('dropzone')
           @select="addFiles"
           @reject="rejectFiles"
         />
+        <p v-if="errors.files" class="text-p3 font-medium text-red-400">{{ errors.files }}</p>
         <!-- One scrollable row ending with "Add more"; wraps on desktop. -->
         <ul
           v-if="files.length"
@@ -93,6 +105,7 @@ const dropzone = useTemplateRef('dropzone')
           type="url"
           inputmode="url"
           placeholder="https://www.instagram.com/p/"
+          :error="errors.link"
         >
           <template #prefix>
             <VIcon name="copy-link" :size="16" class="shrink-0 text-secondary" />
@@ -110,31 +123,21 @@ const dropzone = useTemplateRef('dropzone')
           class="col-span-2 md:col-span-1"
         />
         <VSelect
-          v-model="form.type"
+          :model-value="form.type"
           :options="typeOptions"
           label="Type"
           placeholder="Select type"
+          @update:model-value="chooseType"
         />
-        <!-- Temporarily hidden: product, shoot, creator.
-        <VSelect
-          v-model="form.product"
-          :options="productOptions"
-          label="Product"
-          placeholder="Select product"
-          searchable
-        />
+        <!-- Taken from the product, so not editable here. -->
+        <VInput :model-value="context.product" label="Product" disabled />
+        <VInput :model-value="context.creator" label="Creator" disabled />
+        <!-- Temporarily hidden: shoot (no shoots yet).
         <VSelect
           v-model="form.shoot"
           :options="shootOptions"
           label="Shoot"
           placeholder="Select shoot"
-          searchable
-        />
-        <VSelect
-          v-model="form.creator"
-          :options="creatorOptions"
-          label="Creator"
-          placeholder="Select creator"
           searchable
         />
         -->
@@ -144,16 +147,13 @@ const dropzone = useTemplateRef('dropzone')
           placeholder="Add tags (e.g. fabric, minimal, lighting)"
           class="col-span-2 md:col-span-1"
         />
-        <!-- Temporarily hidden: collection.
-        <VSelect
-          v-model="form.collection"
-          :options="collectionOptions"
+        <VInput
+          :model-value="context.collection"
           label="Collection"
-          placeholder="Select collection"
-          searchable
+          placeholder="No collection"
+          disabled
           class="col-span-2 md:col-span-1"
         />
-        -->
       </div>
 
       <VTextarea

@@ -9,6 +9,15 @@ const { reference } = defineProps<{ reference: Reference }>()
 const duration = computed(() =>
   reference.durationSec === null ? null : formatDuration(reference.durationSec),
 )
+
+const video = computed(() => reference.kind === 'video')
+
+// "Video, 2 files", "3 files", "Video".
+const badgeLabel = computed(() => {
+  const count = reference.fileCount
+  const files = count ? `${count} ${count === 1 ? 'file' : 'files'}` : ''
+  return video.value ? (files ? `Video, ${files}` : 'Video') : files
+})
 </script>
 
 <!--
@@ -36,16 +45,32 @@ const duration = computed(() =>
           <VIcon name="play" :size="11" />
           {{ duration }}
         </span>
-        <!-- TODO(api): toggle favorite; TODO(ui): filled star for favorites. -->
-        <VButton
-          variant="surface"
-          size="icon-24"
-          :aria-label="`Add ${reference.title} to favorites`"
-          :aria-pressed="reference.favorite"
-          class="ml-auto size-6.5"
+        <!-- Figma "Reference / …" › Type: how many files the reference holds.
+             A video icon tells videos apart, even a link with no file count. -->
+        <span
+          v-else-if="reference.fileCount || video"
+          :aria-label="badgeLabel"
+          class="flex items-center gap-1 rounded-md bg-overlay-media px-2 py-1 text-p4 font-medium text-inverse"
         >
-          <VIcon name="star" :size="13" />
-        </VButton>
+          <VIcon :name="video ? 'video-01' : 'image-02'" :size="12" />
+          {{ reference.fileCount }}
+        </span>
+        <!-- Figma "CMS / Desktop / Favourite button" by default. A screen can put its
+             own 26px action here instead (product create: remove). -->
+        <div class="ml-auto">
+          <slot name="action">
+            <!-- TODO(api): toggle favorite; TODO(ui): filled star for favorites. -->
+            <VButton
+              variant="surface"
+              size="icon-24"
+              :aria-label="`Add ${reference.title} to favorites`"
+              :aria-pressed="reference.favorite"
+              class="size-6.5"
+            >
+              <VIcon name="star" :size="13" />
+            </VButton>
+          </slot>
+        </div>
       </div>
     </div>
 

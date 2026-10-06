@@ -1,22 +1,38 @@
-import { computed, ref } from 'vue'
-import type { Product } from './product'
+import { useQuery } from '@pinia/colada'
+import { computed, ref, watch } from 'vue'
+import { fetchProducts } from '../api/products'
+import { toProduct } from './product'
 
 export const PRODUCTS_PER_PAGE = 8
 
-// TODO(api): products endpoint. Until then the list is empty and the
-// filters change nothing; then load it with useQuery keyed by search, filters
-// and page.
+// The products the user sees, searched and paged on the backend.
+// TODO(ui): Collection, Status and Sort filters need the VSelect filter variant.
 export function useProductsList() {
   const search = ref('')
   const page = ref(1)
-  const products: Product[] = []
-  const total = products.length
 
-  // The workspace has no products at all, as opposed to a search that found
+  // A new search starts from the first page.
+  watch(search, () => {
+    page.value = 1
+  })
+
+  const { data, isLoading } = useQuery({
+    key: () => ['products', { search: search.value, page: page.value }],
+    query: () =>
+      fetchProducts({ search: search.value, page: page.value, perPage: PRODUCTS_PER_PAGE }),
+    // Keep the current page on screen while the next one loads.
+    placeholderData: (previous) => previous,
+  })
+
+  const products = computed(() => (data.value?.items ?? []).map(toProduct))
+  const total = computed(() => data.value?.total ?? 0)
+
+  // The user has no products at all, as opposed to a search that found
   // nothing: then the page shows the "add your first product" screen instead
-  // of filters and an empty grid. With the API this should check the
-  // unfiltered count.
-  const isEmpty = computed(() => total === 0 && search.value === '')
+  // of filters and an empty grid.
+  const isEmpty = computed(() => data.value !== undefined && total.value === 0 && !search.value)
+  // Nothing to show yet: the very first load.
+  const loading = computed(() => isLoading.value && data.value === undefined)
 
-  return { products, total, isEmpty, search, page }
+  return { products, total, isEmpty, loading, search, page }
 }
