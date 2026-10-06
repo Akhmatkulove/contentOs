@@ -49,7 +49,7 @@ export const router = createRouter({
           path: 'references',
           name: 'references',
           component: ReferencesPage,
-          meta: { roles: team },
+          meta: { roles: team, title: 'References' },
         },
         { path: 'activity', name: 'activity', component: ActivityPage, meta: { roles: team } },
       ],

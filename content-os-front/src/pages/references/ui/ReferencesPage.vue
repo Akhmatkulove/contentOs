@@ -34,18 +34,22 @@ function setSort(value: string | undefined) {
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
-    <header class="flex flex-col gap-1 md:min-h-16 md:justify-center md:gap-1.5">
-      <h1 class="text-h6 text-brand md:text-h3">References</h1>
-      <p class="hidden text-p2 font-medium text-secondary md:block">
+    <!-- Below lg the app topbar carries the title. -->
+    <header class="hidden min-h-16 flex-col justify-center gap-1.5 lg:flex">
+      <h1 class="text-h3 text-brand">References</h1>
+      <p class="text-p2 font-medium text-secondary">
         A shared library of visual references for shoots, products, and creators. Save, organize,
         and reuse inspiration.
       </p>
     </header>
 
-    <!-- Only one tab for now. Mobile: Figma "Tab / All references" pill. -->
-    <div class="flex">
+    <!-- Only one tab for now. Mobile: Figma "CMS / Mobile / Tab" (equal-width,
+         underlined); desktop: the tab bar of the references page. -->
+    <div role="tablist" aria-label="References" class="flex">
       <span
-        class="flex h-8 w-full items-center rounded-full border border-violet-400 px-6 text-p2 font-medium text-link md:h-auto md:w-auto md:rounded-none md:border-0 md:border-b-2 md:p-2.5"
+        role="tab"
+        aria-selected="true"
+        class="flex flex-1 items-center justify-center border-b-2 border-violet-500 px-1 py-2 text-p2 font-medium text-primary md:flex-none md:border-violet-400 md:p-2.5 md:text-link"
       >
         All references ({{ total }})
       </span>
