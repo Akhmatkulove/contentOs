@@ -1,51 +1,121 @@
-"""Пул референсов: что видит пользователь."""
+"""Пул референсов: что видит пользователь и чем его фильтровать."""
 
+import enum
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import (
+    ColumnElement,
+    Select,
+    UnaryExpression,
+    exists,
+    false,
+    func,
+    literal,
+    or_,
+    select,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
+from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
 from app.deliverables.models import Deliverable
 from app.files.models import StoredFile
-from app.references.models import Reference, ReferenceFile
-from app.references.schemas import ReferenceList, ReferenceResponse
+from app.products.models import Product
+from app.references.models import Reference, ReferenceFile, ReferenceType
+from app.references.schemas import (
+    FilterProduct,
+    ReferenceFilters,
+    ReferenceList,
+    ReferenceResponse,
+)
+from app.team.schemas import TeamMember
+
+
+class ReferenceSort(enum.StrEnum):
+    NEWEST = "newest"
+    OLDEST = "oldest"
+    TITLE_ASC = "title_asc"
+    TITLE_DESC = "title_desc"
+
+
+@dataclass(frozen=True)
+class ReferenceQuery:
+    search: str = ""
+    type: ReferenceType | None = None
+    product_id: uuid.UUID | None = None
+    author_id: uuid.UUID | None = None
+    tag: str | None = None
+    sort: ReferenceSort = ReferenceSort.NEWEST
+
+
+def _visible(user: User) -> ColumnElement[bool]:
+    """Что из пула видит пользователь.
+
+    Арт-директор — референсы продуктов, где на него назначен deliverable
+    (docs/adr/0004). Креатор получит их через съёмки, бренд страницы пула не видит.
+    """
+    if user.role != Role.ART_DIRECTOR:
+        return false()
+    return exists().where(
+        Deliverable.product_id == Reference.product_id, Deliverable.assignee_id == user.id
+    )
+
+
+def _filtered(user: User, params: ReferenceQuery) -> Select[Reference]:
+    query = select(Reference).where(_visible(user))
+    if params.search:
+        pattern = f"%{escape_like(params.search)}%"
+        query = query.where(
+            or_(
+                *(
+                    column.ilike(pattern, escape="\\")
+                    for column in (
+                        Reference.title,
+                        Reference.notes,
+                        Reference.collection,
+                        func.array_to_string(Reference.tags, " "),
+                    )
+                )
+            )
+        )
+    if params.type is not None:
+        query = query.where(Reference.type == params.type)
+    if params.product_id is not None:
+        query = query.where(Reference.product_id == params.product_id)
+    if params.author_id is not None:
+        query = query.where(Reference.owner_id == params.author_id)
+    if params.tag:
+        query = query.where(literal(params.tag) == func.any(Reference.tags))
+    return query
+
+
+_ORDER: dict[ReferenceSort, tuple[UnaryExpression[Any], ...]] = {
+    ReferenceSort.NEWEST: (Reference.created_at.desc(), Reference.id.desc()),
+    ReferenceSort.OLDEST: (Reference.created_at.asc(), Reference.id.asc()),
+    # Без названия — в конце в обе стороны.
+    ReferenceSort.TITLE_ASC: (Reference.title.asc().nulls_last(), Reference.id.asc()),
+    ReferenceSort.TITLE_DESC: (Reference.title.desc().nulls_last(), Reference.id.desc()),
+}
 
 
 async def list_references(
-    db: AsyncSession, user: User, storage: Storage, search: str, page: int, per_page: int
+    db: AsyncSession,
+    user: User,
+    storage: Storage,
+    params: ReferenceQuery,
+    page: int,
+    per_page: int,
 ) -> ReferenceList:
-    """Референсы пула, которые видит пользователь, новые первыми.
-
-    Арт-директор видит референсы продуктов, где на него назначен deliverable
-    (docs/adr/0004). Креатор получит их через съёмки; пока список пустой.
-    """
-    if user.role != Role.ART_DIRECTOR:
-        return ReferenceList(items=[], total=0)
-
-    query = select(Reference).where(
-        exists().where(
-            Deliverable.product_id == Reference.product_id, Deliverable.assignee_id == user.id
-        )
-    )
-    if search:
-        pattern = f"%{escape_like(search)}%"
-        query = query.where(
-            or_(
-                Reference.title.ilike(pattern, escape="\\"),
-                Reference.collection.ilike(pattern, escape="\\"),
-            )
-        )
-
+    query = _filtered(user, params)
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
     references = list(
         await db.scalars(
-            query.order_by(Reference.created_at.desc(), Reference.id.desc())
-            .offset((page - 1) * per_page)
-            .limit(per_page)
+            query.order_by(*_ORDER[params.sort]).offset((page - 1) * per_page).limit(per_page)
         )
     )
 
@@ -74,4 +144,24 @@ async def list_references(
             for reference in references
         ],
         total=total,
+    )
+
+
+async def list_filters(db: AsyncSession, user: User, settings: Settings) -> ReferenceFilters:
+    """Продукты, авторы и теги видимых референсов: варианты для фильтров пула."""
+    pool = select(Reference).where(_visible(user)).subquery()
+    products = await db.execute(
+        select(Product.id, Product.name)
+        .where(Product.id.in_(select(pool.c.product_id)))
+        .order_by(Product.name, Product.id)
+    )
+    authors = await db.scalars(
+        select(User).where(User.id.in_(select(pool.c.owner_id))).order_by(User.name, User.id)
+    )
+    tag = func.unnest(pool.c.tags).label("tag")
+    tags: list[str] = list(await db.scalars(select(tag).distinct().order_by(tag)))
+    return ReferenceFilters(
+        products=[FilterProduct(id=row.id, name=row.name) for row in products],
+        authors=[TeamMember.of(author, settings) for author in authors],
+        tags=tags,
     )

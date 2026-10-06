@@ -6,13 +6,16 @@ import { closeAllModals, modals, openModal } from './modal-stack'
 
 // A modal as pages write them: VModal at the root, emit('close', result) to finish.
 const AddReferenceModal = defineComponent({
-  props: { description: { type: String, default: undefined } },
+  props: {
+    description: { type: String, default: undefined },
+    hideTitle: { type: Boolean, default: false },
+  },
   emits: { close: (title?: string) => title === undefined || typeof title === 'string' },
   setup(props, { emit }) {
     return () =>
       h(
         VModal,
-        { title: 'Add reference', description: props.description },
+        { title: 'Add reference', description: props.description, hideTitle: props.hideTitle },
         {
           default: () => h('input', { 'aria-label': 'Reference title' }),
           footer: () =>
@@ -30,9 +33,9 @@ const AddReferenceModal = defineComponent({
 // would wait for the modal to close.
 let host: VueWrapper | undefined
 
-async function open(description?: string) {
+async function open(description?: string, hideTitle = false) {
   host = mount(VModalHost, { attachTo: document.body })
-  const result = openModal(AddReferenceModal, { description })
+  const result = openModal(AddReferenceModal, { description, hideTitle })
   await flushPromises()
   return { result }
 }
@@ -106,6 +109,13 @@ describe('VModal', () => {
     expect(document.getElementById(descriptionId)?.textContent?.trim()).toBe(
       'Upload or save a new visual reference.',
     )
+  })
+
+  it('keeps a hidden title for screen readers', async () => {
+    await open(undefined, true)
+    const title = document.getElementById(dialog()!.getAttribute('aria-labelledby')!)!
+    expect(title.textContent).toBe('Add reference')
+    expect(title.classList.contains('sr-only')).toBe(true)
   })
 
   it('drops aria-describedby without a description', async () => {

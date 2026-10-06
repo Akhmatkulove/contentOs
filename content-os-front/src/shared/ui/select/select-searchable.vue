@@ -13,27 +13,39 @@ import {
   PopoverTrigger,
   useFilter,
 } from 'reka-ui'
-import { VIcon } from '@/shared/ui/icon'
+import { type IconName, VIcon } from '@/shared/ui/icon'
 import {
   chevronClass,
   contentClass,
   itemClass,
   triggerClass,
   type SelectOption,
+  type SelectVariant,
 } from './select-styles'
 
 // Dropdown with a search field inside, on Reka Popover + Listbox. The filter
 // keeps focus while arrows move the highlight and Enter picks it.
-const { options, placeholder, disabled, invalid, triggerAttrs, searchPlaceholder, emptyText } =
-  defineProps<{
-    options: readonly SelectOption[]
-    placeholder: string
-    disabled: boolean
-    invalid: boolean
-    triggerAttrs: Record<string, unknown>
-    searchPlaceholder: string
-    emptyText: string
-  }>()
+const {
+  options,
+  placeholder,
+  disabled,
+  invalid,
+  triggerAttrs,
+  variant,
+  icon,
+  searchPlaceholder,
+  emptyText,
+} = defineProps<{
+  options: readonly SelectOption[]
+  placeholder: string
+  disabled: boolean
+  invalid: boolean
+  triggerAttrs: Record<string, unknown>
+  variant: SelectVariant
+  icon: IconName | undefined
+  searchPlaceholder: string
+  emptyText: string
+}>()
 
 const model = defineModel<string>()
 
@@ -77,8 +89,9 @@ function pick(value: unknown) {
       v-bind="triggerAttrs"
       :disabled="disabled"
       aria-haspopup="listbox"
-      :class="triggerClass(invalid)"
+      :class="triggerClass(invalid, variant)"
     >
+      <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
       <span :class="['min-w-0 flex-1 truncate', !selectedLabel && 'text-neutral-600']">
         {{ selectedLabel ?? placeholder }}
       </span>

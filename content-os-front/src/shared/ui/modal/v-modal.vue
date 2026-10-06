@@ -22,9 +22,13 @@ import { modalContextKey } from './modal-stack'
 const {
   title,
   description,
+  hideTitle = false,
   class: className,
 } = defineProps<{
   title: string
+  // Sheets without a visible heading (Figma "Sheet / Filters"): the title is
+  // read by screen readers only, the close button stays on desktop.
+  hideTitle?: boolean
   // Shown on desktop only (the mobile sheet has none); still read by screen readers.
   description?: string
   class?: HTMLAttributes['class']
@@ -42,6 +46,8 @@ const contentBase = [
   'md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[calc(100dvh-3rem)] md:w-[calc(100%-3rem)] md:max-w-180 md:-translate-1/2 md:rounded-3xl md:p-6',
   'md:duration-200 md:data-[state=closed]:fade-out-0 md:data-[state=closed]:zoom-out-95 md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=open]:fade-in-0 md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0',
 ].join(' ')
+
+const titleClass = computed(() => (hideTitle ? 'sr-only' : 'text-h6 text-brand md:text-h4'))
 
 const contentClass = computed(() => (className ? cn(contentBase, className) : contentBase))
 
@@ -105,9 +111,14 @@ function onGrabberClick() {
           <span class="h-1 w-9 rounded-full bg-neutral-400" />
         </VButton>
 
-        <header class="flex min-h-8 items-center gap-4 shrink-0 md:items-start">
+        <header
+          :class="[
+            'flex min-h-8 items-center gap-4 shrink-0 md:items-start',
+            hideTitle && 'hidden md:flex',
+          ]"
+        >
           <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-            <DialogTitle class="text-h6 text-brand md:text-h4">{{ title }}</DialogTitle>
+            <DialogTitle :class="titleClass">{{ title }}</DialogTitle>
             <DialogDescription
               v-if="description"
               class="hidden text-table font-medium text-secondary md:block"

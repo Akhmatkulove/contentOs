@@ -6,11 +6,21 @@ export interface SelectOption {
   disabled?: boolean
 }
 
-// Figma "Select / Interaction states". Radius follows the form fields
-// (VInput, VTextarea) so a select sits flush next to them.
-export function triggerClass(invalid: boolean) {
+// field: a form field (label above), filter: a 40px pill in list toolbars.
+export type SelectVariant = 'field' | 'filter'
+
+const triggerVariants: Record<SelectVariant, string> = {
+  // Figma "Select / Interaction states". Radius follows the form fields
+  // (VInput, VTextarea) so a select sits flush next to them.
+  field: 'h-11 gap-2.5 rounded-[10px] px-3 text-p2',
+  // Figma toolbar fields ("Field / All types" and the like).
+  filter: 'h-10 gap-2 rounded-[20px] pr-3 pl-3.5 text-p3',
+}
+
+export function triggerClass(invalid: boolean, variant: SelectVariant = 'field') {
   return cn(
-    'group flex h-11 w-full min-w-0 items-center gap-2.5 rounded-[10px] border bg-card px-3 text-left text-p2 font-medium text-brand transition-colors outline-none',
+    'group flex w-full min-w-0 items-center border bg-card text-left font-medium text-brand transition-colors outline-none',
+    triggerVariants[variant],
     'hover:bg-status-accent data-[state=open]:border-violet-400 data-[state=open]:bg-card',
     // Figma focus is a 2px border; an inset ring adds the second pixel without shifting content.
     'focus-visible:border-violet-400 focus-visible:ring-1 focus-visible:ring-violet-400 focus-visible:ring-inset',

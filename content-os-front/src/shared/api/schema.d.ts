@@ -315,9 +315,29 @@ export interface paths {
     }
     /**
      * List References
-     * @description Поиск по названию и коллекции, без учёта регистра.
+     * @description Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
      */
     get: operations['list_references_api_references_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/references/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Filters
+     * @description Варианты для фильтров Product, Creator и Tags.
+     */
+    get: operations['list_filters_api_references_filters_get']
     put?: never
     post?: never
     delete?: never
@@ -466,6 +486,16 @@ export interface components {
       content_type: string
       /** Url */
       url: string
+    }
+    /** FilterProduct */
+    FilterProduct: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
     }
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -649,6 +679,18 @@ export interface components {
       /** Notes */
       notes?: string | null
     }
+    /**
+     * ReferenceFilters
+     * @description Варианты фильтров пула: только то, что встречается в видимых референсах.
+     */
+    ReferenceFilters: {
+      /** Products */
+      products: components['schemas']['FilterProduct'][]
+      /** Authors */
+      authors: components['schemas']['TeamMember'][]
+      /** Tags */
+      tags: string[]
+    }
     /** ReferenceList */
     ReferenceList: {
       /** Items */
@@ -686,6 +728,11 @@ export interface components {
        */
       created_at: string
     }
+    /**
+     * ReferenceSort
+     * @enum {string}
+     */
+    ReferenceSort: 'newest' | 'oldest' | 'title_asc' | 'title_desc'
     /**
      * ReferenceType
      * @enum {string}
@@ -1442,6 +1489,11 @@ export interface operations {
     parameters: {
       query?: {
         search?: string
+        type?: components['schemas']['ReferenceType'] | null
+        product_id?: string | null
+        author_id?: string | null
+        tag?: string | null
+        sort?: components['schemas']['ReferenceSort']
         page?: number
         per_page?: number
       }
@@ -1460,6 +1512,37 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ReferenceList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_filters_api_references_filters_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReferenceFilters']
         }
       }
       /** @description Validation Error */

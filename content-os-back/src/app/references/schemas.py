@@ -9,6 +9,7 @@ from app.core.text import LongText, Tags, Title
 from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.references.models import Reference, ReferenceType
+from app.team.schemas import TeamMember
 
 Link = Annotated[HttpUrl, UrlConstraints(max_length=2048)]
 
@@ -69,3 +70,17 @@ class ReferenceList(BaseModel):
     items: list[ReferenceResponse]
     # Сколько всего подходит под поиск: для пагинации.
     total: int
+
+
+class FilterProduct(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ReferenceFilters(BaseModel):
+    """Варианты фильтров пула: только то, что встречается в видимых референсах."""
+
+    products: list[FilterProduct]
+    # Авторы референсов (поле Creator).
+    authors: list[TeamMember]
+    tags: list[str]

@@ -3,7 +3,8 @@ import { computed, useAttrs, useId, type HTMLAttributes } from 'vue'
 import { cn } from '@/shared/lib'
 import SelectPlain from './select-plain.vue'
 import SelectSearchable from './select-searchable.vue'
-import type { SelectOption } from './select-styles'
+import { type IconName } from '@/shared/ui/icon'
+import type { SelectOption, SelectVariant } from './select-styles'
 
 defineOptions({ inheritAttrs: false })
 
@@ -20,6 +21,8 @@ const {
   searchable = false,
   searchPlaceholder = 'Search…',
   emptyText = 'Nothing found',
+  variant = 'field',
+  icon,
   class: className,
 } = defineProps<{
   options: readonly SelectOption[]
@@ -35,6 +38,11 @@ const {
   searchable?: boolean
   searchPlaceholder?: string
   emptyText?: string
+  // filter: the 40px toolbar pill (Figma "Field / All types"); give it a
+  // width and an aria-label instead of a label.
+  variant?: SelectVariant
+  // Leading icon in the trigger, e.g. arrow-up-down-sharp on a sort filter.
+  icon?: IconName
   // Applied to the root wrapper. Other attributes (aria-label, name, …) go
   // to the trigger button.
   class?: HTMLAttributes['class']
@@ -69,6 +77,8 @@ const triggerAttrs = computed(() => ({
       :disabled="disabled"
       :invalid="!!error"
       :trigger-attrs="triggerAttrs"
+      :variant="variant"
+      :icon="icon"
       :search-placeholder="searchPlaceholder"
       :empty-text="emptyText"
     />
@@ -80,6 +90,8 @@ const triggerAttrs = computed(() => ({
       :disabled="disabled"
       :invalid="!!error"
       :trigger-attrs="triggerAttrs"
+      :variant="variant"
+      :icon="icon"
     />
 
     <p v-if="error" :id="errorId" class="text-p3 font-medium text-red-400">

@@ -61,6 +61,18 @@ describe('VSelect', () => {
     expect(wrapper.find('label').text()).toBe('Collection *')
   })
 
+  it('draws the filter pill with a leading icon', () => {
+    const wrapper = mountSelect({
+      variant: 'filter',
+      icon: 'arrow-up-down-sharp',
+      label: undefined,
+    })
+    const trigger = wrapper.get('button')
+    expect(trigger.classes()).toEqual(expect.arrayContaining(['h-10', 'rounded-[20px]', 'text-p3']))
+    expect(trigger.find('use').attributes('href')).toContain('arrow-up-down-sharp')
+    expect(wrapper.find('label').exists()).toBe(false)
+  })
+
   it('opens the plain list from the keyboard and picks an option', async () => {
     const wrapper = mountSelect()
     await wrapper.get('button').trigger('keydown', { key: 'Enter' })

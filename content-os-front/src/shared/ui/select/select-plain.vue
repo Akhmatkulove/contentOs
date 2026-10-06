@@ -10,23 +10,26 @@ import {
   SelectValue,
   SelectViewport,
 } from 'reka-ui'
-import { VIcon } from '@/shared/ui/icon'
+import { type IconName, VIcon } from '@/shared/ui/icon'
 import {
   chevronClass,
   contentClass,
   itemClass,
   triggerClass,
   type SelectOption,
+  type SelectVariant,
 } from './select-styles'
 
 // Plain dropdown on Reka Select: native-like keyboard (arrows, typeahead,
 // Home/End), focus return and scroll lock come from the primitive.
-const { options, placeholder, disabled, invalid, triggerAttrs } = defineProps<{
+const { options, placeholder, disabled, invalid, triggerAttrs, variant, icon } = defineProps<{
   options: readonly SelectOption[]
   placeholder: string
   disabled: boolean
   invalid: boolean
   triggerAttrs: Record<string, unknown>
+  variant: SelectVariant
+  icon: IconName | undefined
 }>()
 
 const model = defineModel<string>()
@@ -36,8 +39,9 @@ const model = defineModel<string>()
   <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
       v-bind="triggerAttrs"
-      :class="[triggerClass(invalid), 'data-placeholder:text-neutral-600']"
+      :class="[triggerClass(invalid, variant), 'data-placeholder:text-neutral-600']"
     >
+      <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
       <SelectValue :placeholder="placeholder" class="min-w-0 flex-1 truncate" />
       <VIcon name="arrow-down-01-sharp" :size="16" :class="chevronClass" />
     </SelectTrigger>
