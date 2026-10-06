@@ -72,6 +72,22 @@ describe('useReferencesList tabs', () => {
     )
   })
 
+  it('reads the filters from the URL and writes them back under short names', async () => {
+    const { list, router } = await setup('/references?type=video&product=p1&sort=oldest&page=3')
+    expect(fetchReferences).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'video', productId: 'p1', sort: 'oldest', page: 3 }),
+    )
+
+    list.filters.authorId = 'u1'
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({
+      type: 'video',
+      product: 'p1',
+      creator: 'u1',
+      sort: 'oldest',
+    })
+  })
+
   it('keeps the cards on screen, dimmed, while another page loads', async () => {
     const { list } = await setup()
     vi.mocked(fetchReferences).mockReturnValue(new Promise(() => {}))

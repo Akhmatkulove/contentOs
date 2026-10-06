@@ -1,5 +1,5 @@
-import type { ProductStatus } from '@/entities/product'
-import { productStatusOptions } from '@/entities/product'
+import { productStatusOptions, type ProductStatus } from '@/entities/product'
+import { queryParam, type QueryParams } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
 import type { ProductFilterOptions, ProductSort, ProductsQuery } from '../api/products'
 
@@ -8,11 +8,20 @@ export const ALL = 'all'
 
 export interface ProductFilters {
   collection: string
-  status: string
+  status: typeof ALL | ProductStatus
   sort: ProductSort
 }
 
 export const defaultFilters: ProductFilters = { collection: ALL, status: ALL, sort: 'newest' }
+
+// The list's state in the URL: /products?collection=Autumn%2026&status=archived&page=2.
+export const productQueryParams = {
+  search: queryParam.text(),
+  collection: queryParam.text(ALL),
+  status: queryParam.oneOf<ProductFilters['status']>([ALL, 'active', 'archived'], ALL),
+  sort: queryParam.oneOf(['newest', 'oldest', 'name_asc', 'name_desc'], 'newest'),
+  page: queryParam.page(),
+} satisfies QueryParams
 
 export const statusFilterOptions = [
   { value: ALL, label: 'All statuses' },
@@ -39,9 +48,14 @@ export function filterParams(
 ): Pick<ProductsQuery, 'collection' | 'status' | 'sort'> {
   return {
     collection: filters.collection === ALL ? undefined : filters.collection,
-    status: filters.status === ALL ? undefined : (filters.status as ProductStatus),
+    status: filters.status === ALL ? undefined : filters.status,
     sort: filters.sort,
   }
+}
+
+// How many things narrow the list: the search and each filter. The sort doesn't.
+export function activeFilterCount(filters: ProductFilters, search: string): number {
+  return [filters.collection !== ALL, filters.status !== ALL, search !== ''].filter(Boolean).length
 }
 
 // Something narrows the list (the sort doesn't).

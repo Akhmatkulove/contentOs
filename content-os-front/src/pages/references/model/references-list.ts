@@ -1,58 +1,59 @@
 import { useQuery } from '@pinia/colada'
 import { useMediaQuery } from '@vueuse/core'
-import { computed, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { toReference } from '@/entities/reference'
+import { useQueryParams } from '@/shared/lib'
 import { fetchReferenceFilters, fetchReferences, type ReferenceScope } from '../api/references'
 import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
-import { toReference } from '@/entities/reference'
 import {
-  defaultFilters,
+  activeFilterCount,
+  clearableFields,
   filterOptions,
   filterParams,
   isFiltered,
-  type ReferenceFilters,
+  pickFilters,
+  referenceQueryParams,
 } from './reference-filters'
-import { queryForScope, referenceTabs, scopeFromQuery } from './reference-tabs'
+import { referenceTabs } from './reference-tabs'
 
 export const REFERENCES_PER_PAGE = 20
 
 // The user's reference pool: searched, filtered, sorted and paged on the backend.
+// The tab, search, filters, sort and page live in the URL, so a link, reload or
+// Back opens the same list; a new tab, search or filter starts from the first page.
 // TODO(ui): Shoots filter — shoots don't exist yet.
 export function useReferencesList() {
-  const search = ref('')
-  const filters = reactive<ReferenceFilters>({ ...defaultFilters })
-  const page = ref(1)
-
-  const route = useRoute()
-  const router = useRouter()
-  const scope = computed<ReferenceScope>({
-    get: () => scopeFromQuery(route.query),
-    set: (value) => void router.replace({ query: queryForScope(route.query, value) }),
+  // `filters` is the URL state itself: v-model="filters.type" writes to the URL.
+  const {
+    state: filters,
+    update,
+    reset,
+  } = useQueryParams(referenceQueryParams, {
+    page: 'page',
   })
 
-  // A new tab, search or filter starts from the first page. Sync, so the query
-  // key never pairs the new tab with the old page (one request, not two).
-  watch(
-    [scope, search, () => ({ ...filters })],
-    () => {
-      page.value = 1
-    },
-    { flush: 'sync' },
-  )
+  const scope = computed<ReferenceScope>({
+    get: () => filters.scope,
+    set: (value) => (filters.scope = value),
+  })
+  const search = computed({
+    get: () => filters.search,
+    set: (value) => (filters.search = value),
+  })
+  const page = computed({
+    get: () => filters.page,
+    set: (value) => (filters.page = value),
+  })
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    key: () => [
-      'references',
-      'list',
-      { scope: scope.value, search: search.value, ...filters, page: page.value },
-    ],
+    key: () => ['references', 'list', { ...filters }],
     query: () =>
       fetchReferences({
-        scope: scope.value,
-        search: search.value,
+        scope: filters.scope,
+        search: filters.search,
         ...filterParams(filters),
-        page: page.value,
+        page: filters.page,
         perPage: REFERENCES_PER_PAGE,
       }),
     // Keep the current page on screen while the next one loads.
@@ -75,7 +76,7 @@ export function useReferencesList() {
   const loading = computed(() => isLoading.value && data.value === undefined)
   // Old cards on screen while the new page or filter loads: dimmed.
   const refreshing = computed(() => isPlaceholderData.value)
-  const filtered = computed(() => isFiltered(filters) || search.value !== '')
+  const filtered = computed(() => isFiltered(filters) || filters.search !== '')
 
   // Figma: the long placeholder on desktop, a short one in the narrow mobile field.
   const desktop = useMediaQuery('(min-width: 48rem)')
@@ -83,9 +84,15 @@ export function useReferencesList() {
     desktop.value ? 'Search references by title, tag, or description…' : 'Search references…',
   )
 
+  const activeFilters = computed(() => activeFilterCount(filters, filters.search))
+  function clearFilters() {
+    reset(clearableFields)
+  }
+
   async function openFilters() {
-    const applied = await openFiltersSheet({ ...filters }, options.value)
-    if (applied) Object.assign(filters, applied)
+    const applied = await openFiltersSheet(pickFilters(filters), options.value)
+    // One update: one navigation, back to the first page.
+    if (applied) update(applied)
   }
 
   return {
@@ -103,6 +110,8 @@ export function useReferencesList() {
     searchPlaceholder,
     filtersActive: computed(() => isFiltered(filters)),
     openFilters,
+    activeFilters,
+    clearFilters,
     toggleFavorite: favorites.toggle,
   }
 }

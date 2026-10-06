@@ -1,17 +1,4 @@
-import type { LocationQuery } from 'vue-router'
 import type { ReferenceCounts, ReferenceScope } from '../api/references'
-
-// The tab lives in the URL (?tab=favorites): reload and Back keep it.
-// "All references" is the default and leaves the URL clean.
-export function scopeFromQuery(query: LocationQuery): ReferenceScope {
-  return query.tab === 'favorites' ? 'favorites' : 'all'
-}
-
-export function queryForScope(query: LocationQuery, scope: ReferenceScope): LocationQuery {
-  const rest = { ...query }
-  delete rest.tab
-  return scope === 'all' ? rest : { ...rest, tab: scope }
-}
 
 export interface ReferenceTab {
   value: ReferenceScope

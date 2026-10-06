@@ -17,7 +17,7 @@ function item(id: string, name: string) {
   }
 }
 
-async function mountPage() {
+async function mountPage(path = '/products') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -26,12 +26,12 @@ async function mountPage() {
       { path: '/products/:id', name: 'product', component: { template: '<div />' } },
     ],
   })
-  await router.push('/products')
+  await router.push(path)
   const wrapper = mount(ProductsPage, {
     global: { plugins: [router, createPinia(), PiniaColada] },
   })
   await flushPromises()
-  return wrapper
+  return Object.assign(wrapper, { router })
 }
 
 describe('ProductsPage', () => {
@@ -106,5 +106,22 @@ describe('ProductsPage', () => {
         per_page: 8,
       },
     })
+  })
+
+  it('keeps the filters in the URL and opens them from it', async () => {
+    const get = vi.spyOn(http, 'get').mockImplementation(async (url: string) => ({
+      data: url === '/products/filters' ? { collections: [] } : { items: [], total: 30 },
+    }))
+    const wrapper = await mountPage('/products?status=archived&sort=oldest&page=2')
+
+    expect(get).toHaveBeenCalledWith('/products', {
+      params: expect.objectContaining({ status: 'archived', sort: 'oldest', page: 2 }),
+    })
+
+    const selects = wrapper.findAllComponents({ name: 'VSelect' })
+    selects[1]!.vm.$emit('update:modelValue', 'active')
+    await flushPromises()
+    // A new filter starts from the first page; the defaults leave the URL.
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'active', sort: 'oldest' })
   })
 })

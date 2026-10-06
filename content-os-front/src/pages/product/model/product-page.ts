@@ -1,8 +1,9 @@
 import { computed, ref } from 'vue'
-import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 import { toDeliverable } from '@/entities/deliverable'
 import { productStatuses, useProduct } from '@/entities/product'
 import { toReference } from '@/entities/reference'
+import { useQueryParams } from '@/shared/lib'
 import {
   deliveryProgress,
   findDeliverables,
@@ -13,7 +14,7 @@ import {
   productTeam,
   type ReferenceSort,
 } from './product'
-import { queryForTab, tabFromQuery, type ProductTab } from './product-tabs'
+import { productQueryParams, type ProductTab } from './product-tabs'
 
 // Sections of the edit form that the page's "+" and Edit buttons open.
 export type EditSection = 'details' | 'photos' | 'references' | 'deliverables'
@@ -21,14 +22,12 @@ export type EditSection = 'details' | 'photos' | 'references' | 'deliverables'
 // The product page (Figma "Product / Overview" and its tabs). One request
 // brings everything; search and sort of the tabs run over it in the browser.
 export function useProductPage(id: () => string) {
-  const route = useRoute()
-  const router = useRouter()
-
   const { data: product, error, isLoading } = useProduct(id)
 
+  const { state: query } = useQueryParams(productQueryParams)
   const tab = computed<ProductTab>({
-    get: () => tabFromQuery(route.query),
-    set: (value) => void router.replace({ query: queryForTab(route.query, value) }),
+    get: () => query.tab,
+    set: (value) => (query.tab = value),
   })
 
   // The brand that owns the product edits it; art directors only look.

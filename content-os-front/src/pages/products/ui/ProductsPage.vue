@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { VButton } from '@/shared/ui/button'
+import { VClearFilters } from '@/shared/ui/clear-filters'
 import { VIcon } from '@/shared/ui/icon'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VPagination } from '@/shared/ui/pagination'
@@ -19,9 +20,13 @@ const {
   search,
   filters,
   collections,
+  setCollection,
+  setStatus,
   setSort,
   filtersActive,
   openFilters,
+  activeFilters,
+  clearFilters,
   page,
   canCreate,
 } = useProductsList()
@@ -76,7 +81,8 @@ const {
         <!-- Figma "Field / Collection: All collections" and the rest: desktop only. -->
         <div class="hidden items-center gap-3 md:flex">
           <VSelect
-            v-model="filters.collection"
+            :model-value="filters.collection"
+            @update:model-value="setCollection"
             :options="collections"
             variant="filter"
             prefix="Collection:"
@@ -86,7 +92,8 @@ const {
             class="w-[232px]"
           />
           <VSelect
-            v-model="filters.status"
+            :model-value="filters.status"
+            @update:model-value="setStatus"
             :options="statusFilterOptions"
             variant="filter"
             prefix="Status:"
@@ -113,7 +120,10 @@ const {
       </VButton>
 
       <div class="flex items-center justify-between md:min-h-11">
-        <p class="text-p2 font-medium text-secondary">{{ productsLabel(total) }}</p>
+        <div class="flex min-w-0 items-center gap-3">
+          <p class="text-p2 font-medium text-secondary">{{ productsLabel(total) }}</p>
+          <VClearFilters v-if="activeFilters" :count="activeFilters" @clear="clearFilters" />
+        </div>
         <!-- TODO(ui): list view of products — the toggle does nothing yet. -->
         <div role="group" aria-label="View" class="flex items-center gap-1.5">
           <VButton
@@ -149,9 +159,12 @@ const {
         />
       </div>
       <!-- TODO(ui): "nothing found" state — not in Figma yet. -->
-      <p v-else class="py-10 text-center text-p2 font-medium text-secondary">
-        No products match your search or filters.
-      </p>
+      <div v-else class="flex flex-col items-center gap-3 py-10">
+        <p class="text-center text-p2 font-medium text-secondary">
+          No products match your search or filters.
+        </p>
+        <VClearFilters v-if="activeFilters" :count="activeFilters" @clear="clearFilters" />
+      </div>
 
       <div class="flex flex-col items-center gap-3 md:flex-row md:justify-between">
         <p class="text-p3 font-medium text-secondary">

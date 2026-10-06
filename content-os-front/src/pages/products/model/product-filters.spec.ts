@@ -1,4 +1,10 @@
-import { collectionOptions, defaultFilters, filterParams, isFiltered } from './product-filters'
+import {
+  activeFilterCount,
+  collectionOptions,
+  defaultFilters,
+  filterParams,
+  isFiltered,
+} from './product-filters'
 
 describe('product filters', () => {
   it('start with every collection and status, newest first', () => {
@@ -27,5 +33,10 @@ describe('product filters', () => {
       { value: 'all', label: 'All collections' },
       { value: 'Autumn 26', label: 'Autumn 26' },
     ])
+  })
+
+  it('count the search and each filter, not the sort', () => {
+    expect(activeFilterCount({ ...defaultFilters, sort: 'oldest' }, '')).toBe(0)
+    expect(activeFilterCount({ ...defaultFilters, status: 'archived' }, 'linen')).toBe(2)
   })
 })

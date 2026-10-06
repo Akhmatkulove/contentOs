@@ -2,12 +2,18 @@
 import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { ReferenceCard } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
+import { VClearFilters } from '@/shared/ui/clear-filters'
 import { VIcon } from '@/shared/ui/icon'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
 import { useAddReference } from '../model/add-reference'
-import { sortOptions, typeOptions, type ReferenceFilters } from '../model/reference-filters'
+import {
+  foundLabel,
+  sortOptions,
+  typeOptions,
+  type ReferenceFilters,
+} from '../model/reference-filters'
 import { REFERENCES_PER_PAGE, useReferencesList } from '../model/references-list'
 
 const {
@@ -25,6 +31,8 @@ const {
   searchPlaceholder,
   filtersActive,
   openFilters,
+  activeFilters,
+  clearFilters,
   toggleFavorite,
 } = useReferencesList()
 const { addReference } = useAddReference()
@@ -149,6 +157,12 @@ function setSort(value: string | undefined) {
       Add reference
     </VButton>
 
+    <!-- Only while something narrows the list: how much is left and the way back. -->
+    <div v-if="activeFilters && !loading" class="flex items-center gap-3">
+      <p class="text-p2 font-medium text-secondary">{{ foundLabel(total) }}</p>
+      <VClearFilters :count="activeFilters" @clear="clearFilters" />
+    </div>
+
     <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 
     <template v-else-if="references.length">
@@ -175,9 +189,12 @@ function setSort(value: string | undefined) {
     </template>
 
     <!-- TODO(ui): empty and "nothing found" states — not in Figma yet. -->
-    <p v-else-if="filtered" class="py-10 text-center text-p2 font-medium text-secondary">
-      No references match your search or filters.
-    </p>
+    <div v-else-if="filtered" class="flex flex-col items-center gap-3 py-10">
+      <p class="text-center text-p2 font-medium text-secondary">
+        No references match your search or filters.
+      </p>
+      <VClearFilters :count="activeFilters" @clear="clearFilters" />
+    </div>
     <p
       v-else-if="scope === 'favorites'"
       class="py-10 text-center text-p2 font-medium text-secondary"
