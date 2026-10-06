@@ -56,9 +56,9 @@ reference_files     reference_id, file_id (unique), position
 
 ### Список продуктов
 
-`GET /api/products?search=&page=&per_page=` (до 50 на страницу), новые первыми. Поиск без учёта регистра по названию, SKU и коллекции, `%` и `_` ищутся буквально. В карточке обложка — первое фото (presigned URL). Бренд видит свои продукты, арт-директор — продукты со своими deliverables (ADR 0004), креатор пока видит пустой список.
+`GET /api/products?search=&collection=&status=&sort=&page=&per_page=` (до 50 на страницу), новые первыми. Поиск без учёта регистра по названию, SKU и коллекции, `%` и `_` ищутся буквально. В карточке обложка — первое фото (presigned URL). Бренд видит свои продукты, арт-директор — продукты со своими deliverables (ADR 0004), креатор пока видит пустой список.
 
-На карточке статус Active/Archived. Рабочие статусы из Figma (Approved, In progress, To shoot, Needs changes) и прогресс deliverables появятся вместе со съёмками и deliverables. Фильтры Collection, Status и Sort ждут варианта VSelect для фильтров.
+На карточке статус Active/Archived. Рабочие статусы из Figma (Approved, In progress, To shoot, Needs changes) и прогресс deliverables появятся вместе со съёмками и deliverables. Фильтры Collection (точное совпадение, варианты из `GET /api/products/filters`), Status и Sort (`newest`, `oldest`, `name_asc`, `name_desc`; названия без учёта регистра) — параметры `collection`, `status`, `sort` того же запроса.
 
 ## Не входит в эту итерацию
 

@@ -45,7 +45,14 @@ describe('ProductsPage', () => {
     const wrapper = await mountPage()
 
     expect(get).toHaveBeenCalledWith('/products', {
-      params: { search: undefined, page: 1, per_page: 8 },
+      params: {
+        search: undefined,
+        collection: undefined,
+        status: undefined,
+        sort: 'newest',
+        page: 1,
+        per_page: 8,
+      },
     })
     expect(wrapper.findAll('article h3').map((h) => h.text())).toEqual([
       'Linen shirt',
@@ -63,5 +70,41 @@ describe('ProductsPage', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.text()).toContain('No products yet')
+  })
+
+  it('filters by collection and status and sorts on the backend', async () => {
+    const get = vi.spyOn(http, 'get').mockImplementation(async (url: string) => ({
+      data:
+        url === '/products/filters'
+          ? { collections: ['Autumn 26', 'Summer 26'] }
+          : { items: [item('1', 'Linen shirt')], total: 1 },
+    }))
+    const wrapper = await mountPage()
+
+    const triggers = wrapper.findAll(
+      '[aria-label="Collection"], [aria-label="Status"], [aria-label="Sort"]',
+    )
+    expect(triggers.map((trigger) => trigger.text())).toEqual([
+      'Collection: All collections',
+      'Status: All statuses',
+      'Sort by: Newest first',
+    ])
+
+    const selects = wrapper.findAllComponents({ name: 'VSelect' })
+    selects[0]!.vm.$emit('update:modelValue', 'Autumn 26')
+    selects[1]!.vm.$emit('update:modelValue', 'archived')
+    selects[2]!.vm.$emit('update:modelValue', 'name_asc')
+    await flushPromises()
+
+    expect(get).toHaveBeenLastCalledWith('/products', {
+      params: {
+        search: undefined,
+        collection: 'Autumn 26',
+        status: 'archived',
+        sort: 'name_asc',
+        page: 1,
+        per_page: 8,
+      },
+    })
   })
 })

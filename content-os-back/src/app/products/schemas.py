@@ -117,3 +117,9 @@ class ProductList(BaseModel):
     items: list[ProductListItem]
     # Сколько всего подходит под поиск: для пагинации.
     total: int
+
+
+class ProductFilters(BaseModel):
+    """Варианты фильтров списка: только то, что есть у видимых продуктов."""
+
+    collections: list[str]

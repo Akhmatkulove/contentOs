@@ -73,6 +73,19 @@ describe('VSelect', () => {
     expect(wrapper.find('label').exists()).toBe(false)
   })
 
+  it('puts the prefix before the value in the trigger only', async () => {
+    const wrapper = mountSelect({
+      variant: 'filter',
+      label: undefined,
+      prefix: 'Collection:',
+      modelValue: 'all',
+    })
+    expect(wrapper.get('button').text()).toBe('Collection: All collections')
+    await wrapper.get('button').trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(optionLabels()[0]).toBe('All collections')
+  })
+
   it('opens the plain list from the keyboard and picks an option', async () => {
     const wrapper = mountSelect()
     await wrapper.get('button').trigger('keydown', { key: 'Enter' })

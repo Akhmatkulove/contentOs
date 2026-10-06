@@ -291,7 +291,7 @@ export interface paths {
     }
     /**
      * List Products
-     * @description Поиск по названию, SKU и коллекции, без учёта регистра.
+     * @description Поиск по названию, SKU и коллекции без учёта регистра; коллекция — точно.
      */
     get: operations['list_products_api_products_get']
     put?: never
@@ -300,6 +300,26 @@ export interface paths {
      * @description Продукт с фото, референсами и deliverables одной транзакцией (docs/adr/0003).
      */
     post: operations['create_product_api_products_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/products/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Filters
+     * @description Варианты фильтра Collection: коллекции видимых продуктов.
+     */
+    get: operations['list_filters_api_products_filters_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -672,6 +692,14 @@ export interface components {
       /** Deliverables */
       deliverables?: components['schemas']['DeliverableDraft'][]
     }
+    /**
+     * ProductFilters
+     * @description Варианты фильтров списка: только то, что есть у видимых продуктов.
+     */
+    ProductFilters: {
+      /** Collections */
+      collections: string[]
+    }
     /** ProductList */
     ProductList: {
       /** Items */
@@ -756,6 +784,11 @@ export interface components {
       /** Can Edit */
       can_edit: boolean
     }
+    /**
+     * ProductSort
+     * @enum {string}
+     */
+    ProductSort: 'newest' | 'oldest' | 'name_asc' | 'name_desc'
     /**
      * ProductStatus
      * @enum {string}
@@ -1604,6 +1637,9 @@ export interface operations {
     parameters: {
       query?: {
         search?: string
+        collection?: string | null
+        status?: components['schemas']['ProductStatus'] | null
+        sort?: components['schemas']['ProductSort']
         page?: number
         per_page?: number
       }
@@ -1657,6 +1693,37 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ProductResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_filters_api_products_filters_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductFilters']
         }
       }
       /** @description Validation Error */

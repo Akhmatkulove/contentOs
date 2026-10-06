@@ -1,10 +1,24 @@
 """Продукты: список, страница продукта, создание и редактирование. Коммитит вызывающий."""
 
+import enum
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import ColumnElement, case, delete, exists, false, func, or_, select, update
+from sqlalchemy import (
+    ColumnElement,
+    UnaryExpression,
+    case,
+    delete,
+    exists,
+    false,
+    func,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.models import BrandArtDirector
@@ -17,9 +31,10 @@ from app.deliverables.schemas import DeliverableDraft, DeliverableResponse
 from app.files.models import FileKind, StoredFile
 from app.files.schemas import FileResponse
 from app.files.service import claim_files
-from app.products.models import Product, ProductPhoto
+from app.products.models import Product, ProductPhoto, ProductStatus
 from app.products.schemas import (
     ProductCreate,
+    ProductFilters,
     ProductList,
     ProductListItem,
     ProductOption,
@@ -323,14 +338,59 @@ async def list_options(db: AsyncSession, user: User) -> list[ProductOption]:
     return [ProductOption(id=row.id, name=row.name) for row in rows]
 
 
-async def list_products(
-    db: AsyncSession, user: User, storage: Storage, search: str, page: int, per_page: int
-) -> ProductList:
-    """Продукты, которые видит пользователь (_visible), новые первыми."""
-    query = select(Product).where(_visible(user))
+class ProductSort(enum.StrEnum):
+    NEWEST = "newest"
+    OLDEST = "oldest"
+    NAME_ASC = "name_asc"
+    NAME_DESC = "name_desc"
 
-    if search:
-        pattern = f"%{escape_like(search)}%"
+
+_ORDER: dict[ProductSort, tuple[UnaryExpression[Any], ...]] = {
+    ProductSort.NEWEST: (Product.created_at.desc(), Product.id.desc()),
+    ProductSort.OLDEST: (Product.created_at.asc(), Product.id.asc()),
+    # Без учёта регистра: в базе C-collation, и «Zara» иначе встала бы раньше «abaya».
+    ProductSort.NAME_ASC: (func.lower(Product.name).asc(), Product.id.asc()),
+    ProductSort.NAME_DESC: (func.lower(Product.name).desc(), Product.id.desc()),
+}
+
+
+@dataclass(frozen=True)
+class ProductQuery:
+    search: str = ""
+    # Точное совпадение: варианты приходят из GET /api/products/filters.
+    collection: str | None = None
+    status: ProductStatus | None = None
+    sort: ProductSort = ProductSort.NEWEST
+
+
+async def list_filters(db: AsyncSession, user: User) -> ProductFilters:
+    """Коллекции видимых продуктов, по алфавиту без учёта регистра: фильтр Collection."""
+    collections = await db.scalars(
+        select(Product.collection)
+        .where(_visible(user), Product.collection.is_not(None))
+        .group_by(Product.collection)
+        .order_by(func.lower(Product.collection), Product.collection)
+    )
+    return ProductFilters(collections=[c for c in collections if c is not None])
+
+
+async def list_products(
+    db: AsyncSession,
+    user: User,
+    storage: Storage,
+    params: ProductQuery,
+    page: int,
+    per_page: int,
+) -> ProductList:
+    """Продукты, которые видит пользователь (_visible), под поиском, фильтрами и сортировкой."""
+    query = select(Product).where(_visible(user))
+    if params.collection is not None:
+        query = query.where(Product.collection == params.collection)
+    if params.status is not None:
+        query = query.where(Product.status == params.status)
+
+    if params.search:
+        pattern = f"%{escape_like(params.search)}%"
         query = query.where(
             or_(
                 Product.name.ilike(pattern, escape="\\"),
@@ -342,9 +402,7 @@ async def list_products(
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
     products = list(
         await db.scalars(
-            query.order_by(Product.created_at.desc(), Product.id.desc())
-            .offset((page - 1) * per_page)
-            .limit(per_page)
+            query.order_by(*_ORDER[params.sort]).offset((page - 1) * per_page).limit(per_page)
         )
     )
 

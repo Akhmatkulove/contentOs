@@ -30,7 +30,11 @@ class Product(Base):
         string_enum(ProductStatus, "product_status"), default=ProductStatus.ACTIVE
     )
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # clock_timestamp(): у продуктов одной транзакции разное время, «новые первыми»
+    # однозначна (как у референсов, docs/adr/0005).
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.clock_timestamp()
+    )
 
 
 class ProductPhoto(Base):

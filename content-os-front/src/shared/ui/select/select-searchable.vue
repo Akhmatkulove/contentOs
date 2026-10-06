@@ -33,6 +33,7 @@ const {
   triggerAttrs,
   variant,
   icon,
+  prefix,
   searchPlaceholder,
   emptyText,
 } = defineProps<{
@@ -43,6 +44,7 @@ const {
   triggerAttrs: Record<string, unknown>
   variant: SelectVariant
   icon: IconName | undefined
+  prefix: string | undefined
   searchPlaceholder: string
   emptyText: string
 }>()
@@ -93,7 +95,9 @@ function pick(value: unknown) {
     >
       <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
       <span :class="['min-w-0 flex-1 truncate', !selectedLabel && 'text-neutral-600']">
-        {{ selectedLabel ?? placeholder }}
+        {{
+          prefix && selectedLabel ? `${prefix} ${selectedLabel}` : (selectedLabel ?? placeholder)
+        }}
       </span>
       <VIcon name="arrow-down-01-sharp" :size="16" :class="chevronClass" />
     </PopoverTrigger>

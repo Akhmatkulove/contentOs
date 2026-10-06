@@ -4,20 +4,25 @@ import { VIcon } from '@/shared/ui/icon'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
+import { VSelect } from '@/shared/ui/select'
 import { productsLabel } from '../model/product'
+import { sortOptions, statusFilterOptions } from '../model/product-filters'
 import { PRODUCTS_PER_PAGE, useProductsList } from '../model/products-list'
 import ProductCard from './ProductCard.vue'
 import ProductsEmpty from './ProductsEmpty.vue'
 
-const { products, total, isEmpty, loading, search, page, canCreate } = useProductsList()
-
-// TODO(ui): VSelect variant for filters (40px pill, no label, value inline as
-// "Collection: …") — replace these static triggers, wire them to the query.
-const filters = [
-  { label: 'Collection: All collections', class: 'w-[232px]' },
-  { label: 'Status: All statuses', class: 'w-[220px]' },
-  { label: 'Sort by: Newest first', class: 'w-[208px]' },
-]
+const {
+  products,
+  total,
+  isEmpty,
+  loading,
+  search,
+  filters,
+  collections,
+  setSort,
+  page,
+  canCreate,
+} = useProductsList()
 </script>
 
 <template>
@@ -59,18 +64,36 @@ const filters = [
         <VButton variant="secondary" size="icon-32" aria-label="Filters" class="md:hidden">
           <VIcon name="filter-horizontal" :size="16" />
         </VButton>
-        <button
-          v-for="filter in filters"
-          :key="filter.label"
-          type="button"
-          :class="[
-            'hidden h-10 items-center justify-between gap-2 rounded-[20px] border border-default bg-card pr-3 pl-3.5 text-p3 font-medium text-brand md:flex',
-            filter.class,
-          ]"
-        >
-          {{ filter.label }}
-          <VIcon name="arrow-down-01-sharp" :size="16" class="text-secondary" />
-        </button>
+        <!-- Figma "Field / Collection: All collections" and the rest: desktop only. -->
+        <div class="hidden items-center gap-3 md:flex">
+          <VSelect
+            v-model="filters.collection"
+            :options="collections"
+            variant="filter"
+            prefix="Collection:"
+            aria-label="Collection"
+            searchable
+            search-placeholder="Search collections…"
+            class="w-[232px]"
+          />
+          <VSelect
+            v-model="filters.status"
+            :options="statusFilterOptions"
+            variant="filter"
+            prefix="Status:"
+            aria-label="Status"
+            class="w-[220px]"
+          />
+          <VSelect
+            :model-value="filters.sort"
+            :options="sortOptions"
+            variant="filter"
+            prefix="Sort by:"
+            aria-label="Sort"
+            class="w-[208px]"
+            @update:model-value="setSort"
+          />
+        </div>
       </section>
 
       <VButton v-if="canCreate" as-child class="w-full md:hidden">
@@ -118,7 +141,7 @@ const filters = [
       </div>
       <!-- TODO(ui): "nothing found" state — not in Figma yet. -->
       <p v-else class="py-10 text-center text-p2 font-medium text-secondary">
-        No products match “{{ search }}”.
+        No products match your search or filters.
       </p>
 
       <div class="flex flex-col items-center gap-3 md:flex-row md:justify-between">

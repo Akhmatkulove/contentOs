@@ -23,6 +23,7 @@ const {
   emptyText = 'Nothing found',
   variant = 'field',
   icon,
+  prefix,
   class: className,
 } = defineProps<{
   options: readonly SelectOption[]
@@ -43,6 +44,9 @@ const {
   variant?: SelectVariant
   // Leading icon in the trigger, e.g. arrow-up-down-sharp on a sort filter.
   icon?: IconName
+  // Shown before the value in the trigger only: "Collection:" + "All collections"
+  // (Figma "Field / Collection: All collections"). The options stay without it.
+  prefix?: string
   // Applied to the root wrapper. Other attributes (aria-label, name, …) go
   // to the trigger button.
   class?: HTMLAttributes['class']
@@ -79,6 +83,7 @@ const triggerAttrs = computed(() => ({
       :trigger-attrs="triggerAttrs"
       :variant="variant"
       :icon="icon"
+      :prefix="prefix"
       :search-placeholder="searchPlaceholder"
       :empty-text="emptyText"
     />
@@ -92,6 +97,7 @@ const triggerAttrs = computed(() => ({
       :trigger-attrs="triggerAttrs"
       :variant="variant"
       :icon="icon"
+      :prefix="prefix"
     />
 
     <p v-if="error" :id="errorId" class="text-p3 font-medium text-red-400">

@@ -276,6 +276,28 @@ async def test_search_matches_name_sku_and_collection_literally(client: AsyncCli
     assert (await listing(client, search="nothing"))["total"] == 0
 
 
+async def test_filters_by_collection_and_status_and_sorts(client: AsyncClient) -> None:
+    _, silk, _ = await make_products(client, "Linen", "Silk", "Wool", collection="Summer")
+    await make_products(client, "abaya", collection="autumn")
+    await make_products(client, "Plain")
+    current = await detail(client, silk)
+    await client.patch(f"/api/products/{current['id']}", json={"status": "archived"})
+
+    async def names(**params: Any) -> list[str]:
+        return [item["name"] for item in (await listing(client, **params))["items"]]
+
+    assert await names(collection="Summer") == ["Wool", "Silk", "Linen"]
+    assert await names(collection="summer") == []
+    assert await names(collection="Summer", status="active", sort="oldest") == ["Linen", "Wool"]
+    assert await names(status="archived") == ["Silk"]
+    assert await names(sort="name_asc") == ["abaya", "Linen", "Plain", "Silk", "Wool"]
+    assert await names(sort="name_desc", per_page=2) == ["Wool", "Silk"]
+    assert (await client.get("/api/products", params={"sort": "price"})).status_code == 422
+
+    filters = (await client.get("/api/products/filters")).json()
+    assert filters == {"collections": ["autumn", "Summer"]}
+
+
 async def test_brand_sees_only_own_products(client: AsyncClient, db_session: AsyncSession) -> None:
     await make_products(client, "Mine")
     await sign_up(client, db_session, "other@example.com", Role.BRAND, "Other")

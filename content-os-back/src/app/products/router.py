@@ -9,8 +9,10 @@ from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
 from app.products import service
+from app.products.models import ProductStatus
 from app.products.schemas import (
     ProductCreate,
+    ProductFilters,
     ProductList,
     ProductOption,
     ProductPatch,
@@ -29,11 +31,21 @@ async def list_products(
     db: SessionDep,
     storage: StorageDep,
     search: Annotated[str, Query(max_length=100)] = "",
+    collection: Annotated[str | None, Query(max_length=100)] = None,
+    status: ProductStatus | None = None,
+    sort: service.ProductSort = service.ProductSort.NEWEST,
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> ProductList:
-    """Поиск по названию, SKU и коллекции, без учёта регистра."""
-    return await service.list_products(db, user, storage, search.strip(), page, per_page)
+    """Поиск по названию, SKU и коллекции без учёта регистра; коллекция — точно."""
+    params = service.ProductQuery(search.strip(), collection, status, sort)
+    return await service.list_products(db, user, storage, params, page, per_page)
+
+
+@router.get("/filters")
+async def list_filters(user: ApprovedUser, db: SessionDep) -> ProductFilters:
+    """Варианты фильтра Collection: коллекции видимых продуктов."""
+    return await service.list_filters(db, user)
 
 
 @router.get("/options")
