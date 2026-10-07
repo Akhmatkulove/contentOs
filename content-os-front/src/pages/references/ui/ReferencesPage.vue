@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { useTemplateRef } from 'vue'
 import { ReferenceCard } from '@/entities/reference'
+import { useActiveTabInView } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VClearFilters } from '@/shared/ui/clear-filters'
 import { VIcon } from '@/shared/ui/icon'
@@ -36,6 +38,7 @@ const {
   toggleFavorite,
 } = useReferencesList()
 const { addReference } = useAddReference()
+useActiveTabInView(useTemplateRef('tabList'), scope)
 
 function setSort(value: string | undefined) {
   if (value) filters.sort = value as ReferenceFilters['sort']
@@ -69,7 +72,11 @@ function setSort(value: string | undefined) {
          there are no panels: Reka gives roving focus, arrows and aria-selected.
          Tabs that don't fit scroll sideways. -->
     <TabsRoot v-model="scope" activation-mode="automatic">
-      <TabsList aria-label="References" class="scrollbar-none relative flex overflow-x-auto">
+      <TabsList
+        ref="tabList"
+        aria-label="References"
+        class="scrollbar-none relative flex overflow-x-auto"
+      >
         <TabsTrigger
           v-for="tab in tabs"
           :key="tab.value"

@@ -19,3 +19,4 @@ export {
   tooLargeMessage,
   uploadAll,
 } from './uploads'
+export { useActiveTabInView } from './active-tab-in-view'

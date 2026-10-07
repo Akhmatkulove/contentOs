@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { TabsContent, TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { useTemplateRef } from 'vue'
 import { ProductActionsMenu } from '@/features/product-actions'
+import { useActiveTabInView } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
@@ -38,6 +40,7 @@ const {
   deliverableSearch,
   foundDeliverables,
 } = useProductPage(() => id)
+useActiveTabInView(useTemplateRef('tabList'), tab)
 </script>
 
 <!--
@@ -149,6 +152,7 @@ const {
                  Tabs that don't fit scroll sideways; the bottom line is an inset shadow,
                  not a border, so the underline covers it inside the scroll box. -->
             <TabsList
+              ref="tabList"
               aria-label="Product"
               class="scrollbar-none relative flex overflow-x-auto shadow-[inset_0_-2px_0_var(--border-color-strong)] md:gap-2 md:shadow-[inset_0_-1px_0_var(--border-color-default)]"
             >
