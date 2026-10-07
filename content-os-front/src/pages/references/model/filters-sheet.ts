@@ -1,6 +1,6 @@
 import { defineAsyncComponent } from 'vue'
+import type { FilterOptions, ReferenceFilters } from '@/entities/reference'
 import { openModal } from '@/shared/ui/modal'
-import type { FilterOptions, ReferenceFilters } from './reference-filters'
 
 // The sheet's code loads on first open.
 const FiltersSheet = defineAsyncComponent(() => import('../ui/FiltersSheet.vue'))

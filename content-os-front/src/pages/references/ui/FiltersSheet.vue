@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { VButton } from '@/shared/ui/button'
-import { VFilterOptions } from '@/shared/ui/filter-options'
-import { VModal } from '@/shared/ui/modal'
 import {
   sortOptions,
   typeOptions,
   type FilterOptions as Options,
   type ReferenceFilters,
-} from '../model/reference-filters'
+} from '@/entities/reference'
+import { VButton } from '@/shared/ui/button'
+import { VFilterOptions } from '@/shared/ui/filter-options'
+import { VModal } from '@/shared/ui/modal'
 
 // Figma "Sheet / Filters" (mobile). Choices apply only on Apply.
 // TODO(ui): Shoot section — shoots don't exist yet.

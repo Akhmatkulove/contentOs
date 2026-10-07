@@ -1,4 +1,5 @@
-import type { ReferenceCounts, ReferenceScope } from '../api/references'
+import type { ReferenceScope } from '@/entities/reference'
+import type { ReferenceCounts } from '../api/references'
 
 export interface ReferenceTab {
   value: ReferenceScope

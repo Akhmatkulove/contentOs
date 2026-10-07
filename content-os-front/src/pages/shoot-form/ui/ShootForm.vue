@@ -21,9 +21,8 @@ const {
   selectedProducts,
   browseProducts,
   references,
-  referenceSearch,
-  referenceSource,
   selectedReferences,
+  browseReferences,
   deliverables,
   selectedDeliverables,
   submit,
@@ -117,10 +116,9 @@ async function onSubmit() {
     />
 
     <ShootReferencesSection
-      v-model:search="referenceSearch"
-      v-model:source="referenceSource"
       v-model:selected="selectedReferences"
       :references="references"
+      @browse="browseReferences"
     />
 
     <ShootDeliverablesSection

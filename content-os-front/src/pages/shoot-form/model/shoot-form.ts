@@ -2,7 +2,9 @@ import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref } from 'vue'
 import { openBrowseProducts } from './browse-products'
-import { demoDeliverables, demoReferences } from './demo'
+import type { Reference } from '@/entities/reference'
+import { openReferenceBank } from './browse-references'
+import { demoDeliverables } from './demo'
 import type { ShootProduct } from './shoot-draft'
 
 // Shoot details: everything but the location is required.
@@ -65,10 +67,20 @@ export function useShootForm() {
     selectedProducts.value = picked.map((product) => product.id)
   }
 
-  const references = ref(demoReferences)
-  const referenceSearch = ref('')
-  const referenceSource = ref('all')
-  const selectedReferences = ref(references.value.map((reference) => reference.id))
+  // The shoot's references, from "Browse reference bank"; the ticked ones go into the shoot.
+  const references = ref<Reference[]>([])
+  const selectedReferences = ref<string[]>([])
+
+  // The bank starts from the ticked references; its pick replaces the list, all ticked.
+  async function browseReferences() {
+    const ticked = references.value.filter((reference) =>
+      selectedReferences.value.includes(reference.id),
+    )
+    const picked = await openReferenceBank(ticked)
+    if (!picked) return
+    references.value = picked
+    selectedReferences.value = picked.map((reference) => reference.id)
+  }
 
   const deliverables = ref(demoDeliverables)
   const selectedDeliverables = ref(deliverables.value.map((item) => item.id))
@@ -91,9 +103,8 @@ export function useShootForm() {
     selectedProducts,
     browseProducts,
     references,
-    referenceSearch,
-    referenceSource,
     selectedReferences,
+    browseReferences,
     deliverables,
     selectedDeliverables,
     submit,

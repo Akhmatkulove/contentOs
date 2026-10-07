@@ -3,14 +3,15 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { defineComponent } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { fetchReferenceFilters, fetchReferences } from '../api/references'
+import { fetchReferenceFilters, fetchReferences } from '@/entities/reference'
 import { useReferencesList } from './references-list'
 
-vi.mock('../api/references', () => ({
+vi.mock('@/entities/reference', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/entities/reference')>()),
   fetchReferences: vi.fn(),
   fetchReferenceFilters: vi.fn(),
-  setFavorite: vi.fn(),
 }))
+vi.mock('../api/references', () => ({ setFavorite: vi.fn() }))
 
 async function setup(path = '/references') {
   const router = createRouter({

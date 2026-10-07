@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { defaultFilters, filterOptions } from '@/entities/reference'
 import { closeAllModals, VModalHost } from '@/shared/ui/modal'
 import { openFiltersSheet } from '../model/filters-sheet'
-import { defaultFilters, filterOptions } from '../model/reference-filters'
 
 let host: VueWrapper | undefined
 

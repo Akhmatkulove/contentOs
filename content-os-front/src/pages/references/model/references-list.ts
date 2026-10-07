@@ -1,16 +1,20 @@
 import { useQuery } from '@pinia/colada'
 import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
-import { toReference } from '@/entities/reference'
+import {
+  toReference,
+  fetchReferenceFilters,
+  fetchReferences,
+  type ReferenceScope,
+  filterOptions,
+  filterParams,
+} from '@/entities/reference'
 import { useQueryParams } from '@/shared/lib'
-import { fetchReferenceFilters, fetchReferences, type ReferenceScope } from '../api/references'
 import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
 import {
   activeFilterCount,
   clearableFields,
-  filterOptions,
-  filterParams,
   isFiltered,
   pickFilters,
   referenceQueryParams,

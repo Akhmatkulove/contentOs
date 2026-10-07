@@ -27,11 +27,3 @@ export const durationOptions: SelectOption[] = Array.from({ length: 24 }, (_, in
   const minutes = (index + 1) * 30
   return { value: String(minutes), label: durationLabel(minutes) }
 })
-
-// "All sources" filter over the reference bank.
-export const sourceFilterOptions: SelectOption[] = [
-  { value: 'all', label: 'All sources' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'upload', label: 'Upload' },
-]

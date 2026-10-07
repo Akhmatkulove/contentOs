@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { useTemplateRef } from 'vue'
-import { ReferenceCard } from '@/entities/reference'
+import {
+  ReferenceCard,
+  sortOptions,
+  typeOptions,
+  type ReferenceFilters,
+} from '@/entities/reference'
 import { useActiveTabInView } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VClearFilters } from '@/shared/ui/clear-filters'
@@ -10,12 +15,7 @@ import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
 import { useAddReference } from '../model/add-reference'
-import {
-  foundLabel,
-  sortOptions,
-  typeOptions,
-  type ReferenceFilters,
-} from '../model/reference-filters'
+import { foundLabel } from '../model/reference-filters'
 import { REFERENCES_PER_PAGE, useReferencesList } from '../model/references-list'
 
 const {

@@ -1,5 +1,4 @@
 import type { Schemas } from '@/shared/api'
-import type { IconName } from '@/shared/ui/icon'
 
 // What the create-shoot screen shows. Shaped for the screen, not the API:
 // TODO(api): map from the shoots API once it lands.
@@ -11,19 +10,6 @@ export interface ShootProduct {
   name: string
   collection: string
   photoUrl: string | null
-}
-
-export type ReferenceSource = 'instagram' | 'tiktok' | 'upload'
-
-export interface ShootReference {
-  id: string
-  title: string
-  source: ReferenceSource
-  previewUrl: string | null
-  // Videos only; null for images.
-  durationSec: number | null
-  // The product the reference is for.
-  productName: string
 }
 
 export type ShootDeliverableStatus = 'planned'
@@ -38,13 +24,6 @@ export interface ShootDeliverable {
   dueDate: string
   status: ShootDeliverableStatus
 }
-
-// Figma "Metadata / Instagram" and the like under a reference.
-export const referenceSources = {
-  instagram: { label: 'Instagram', icon: 'instagram' },
-  tiktok: { label: 'TikTok', icon: 'tiktok' },
-  upload: { label: 'Upload', icon: 'upload-01' },
-} as const satisfies Record<ReferenceSource, { label: string; icon: IconName }>
 
 // How each status looks in VStatus.
 export const shootDeliverableStatuses = {

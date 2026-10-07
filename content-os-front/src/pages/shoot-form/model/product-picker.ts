@@ -1,14 +1,10 @@
 import { useInfiniteQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
-import { fetchProductsPage, toShootProduct, type ProductList } from '../api/products'
+import { fetchProductsPage, toShootProduct } from '../api/products'
+import { nextPage } from './paging'
 import type { ShootProduct } from './shoot-draft'
 
 export const PRODUCTS_PAGE_SIZE = 30
-
-// The page after `page`, or null once every product is loaded.
-export function nextProductsPage(last: ProductList, page: number): number | null {
-  return page * PRODUCTS_PAGE_SIZE < last.total ? page + 1 : null
-}
 
 // What "Browse all products" shows: the products the art director sees,
 // searched and loaded page by page, and which of them are picked. The pick
@@ -22,7 +18,7 @@ export function useProductPicker(initial: ShootProduct[]) {
     key: () => ['products', 'picker', search.value],
     query: ({ pageParam }) => fetchProductsPage(search.value, pageParam, PRODUCTS_PAGE_SIZE),
     initialPageParam: 1,
-    getNextPageParam: (last, _pages, page) => nextProductsPage(last, page),
+    getNextPageParam: (last, _pages, page) => nextPage(last.total, page, PRODUCTS_PAGE_SIZE),
     // The modal says what went wrong itself.
     meta: { toast: false },
   })
