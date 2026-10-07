@@ -1,6 +1,19 @@
-import { reactive, ref } from 'vue'
+import { useRegleSchema } from '@regle/schemas'
+import * as v from 'valibot'
+import { computed, reactive, ref } from 'vue'
 import { demoDeliverables, demoProducts, demoReferences, demoTeam } from './demo'
 import type { TeamMember } from './shoot-draft'
+
+// Shoot details: everything but the location is required.
+// TODO(api): match the rules to the shoots API once it exists.
+export const shootDetailsSchema = v.object({
+  name: v.pipe(v.string(), v.trim(), v.nonEmpty('Enter the shoot name.')),
+  date: v.pipe(v.string(), v.nonEmpty('Pick the shoot date.')),
+  location: v.string(),
+  // The selects hold undefined until something is picked.
+  startTime: v.string('Pick the start time.'),
+  duration: v.string('Pick the estimated duration.'),
+})
 
 // State of the create-shoot screen. Layout stage: the screen holds what the
 // user picks; saving, pickers and searches come next.
@@ -17,6 +30,15 @@ export function useShootForm() {
     // Minutes as a string, see durationOptions.
     duration: undefined as string | undefined,
   })
+
+  // rewardEarly: a field turns valid as soon as it is fixed, but invalid only on submit.
+  const { r$ } = useRegleSchema(details, shootDetailsSchema, { rewardEarly: true })
+  const errors = computed(() => ({
+    name: r$.name.$errors[0] ?? '',
+    date: r$.date.$errors[0] ?? '',
+    startTime: r$.startTime.$errors[0] ?? '',
+    duration: r$.duration.$errors[0] ?? '',
+  }))
 
   const team = reactive({
     artDirector: demoTeam.artDirector as TeamMember | null,
@@ -40,13 +62,19 @@ export function useShootForm() {
   const deliverables = ref(demoDeliverables)
   const selectedDeliverables = ref(deliverables.value.map((item) => item.id))
 
-  // TODO(api): POST the shoot, then open it.
-  function submit() {}
+  // Whether the details passed; the screen moves focus to the first error if not.
+  // TODO(api): POST the shoot with `data`, then open it.
+  async function submit(): Promise<boolean> {
+    const { valid } = await r$.$validate()
+    return valid
+  }
+  // A draft may stay incomplete: no validation.
   // TODO(api): save the shoot as a draft.
   function saveDraft() {}
 
   return {
     details,
+    errors,
     team,
     removeCreator,
     products,

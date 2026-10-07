@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick, useTemplateRef } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VNotificationButton } from '@/shared/ui/notification-button'
@@ -13,6 +14,7 @@ import ShootTeamSection from './ShootTeamSection.vue'
 // state): details, team, products, references, deliverables.
 const {
   details,
+  errors,
   team,
   removeCreator,
   products,
@@ -27,11 +29,27 @@ const {
   submit,
   saveDraft,
 } = useShootForm()
+
+const formElement = useTemplateRef('formElement')
+
+// A failed submit moves focus to the first invalid field: the browser scrolls to
+// it (the mobile button is at the bottom, the fields at the top) and a screen
+// reader reads its error.
+async function onSubmit() {
+  if (await submit()) return
+  await nextTick()
+  formElement.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+}
 </script>
 
 <template>
   <!-- Bottom padding on mobile clears the fixed action bar. -->
-  <form class="flex flex-col gap-4 pb-20 md:gap-5 md:pb-0" @submit.prevent="submit">
+  <form
+    ref="formElement"
+    novalidate
+    class="flex flex-col gap-4 pb-20 md:gap-5 md:pb-0"
+    @submit.prevent="onSubmit"
+  >
     <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar", Back variant); move the back link and the bell there. -->
     <div class="mb-2 flex items-center justify-between gap-4 md:mb-0">
       <RouterLink
@@ -66,6 +84,7 @@ const {
       v-model:location="details.location"
       v-model:start-time="details.startTime"
       v-model:duration="details.duration"
+      :errors="errors"
     />
 
     <ShootTeamSection

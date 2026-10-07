@@ -1,0 +1,80 @@
+import { PiniaColada } from '@pinia/colada'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import ShootForm from './ShootForm.vue'
+
+async function mountForm() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/shoots', name: 'shoots', component: { template: '<div />' } },
+      { path: '/shoots/new', name: 'shoot-create', component: ShootForm },
+    ],
+  })
+  await router.push('/shoots/new')
+  return mount(ShootForm, {
+    global: { plugins: [router, createPinia(), PiniaColada] },
+    attachTo: document.body,
+  })
+}
+
+const errorTexts = (wrapper: Awaited<ReturnType<typeof mountForm>>) =>
+  wrapper.findAll('p.text-red-400').map((p) => p.text())
+
+describe('ShootForm', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('marks the required details, not the location', async () => {
+    const wrapper = await mountForm()
+    const required = wrapper
+      .findAll('label')
+      .filter((label) => label.text().endsWith('*'))
+      .map((label) => label.text().replace(/\s*\*$/, ''))
+    expect(required).toEqual(['Shoot name', 'Date', 'Start time', 'Estimated duration'])
+    wrapper.unmount()
+  })
+
+  it('shows what is missing and focuses the first such field', async () => {
+    const wrapper = await mountForm()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(errorTexts(wrapper)).toEqual([
+      'Enter the shoot name.',
+      'Pick the shoot date.',
+      'Pick the start time.',
+      'Pick the estimated duration.',
+    ])
+    expect(document.activeElement).toBe(
+      wrapper.get('input[placeholder="Enter shoot name"]').element,
+    )
+    wrapper.unmount()
+  })
+
+  it('clears an error as soon as the field is fixed', async () => {
+    const wrapper = await mountForm()
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    await wrapper.get('input[placeholder="Enter shoot name"]').setValue('Autumn drop')
+    await flushPromises()
+
+    expect(errorTexts(wrapper)).not.toContain('Enter the shoot name.')
+    wrapper.unmount()
+  })
+
+  it('saves a draft without asking for the details', async () => {
+    const wrapper = await mountForm()
+
+    const saveDraft = wrapper.findAll('button').find((b) => b.text() === 'Save draft')!
+    await saveDraft.trigger('click')
+    await flushPromises()
+
+    expect(errorTexts(wrapper)).toEqual([])
+    wrapper.unmount()
+  })
+})
