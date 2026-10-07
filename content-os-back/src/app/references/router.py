@@ -41,7 +41,8 @@ async def list_references(
 ) -> ReferenceList:
     """Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
 
-    `scope=favorites` — только избранное пользователя; `counts` — размеры обеих вкладок.
+    `scope=mine` — только созданные пользователем, `scope=favorites` — его избранное;
+    `counts` — размеры всех вкладок.
     """
     params = ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort, scope)
     return await service.list_references(db, user, storage, params, page, per_page)

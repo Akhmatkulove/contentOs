@@ -145,21 +145,23 @@ const {
 
           <TabsRoot v-model="tab" class="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
             <!-- Mobile: Figma "CMS / Mobile / Tab", equal widths; desktop: "Product tabs".
-                 One underline slides between the tabs (Reka sizes it to the active one). -->
+                 One underline slides between the tabs (Reka sizes it to the active one).
+                 Tabs that don't fit scroll sideways; the bottom line is an inset shadow,
+                 not a border, so the underline covers it inside the scroll box. -->
             <TabsList
               aria-label="Product"
-              class="relative flex border-b-2 border-strong md:gap-2 md:border-b md:border-default"
+              class="scrollbar-none relative flex overflow-x-auto shadow-[inset_0_-2px_0_var(--border-color-strong)] md:gap-2 md:shadow-[inset_0_-1px_0_var(--border-color-default)]"
             >
               <TabsTrigger
                 v-for="item in productTabs"
                 :key="item.value"
                 :value="item.value"
-                class="flex flex-1 items-center justify-center px-1 py-2 text-p2 font-medium whitespace-nowrap text-tertiary transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-violet-300 data-[state=active]:text-primary md:h-11 md:flex-none md:px-5 md:font-semibold md:text-secondary md:data-[state=active]:text-link"
+                class="flex flex-1 items-center justify-center px-4 py-2 text-p2 font-medium whitespace-nowrap text-tertiary transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-inset data-[state=active]:text-primary md:h-11 md:flex-none md:px-5 md:font-semibold md:text-secondary md:data-[state=active]:text-link"
               >
                 {{ item.label }}
               </TabsTrigger>
               <TabsIndicator
-                class="absolute -bottom-0.5 left-0 h-0.5 w-(--reka-tabs-indicator-size) translate-x-(--reka-tabs-indicator-position) bg-neutral-900 transition-[width,translate] duration-200 motion-reduce:transition-none md:-bottom-px md:bg-violet-400"
+                class="absolute bottom-0 left-0 h-0.5 w-(--reka-tabs-indicator-size) translate-x-(--reka-tabs-indicator-position) bg-neutral-900 transition-[width,translate] duration-200 motion-reduce:transition-none md:bg-violet-400"
               />
             </TabsList>
 

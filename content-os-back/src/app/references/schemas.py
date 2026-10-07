@@ -90,6 +90,8 @@ class ReferenceCounts(BaseModel):
     """Сколько референсов на каждой вкладке под текущими поиском и фильтрами."""
 
     all: int
+    # Созданные пользователем.
+    mine: int
     favorites: int
 
 

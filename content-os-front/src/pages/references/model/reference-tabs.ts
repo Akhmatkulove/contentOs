@@ -10,6 +10,7 @@ export interface ReferenceTab {
 export function referenceTabs(counts: ReferenceCounts | undefined): ReferenceTab[] {
   return [
     { value: 'all', label: 'All references', count: counts?.all ?? 0 },
+    { value: 'mine', label: 'My references', count: counts?.mine ?? 0 },
     { value: 'favorites', label: 'Favorites', count: counts?.favorites ?? 0 },
   ]
 }

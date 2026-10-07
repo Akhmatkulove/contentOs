@@ -263,3 +263,12 @@
     background-color: transparent;
   }
 }
+
+/* A strip that scrolls sideways without a visible scrollbar (tab bars on narrow screens). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

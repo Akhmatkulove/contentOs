@@ -44,7 +44,7 @@ function setSort(value: string | undefined) {
 
 <!--
   Figma "References" (desktop) and its mobile screen.
-  TODO(ui): tabs My references, Recent, Collections and the "…" menu — no data
+  TODO(ui): tabs Recent, Collections and the "…" menu — no data
   for them yet (collections).
 -->
 <template>
@@ -66,14 +66,15 @@ function setSort(value: string | undefined) {
 
     <!-- Mobile: Figma "CMS / Mobile / Tab" (equal-width, underlined); desktop: the
          tab bar of the references page. The tabs only switch the list below, so
-         there are no panels: Reka gives roving focus, arrows and aria-selected. -->
+         there are no panels: Reka gives roving focus, arrows and aria-selected.
+         Tabs that don't fit scroll sideways. -->
     <TabsRoot v-model="scope" activation-mode="automatic">
-      <TabsList aria-label="References" class="relative flex">
+      <TabsList aria-label="References" class="scrollbar-none relative flex overflow-x-auto">
         <TabsTrigger
           v-for="tab in tabs"
           :key="tab.value"
           :value="tab.value"
-          class="flex flex-1 items-center justify-center px-1 py-2 text-p2 font-medium whitespace-nowrap text-secondary transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-violet-300 data-[state=active]:text-primary md:flex-none md:p-2.5 md:text-link"
+          class="flex flex-1 items-center justify-center px-1 py-2 text-p2 font-medium whitespace-nowrap text-secondary transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-inset data-[state=active]:text-primary md:flex-none md:p-2.5"
         >
           {{ tab.label }} ({{ tab.count }})
         </TabsTrigger>
@@ -195,6 +196,9 @@ function setSort(value: string | undefined) {
       </p>
       <VClearFilters :count="activeFilters" @clear="clearFilters" />
     </div>
+    <p v-else-if="scope === 'mine'" class="py-10 text-center text-p2 font-medium text-secondary">
+      References you add show up here.
+    </p>
     <p
       v-else-if="scope === 'favorites'"
       class="py-10 text-center text-p2 font-medium text-secondary"

@@ -385,7 +385,8 @@ export interface paths {
      * List References
      * @description Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
      *
-     *     `scope=favorites` — только избранное пользователя; `counts` — размеры обеих вкладок.
+     *     `scope=mine` — только созданные пользователем, `scope=favorites` — его избранное;
+     *     `counts` — размеры всех вкладок.
      */
     get: operations['list_references_api_references_get']
     put?: never
@@ -837,6 +838,8 @@ export interface components {
     ReferenceCounts: {
       /** All */
       all: number
+      /** Mine */
+      mine: number
       /** Favorites */
       favorites: number
     }
@@ -942,10 +945,10 @@ export interface components {
     }
     /**
      * ReferenceScope
-     * @description Вкладка пула: все видимые референсы или избранные пользователем.
+     * @description Вкладка пула: все видимые референсы, созданные пользователем или его избранные.
      * @enum {string}
      */
-    ReferenceScope: 'all' | 'favorites'
+    ReferenceScope: 'all' | 'mine' | 'favorites'
     /**
      * ReferenceSort
      * @enum {string}

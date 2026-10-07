@@ -39,7 +39,7 @@ async def client(settings: Settings, db_session: AsyncSession) -> AsyncIterator[
         yield client
 
 
-EMPTY = {"items": [], "total": 0, "counts": {"all": 0, "favorites": 0}}
+EMPTY = {"items": [], "total": 0, "counts": {"all": 0, "mine": 0, "favorites": 0}}
 
 
 async def product_with_references(
@@ -332,21 +332,21 @@ async def test_favorites_tab_lists_only_favorites_with_tab_counts(
     assert {i["title"] for i in body["items"]} == {"Walk", "Drape"}
     assert all(i["favorite"] for i in body["items"])
     assert body["total"] == 2
-    assert body["counts"] == {"all": 3, "favorites": 2}
+    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 2}
 
     # Поиск и фильтры общие у обеих вкладок, счётчики тоже под ними.
     body = await listing(client, scope="favorites", tag="street")
     assert [i["title"] for i in body["items"]] == ["Walk"]
-    assert body["counts"] == {"all": 2, "favorites": 1}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1}
     body = await listing(client, tag="street", per_page=1)
     assert body["total"] == 2
-    assert body["counts"] == {"all": 2, "favorites": 1}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1}
 
     # Избранное своё: у другого арт-директора вкладка пуста.
     await log_in(client, "odina@example.com")
     body = await listing(client, scope="favorites")
     assert body["items"] == []
-    assert body["counts"] == {"all": 3, "favorites": 0}
+    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 0}
 
 
 async def test_lost_access_hides_favorites(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -361,11 +361,11 @@ async def test_lost_access_hides_favorites(client: AsyncClient, db_session: Asyn
     await db_session.execute(update(Deliverable).values(assignee_id=None))
     body = await listing(client, scope="favorites")
     assert body["items"] == []
-    assert body["counts"] == {"all": 0, "favorites": 0}
+    assert body["counts"] == {"all": 0, "mine": 0, "favorites": 0}
 
 
 async def test_list_rejects_unknown_scope(client: AsyncClient) -> None:
-    response = await client.get("/api/references", params={"scope": "mine"})
+    response = await client.get("/api/references", params={"scope": "recent"})
     assert response.status_code == 422
 
 
@@ -419,6 +419,29 @@ async def test_art_director_adds_own_reference_to_an_assigned_product(
     [seen] = (await listing(client))["items"]
     assert seen["id"] == created["id"]
     assert seen["favorite"] is False
+
+
+async def test_mine_tab_lists_only_own_references_with_tab_counts(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Brand", "link": "https://example.com/brand"}]
+    )
+    await log_in(client, "amina@example.com")
+    abaya = (await product_options(client))["Abaya"]
+    await add_reference(client, title="Walk", link="https://example.com/1", tags=["street"])
+    await add_reference(client, title="Drape", link="https://example.com/2", product_id=abaya)
+
+    body = await listing(client, scope="mine")
+    assert {i["title"] for i in body["items"]} == {"Walk", "Drape"}
+    assert body["total"] == 2
+    assert body["counts"] == {"all": 3, "mine": 2, "favorites": 0}
+
+    # Поиск и фильтры общие со всеми вкладками.
+    body = await listing(client, scope="mine", tag="street")
+    assert [i["title"] for i in body["items"]] == ["Walk"]
+    assert body["counts"] == {"all": 1, "mine": 1, "favorites": 0}
 
 
 async def test_reference_without_product_is_visible_only_to_its_author(

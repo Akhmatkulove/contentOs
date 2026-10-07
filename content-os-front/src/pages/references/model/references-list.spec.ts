@@ -37,7 +37,7 @@ describe('useReferencesList tabs', () => {
     vi.mocked(fetchReferences).mockResolvedValue({
       items: [],
       total: 0,
-      counts: { all: 12, favorites: 3 },
+      counts: { all: 12, mine: 5, favorites: 3 },
     })
     vi.mocked(fetchReferenceFilters).mockResolvedValue({ products: [], authors: [], tags: [] })
   })
@@ -48,6 +48,7 @@ describe('useReferencesList tabs', () => {
     expect(list.scope.value).toBe('all')
     expect(list.tabs.value.map((tab) => `${tab.label} (${tab.count})`)).toEqual([
       'All references (12)',
+      'My references (5)',
       'Favorites (3)',
     ])
   })

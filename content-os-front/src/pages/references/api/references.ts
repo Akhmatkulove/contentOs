@@ -16,7 +16,8 @@ export interface ReferencesQuery {
   authorId?: string
   tag?: string
   sort: ReferenceSort
-  // Favorites: only what the user starred; the counts come for every tab.
+  // Mine: only what the user created; favorites: only what they starred.
+  // The counts come for every tab.
   scope: ReferenceScope
   page: number
   perPage: number

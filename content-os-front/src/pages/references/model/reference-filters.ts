@@ -28,7 +28,7 @@ export const defaultFilters: ReferenceFilters = {
 
 // The pool's state in the URL: /references?tab=favorites&type=video&product=…&page=2.
 export const referenceQueryParams = {
-  scope: queryParam.oneOf(['all', 'favorites'], 'all', 'tab'),
+  scope: queryParam.oneOf(['all', 'mine', 'favorites'], 'all', 'tab'),
   search: queryParam.text(),
   type: queryParam.oneOf([ALL, 'video', 'image', 'moodboard'], ALL),
   productId: queryParam.text(ALL, 'product'),

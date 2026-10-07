@@ -50,9 +50,10 @@ class ReferenceSort(enum.StrEnum):
 
 
 class ReferenceScope(enum.StrEnum):
-    """Вкладка пула: все видимые референсы или избранные пользователем."""
+    """Вкладка пула: все видимые референсы, созданные пользователем или его избранные."""
 
     ALL = "all"
+    MINE = "mine"
     FAVORITES = "favorites"
 
 
@@ -139,19 +140,23 @@ async def list_references(
     per_page: int,
 ) -> ReferenceList:
     query = _filtered(user, params)
-    # Счётчики обеих вкладок одним проходом: поиск и фильтры у них общие.
+    # Счётчики всех вкладок одним проходом: поиск и фильтры у них общие.
     matched = query.subquery()
     sizes = (
         await db.execute(
             select(
                 func.count().label("all"),
+                func.count().filter(matched.c.owner_id == user.id).label("mine"),
                 func.count().filter(_favorite(user, matched.c.id)).label("favorites"),
             ).select_from(matched)
         )
     ).one()
-    counts = ReferenceCounts(all=sizes.all, favorites=sizes.favorites)
+    counts = ReferenceCounts(all=sizes.all, mine=sizes.mine, favorites=sizes.favorites)
     total = counts.all
-    if params.scope == ReferenceScope.FAVORITES:
+    if params.scope == ReferenceScope.MINE:
+        query = query.where(Reference.owner_id == user.id)
+        total = counts.mine
+    elif params.scope == ReferenceScope.FAVORITES:
         query = query.where(_favorite(user, Reference.id))
         total = counts.favorites
     references = list(
