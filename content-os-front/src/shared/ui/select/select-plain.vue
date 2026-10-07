@@ -44,9 +44,13 @@ const selectedLabel = computed(() => options.find((option) => option.value === m
 
 <template>
   <SelectRoot v-model="model" :disabled="disabled">
+    <!-- A filter's placeholder names it (Status, Sort by): it keeps the value colour. -->
     <SelectTrigger
       v-bind="triggerAttrs"
-      :class="[triggerClass(invalid, variant), 'data-placeholder:text-neutral-600']"
+      :class="[
+        triggerClass(invalid, variant),
+        variant === 'field' && 'data-placeholder:text-neutral-600',
+      ]"
     >
       <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
       <SelectValue :placeholder="placeholder" class="min-w-0 flex-1 truncate">
