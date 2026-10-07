@@ -12,12 +12,13 @@ const {
 } = defineProps<{
   name: string | null
   src: string | null
-  size?: 28 | 36
+  size?: 24 | 28 | 36
   class?: HTMLAttributes['class']
 }>()
 
 const initial = computed(() => (name || 'U').charAt(0).toUpperCase())
-const sizeClass = computed(() => (size === 36 ? 'size-9' : 'size-7'))
+const sizeClasses = { 24: 'size-6', 28: 'size-7', 36: 'size-9' } as const
+const sizeClass = computed(() => sizeClasses[size])
 </script>
 
 <template>

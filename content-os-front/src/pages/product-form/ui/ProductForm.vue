@@ -7,6 +7,7 @@ import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
 import { VNotificationButton } from '@/shared/ui/notification-button'
+import { VSectionCard } from '@/shared/ui/section-card'
 import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
 import { VTextarea } from '@/shared/ui/textarea'
@@ -14,7 +15,6 @@ import { VUploadThumbnail } from '@/shared/ui/upload-thumbnail'
 import { useProductForm } from '../model/product-form'
 import { photoAccept } from '../model/product-photos'
 import DeliverablesList from './DeliverablesList.vue'
-import SectionCard from './SectionCard.vue'
 
 // Add product and Edit product (Figma "Add product"): the same form. With
 // `productId` it edits that product; the "+" buttons of the product page open it
@@ -94,7 +94,7 @@ const emptyListClass =
 
     <template v-else>
       <div class="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_374px]">
-        <SectionCard id="details" title="Product details" class="scroll-mt-6">
+        <VSectionCard id="details" title="Product details" class="scroll-mt-6">
           <div class="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
             <VInput
               v-model="form.name"
@@ -122,9 +122,9 @@ const emptyListClass =
               class="md:col-span-2"
             />
           </div>
-        </SectionCard>
+        </VSectionCard>
 
-        <SectionCard title="Notes">
+        <VSectionCard title="Notes">
           <VTextarea
             v-model="form.notes"
             label="Notes"
@@ -132,10 +132,10 @@ const emptyListClass =
             :rows="2"
             class="xl:flex-1"
           />
-        </SectionCard>
+        </VSectionCard>
       </div>
 
-      <SectionCard id="photos" title="Photos" required class="scroll-mt-6">
+      <VSectionCard id="photos" title="Photos" required class="scroll-mt-6">
         <VDropzone
           ref="dropzone"
           :accept="photoAccept"
@@ -165,9 +165,9 @@ const emptyListClass =
             </VButton>
           </li>
         </ul>
-      </SectionCard>
+      </VSectionCard>
 
-      <SectionCard
+      <VSectionCard
         id="references"
         class="scroll-mt-6"
         title="References"
@@ -208,9 +208,9 @@ const emptyListClass =
           </li>
         </ul>
         <p v-else :class="emptyListClass">The References you've added will be displayed here</p>
-      </SectionCard>
+      </VSectionCard>
 
-      <SectionCard
+      <VSectionCard
         id="deliverables"
         class="scroll-mt-6"
         title="Deliverables"
@@ -233,7 +233,7 @@ const emptyListClass =
           @remove="removeDeliverable"
         />
         <p v-else :class="emptyListClass">The Deliverables you've added will be displayed here</p>
-      </SectionCard>
+      </VSectionCard>
     </template>
 
     <!-- On mobile the actions stay above the tab bar. -->

@@ -23,10 +23,11 @@ const { search, status, date, location, sort, locations } = useShootsList()
       </div>
 
       <div class="flex items-center gap-3">
-        <!-- TODO(ui): link to the create-shoot page once it exists. -->
-        <VButton class="hidden md:inline-flex">
-          <VIcon name="plus-sign" />
-          New shoot
+        <VButton as-child class="hidden md:inline-flex">
+          <RouterLink :to="{ name: 'shoot-create' }">
+            <VIcon name="plus-sign" />
+            New shoot
+          </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
         <VNotificationButton unread class="lg:hidden" />
@@ -79,9 +80,11 @@ const { search, status, date, location, sort, locations } = useShootsList()
     </section>
 
     <!-- Figma "btn / New shoot" (mobile). -->
-    <VButton class="w-full md:hidden">
-      <VIcon name="plus-sign" />
-      New shoot
+    <VButton as-child class="w-full md:hidden">
+      <RouterLink :to="{ name: 'shoot-create' }">
+        <VIcon name="plus-sign" />
+        New shoot
+      </RouterLink>
     </VButton>
   </div>
 </template>

@@ -16,6 +16,7 @@ import { ProductPage } from '@/pages/product'
 import { ProductCreatePage, ProductEditPage } from '@/pages/product-form'
 import { ProductsPage } from '@/pages/products'
 import { ReferencesPage } from '@/pages/references'
+import { ShootCreatePage } from '@/pages/shoot-form'
 import { ShootsPage } from '@/pages/shoots'
 import { SignupPage } from '@/pages/signup'
 import { TasksPage } from '@/pages/tasks'
@@ -37,6 +38,12 @@ export const router = createRouter({
         { path: '', name: 'home', component: HomePage },
         { path: 'tasks', name: 'tasks', component: TasksPage, meta: { roles: team } },
         { path: 'shoots', name: 'shoots', component: ShootsPage, meta: { roles: team } },
+        {
+          path: 'shoots/new',
+          name: 'shoot-create',
+          component: ShootCreatePage,
+          meta: { section: 'shoots', roles: team },
+        },
         { path: 'products', name: 'products', component: ProductsPage },
         {
           path: 'products/new',
