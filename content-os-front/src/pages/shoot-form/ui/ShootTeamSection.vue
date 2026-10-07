@@ -5,25 +5,66 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import type { TeamMember } from '../model/shoot-draft'
-import TeamMemberField from './TeamMemberField.vue'
+import TeamPicker from './TeamPicker.vue'
 
 // Figma "Card / Team": art director, creators, mobilographer side by side on
-// desktop, stacked on mobile.
-const { artDirector, creators, mobilographer } = defineProps<{
+// desktop, stacked on mobile. The art director is the one creating the shoot;
+// creators and the mobilographer are picked from the art director's creators.
+const {
+  artDirector,
+  creators,
+  creatorOptions,
+  mobilographer,
+  mobilographerOptions,
+  loading = false,
+} = defineProps<{
   artDirector: TeamMember | null
   creators: TeamMember[]
+  creatorOptions: TeamMember[]
   mobilographer: TeamMember | null
+  mobilographerOptions: TeamMember[]
+  loading?: boolean
 }>()
 
-const emit = defineEmits<{ removeCreator: [id: string] }>()
+const creatorIds = defineModel<string[]>('creatorIds', { required: true })
+const mobilographerId = defineModel<string | undefined>('mobilographerId')
 
+function toggleCreator(id: string) {
+  creatorIds.value = creatorIds.value.includes(id)
+    ? creatorIds.value.filter((value) => value !== id)
+    : [...creatorIds.value, id]
+}
+
+function toggleMobilographer(id: string) {
+  mobilographerId.value = mobilographerId.value === id ? undefined : id
+}
+
+const artDirectorLabelId = useId()
 const creatorsLabelId = useId()
+const mobilographerLabelId = useId()
+const mobilographerValueId = useId()
+
+const boxClass =
+  'flex h-11 w-full items-center gap-2 rounded-full border border-default bg-card p-2'
 </script>
 
 <template>
   <VSectionCard title="Team">
     <div class="grid items-start gap-4 lg:grid-cols-[252fr_656fr_252fr]">
-      <TeamMemberField label="Art Director" :member="artDirector" />
+      <!-- The one creating the shoot: shown, not picked. -->
+      <div role="group" :aria-labelledby="artDirectorLabelId" class="flex min-w-0 flex-col gap-2">
+        <span :id="artDirectorLabelId" class="text-p3 font-medium text-secondary"
+          >Art Director</span
+        >
+        <div :class="boxClass">
+          <template v-if="artDirector">
+            <VAvatar :name="artDirector.name" :src="artDirector.photo_url" />
+            <span class="truncate text-p3 font-medium text-primary">
+              {{ artDirector.name || 'You' }}
+            </span>
+          </template>
+        </div>
+      </div>
 
       <div role="group" :aria-labelledby="creatorsLabelId" class="flex min-w-0 flex-col gap-2">
         <span :id="creatorsLabelId" class="text-p3 font-medium text-secondary">Creators</span>
@@ -44,23 +85,81 @@ const creatorsLabelId = useId()
               size="icon-24"
               :aria-label="`Remove ${creator.name || 'creator'}`"
               class="relative size-3 text-secondary after:absolute after:-inset-2 hover:text-primary"
-              @click="emit('removeCreator', creator.id)"
+              @click="toggleCreator(creator.id)"
             >
               <VIcon name="multiplication-sign" :size="12" />
             </VButton>
           </li>
           <!-- Mobile: its own full-width row under the chips. -->
           <li class="flex basis-full md:basis-auto">
-            <!-- TODO(ui): creator picker (not in Figma yet). -->
-            <VButton variant="soft" size="36" class="flex-1 md:h-8.5 md:px-5">
-              <VIcon name="plus-sign" />
-              Add creator
-            </VButton>
+            <TeamPicker
+              :members="creatorOptions"
+              :selected="creatorIds"
+              multiple
+              label="Creators"
+              :loading="loading"
+              @toggle="toggleCreator"
+            >
+              <VButton variant="soft" size="36" class="flex-1 md:h-8.5 md:px-5">
+                <VIcon name="plus-sign" />
+                Add creator
+              </VButton>
+            </TeamPicker>
           </li>
         </ul>
       </div>
 
-      <TeamMemberField label="Mobilographer" :member="mobilographer" />
+      <div role="group" :aria-labelledby="mobilographerLabelId" class="flex min-w-0 flex-col gap-2">
+        <span :id="mobilographerLabelId" class="text-p3 font-medium text-secondary">
+          Mobilographer
+        </span>
+        <div class="relative">
+          <TeamPicker
+            :members="mobilographerOptions"
+            :selected="mobilographerId ? [mobilographerId] : []"
+            label="Mobilographer"
+            :loading="loading"
+            @toggle="toggleMobilographer"
+          >
+            <button
+              type="button"
+              :aria-labelledby="`${mobilographerLabelId} ${mobilographerValueId}`"
+              :class="[
+                boxClass,
+                'text-left transition-colors outline-none hover:bg-status-accent focus-visible:border-violet-400 focus-visible:ring-1 focus-visible:ring-violet-400 focus-visible:ring-inset',
+                mobilographer ? 'pr-10' : 'pr-3',
+              ]"
+            >
+              <template v-if="mobilographer">
+                <VAvatar :name="mobilographer.name" :src="mobilographer.photo_url" />
+                <span :id="mobilographerValueId" class="truncate text-p3 font-medium text-primary">
+                  {{ mobilographer.name || 'Unnamed' }}
+                </span>
+              </template>
+              <template v-else>
+                <VIcon name="plus-sign" :size="16" class="ml-1 shrink-0 text-secondary" />
+                <span
+                  :id="mobilographerValueId"
+                  class="flex-1 truncate text-p3 font-medium text-neutral-600"
+                >
+                  Select mobilographer
+                </span>
+              </template>
+            </button>
+          </TeamPicker>
+          <!-- Beside the field, not inside: a button can't hold another button. -->
+          <VButton
+            v-if="mobilographer"
+            variant="ghost"
+            size="icon-24"
+            :aria-label="`Remove ${mobilographer.name || 'mobilographer'}`"
+            class="absolute top-1/2 right-3 -translate-y-1/2 text-secondary hover:text-primary"
+            @click="mobilographerId = undefined"
+          >
+            <VIcon name="multiplication-sign" :size="14" />
+          </VButton>
+        </div>
+      </div>
     </div>
   </VSectionCard>
 </template>

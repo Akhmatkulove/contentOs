@@ -485,6 +485,27 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/team/creators': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Creators
+     * @description Креаторы из команды арт-директора (docs/adr/0002): из них он собирает съёмку —
+     *     креаторов и мобилографа (роль одна, «Creator / Mobilograph»).
+     */
+    get: operations['list_creators_api_team_creators_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -2110,6 +2131,37 @@ export interface operations {
     }
   }
   list_art_directors_api_team_art_directors_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TeamMember'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_creators_api_team_creators_get: {
     parameters: {
       query?: never
       header?: never

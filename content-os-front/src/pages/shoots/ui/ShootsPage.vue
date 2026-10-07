@@ -7,7 +7,7 @@ import { VSelect } from '@/shared/ui/select'
 import { dateFilterOptions, sortOptions, statusFilterOptions } from '../model/shoot-filters'
 import { useShootsList } from '../model/shoots-list'
 
-const { search, status, date, location, sort, locations } = useShootsList()
+const { search, status, date, location, sort, locations, canCreate } = useShootsList()
 </script>
 
 <template>
@@ -23,7 +23,7 @@ const { search, status, date, location, sort, locations } = useShootsList()
       </div>
 
       <div class="flex items-center gap-3">
-        <VButton as-child class="hidden md:inline-flex">
+        <VButton v-if="canCreate" as-child class="hidden md:inline-flex">
           <RouterLink :to="{ name: 'shoot-create' }">
             <VIcon name="plus-sign" />
             New shoot
@@ -80,7 +80,7 @@ const { search, status, date, location, sort, locations } = useShootsList()
     </section>
 
     <!-- Figma "btn / New shoot" (mobile). -->
-    <VButton as-child class="w-full md:hidden">
+    <VButton v-if="canCreate" as-child class="w-full md:hidden">
       <RouterLink :to="{ name: 'shoot-create' }">
         <VIcon name="plus-sign" />
         New shoot

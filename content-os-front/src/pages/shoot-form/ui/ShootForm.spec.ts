@@ -2,6 +2,7 @@ import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { http } from '@/shared/api'
 import ShootForm from './ShootForm.vue'
 
 async function mountForm() {
@@ -23,7 +24,12 @@ const errorTexts = (wrapper: Awaited<ReturnType<typeof mountForm>>) =>
   wrapper.findAll('p.text-red-400').map((p) => p.text())
 
 describe('ShootForm', () => {
+  // The team section asks for the art director's creators.
+  beforeEach(() => {
+    vi.spyOn(http, 'get').mockResolvedValue({ data: [] })
+  })
   afterEach(() => {
+    vi.restoreAllMocks()
     document.body.innerHTML = ''
   })
 

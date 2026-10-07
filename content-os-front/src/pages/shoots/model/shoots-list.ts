@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
 import { shootQueryParams } from './shoot-filters'
@@ -9,6 +10,9 @@ type FilterKey = 'status' | 'date' | 'location' | 'sort'
 // TODO(api): fetch the shoots with these params.
 export function useShootsList() {
   const { state: query, update } = useQueryParams(shootQueryParams)
+  const session = useSessionStore()
+  // The art director creates a shoot and becomes its art director.
+  const canCreate = computed(() => session.me?.role === 'art_director')
 
   const search = computed({
     get: () => query.search,
@@ -33,5 +37,6 @@ export function useShootsList() {
     location: filter('location'),
     sort: filter('sort'),
     locations,
+    canCreate,
   }
 }

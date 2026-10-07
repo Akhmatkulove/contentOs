@@ -4,6 +4,7 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VNotificationButton } from '@/shared/ui/notification-button'
 import { useShootForm } from '../model/shoot-form'
+import { useShootTeam } from '../model/shoot-team'
 import ShootDeliverablesSection from './ShootDeliverablesSection.vue'
 import ShootDetailsSection from './ShootDetailsSection.vue'
 import ShootProductsSection from './ShootProductsSection.vue'
@@ -15,8 +16,6 @@ import ShootTeamSection from './ShootTeamSection.vue'
 const {
   details,
   errors,
-  team,
-  removeCreator,
   products,
   productSearch,
   selectedProducts,
@@ -29,6 +28,16 @@ const {
   submit,
   saveDraft,
 } = useShootForm()
+const {
+  artDirector,
+  loading: teamLoading,
+  creatorIds,
+  creators,
+  creatorOptions,
+  mobilographerId,
+  mobilographer,
+  mobilographerOptions,
+} = useShootTeam()
 
 const formElement = useTemplateRef('formElement')
 
@@ -88,10 +97,14 @@ async function onSubmit() {
     />
 
     <ShootTeamSection
-      :art-director="team.artDirector"
-      :creators="team.creators"
-      :mobilographer="team.mobilographer"
-      @remove-creator="removeCreator"
+      v-model:creator-ids="creatorIds"
+      v-model:mobilographer-id="mobilographerId"
+      :art-director="artDirector"
+      :creators="creators"
+      :creator-options="creatorOptions"
+      :mobilographer="mobilographer"
+      :mobilographer-options="mobilographerOptions"
+      :loading="teamLoading"
     />
 
     <ShootProductsSection

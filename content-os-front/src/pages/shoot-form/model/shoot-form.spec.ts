@@ -9,8 +9,10 @@ const filled = {
   duration: '360',
 }
 
-const errorsOf = (input: Record<string, unknown>) =>
-  v.flatten<typeof shootDetailsSchema>(v.safeParse(shootDetailsSchema, input).issues ?? []).nested
+function errorsOf(input: Record<string, unknown>) {
+  const result = v.safeParse(shootDetailsSchema, input)
+  return result.success ? {} : v.flatten<typeof shootDetailsSchema>(result.issues).nested
+}
 
 describe('shootDetailsSchema', () => {
   it('needs everything but the location', () => {

@@ -1,8 +1,7 @@
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref } from 'vue'
-import { demoDeliverables, demoProducts, demoReferences, demoTeam } from './demo'
-import type { TeamMember } from './shoot-draft'
+import { demoDeliverables, demoProducts, demoReferences } from './demo'
 
 // Shoot details: everything but the location is required.
 // TODO(api): match the rules to the shoots API once it exists.
@@ -40,16 +39,6 @@ export function useShootForm() {
     duration: r$.duration.$errors[0] ?? '',
   }))
 
-  const team = reactive({
-    artDirector: demoTeam.artDirector as TeamMember | null,
-    creators: [...demoTeam.creators],
-    mobilographer: demoTeam.mobilographer as TeamMember | null,
-  })
-
-  function removeCreator(id: string) {
-    team.creators = team.creators.filter((creator) => creator.id !== id)
-  }
-
   const products = ref(demoProducts)
   const productSearch = ref('')
   const selectedProducts = ref(products.value.map((product) => product.id))
@@ -75,8 +64,6 @@ export function useShootForm() {
   return {
     details,
     errors,
-    team,
-    removeCreator,
     products,
     productSearch,
     selectedProducts,

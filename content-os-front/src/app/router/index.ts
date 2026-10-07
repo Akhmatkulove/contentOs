@@ -42,7 +42,8 @@ export const router = createRouter({
           path: 'shoots/new',
           name: 'shoot-create',
           component: ShootCreatePage,
-          meta: { section: 'shoots', roles: team },
+          // The art director creates a shoot and is its art director.
+          meta: { section: 'shoots', roles: ['art_director'] },
         },
         { path: 'products', name: 'products', component: ProductsPage },
         {

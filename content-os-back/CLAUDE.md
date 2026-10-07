@@ -25,7 +25,8 @@ src/app/files/         загрузка файлов POST /api/uploads: пров
 src/app/products/      продукты: список, страница GET /api/products/{id}, создание POST и редактирование PUT вместе с фото, референсами и deliverables (docs/adr/0003, 0004, 0005)
 src/app/deliverables/  deliverables продукта (модели, схемы; создаются из продукта): назначенный арт-директор видит продукт
 src/app/references/    референсы общего пула: GET /api/references (свои + референсы назначенных продуктов, docs/adr/0004), POST /api/references (свой референс)
-src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора из связок бренда)
+src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора бренда), GET /api/team/creators (креаторы арт-директора)
+src/app/locations/     подсказки адресов в Узбекистане: GET /api/locations/suggest (прокси к Геосаджесту Яндекса, ключ YANDEX_GEOSUGGEST_API_KEY)
 src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
