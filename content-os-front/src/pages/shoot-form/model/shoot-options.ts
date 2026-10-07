@@ -14,23 +14,19 @@ export const startTimeOptions: SelectOption[] = Array.from({ length: 33 }, (_, i
   return { value: time, label: time }
 })
 
-// "1 hour", "6 hours".
-export function durationLabel(hours: number): string {
-  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+// A length in minutes: 30 → "30 min", 60 → "1 h", 90 → "1 h 30 min".
+export function durationLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (!hours) return `${rest} min`
+  return rest ? `${hours} h ${rest} min` : `${hours} h`
 }
 
-// 1–12 hours; the value is the number of hours.
-export const durationOptions: SelectOption[] = Array.from({ length: 12 }, (_, index) => ({
-  value: String(index + 1),
-  label: durationLabel(index + 1),
-}))
-
-// TODO(api): the studios come from the backend.
-export const locationOptions: SelectOption[] = [
-  { value: 'tashkent-studio', label: 'Tashkent Studio' },
-  { value: 'white-studio', label: 'White Studio' },
-  { value: 'studio-a', label: 'Studio A' },
-]
+// Every half hour from 30 min to 12 h; the value is the length in minutes.
+export const durationOptions: SelectOption[] = Array.from({ length: 24 }, (_, index) => {
+  const minutes = (index + 1) * 30
+  return { value: String(minutes), label: durationLabel(minutes) }
+})
 
 // "All sources" filter over the reference bank.
 export const sourceFilterOptions: SelectOption[] = [

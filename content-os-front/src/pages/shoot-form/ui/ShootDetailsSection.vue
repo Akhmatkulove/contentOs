@@ -3,13 +3,14 @@ import { VDatePicker } from '@/shared/ui/date-picker'
 import { VInput } from '@/shared/ui/input'
 import { VSectionCard } from '@/shared/ui/section-card'
 import { VSelect } from '@/shared/ui/select'
-import { durationOptions, locationOptions, startTimeOptions } from '../model/shoot-options'
+import { durationOptions, startTimeOptions } from '../model/shoot-options'
+import LocationField from './LocationField.vue'
 
 // Figma "Card / Shoot details": name, date and place on the first row, time on
 // the second. One column on mobile, two on tablets.
 const name = defineModel<string>('name', { required: true })
 const date = defineModel<string>('date', { required: true })
-const location = defineModel<string>('location')
+const location = defineModel<string>('location', { required: true })
 const startTime = defineModel<string>('startTime')
 const duration = defineModel<string>('duration')
 </script>
@@ -26,13 +27,7 @@ const duration = defineModel<string>('duration')
           class="md:col-span-2 lg:col-span-1"
         />
         <VDatePicker v-model="date" label="Date" />
-        <VSelect
-          v-model="location"
-          :options="locationOptions"
-          label="Location"
-          placeholder="Select location"
-          icon="location-01"
-        />
+        <LocationField v-model="location" label="Location" />
       </div>
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <VSelect

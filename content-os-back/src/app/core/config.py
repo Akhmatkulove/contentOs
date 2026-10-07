@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
 
+    # Подсказки адресов (API Геосаджеста Яндекс Карт). Без ключа поиск адреса отвечает 404.
+    yandex_geosuggest_api_key: SecretStr | None = None
+
     # S3-совместимое хранилище файлов: локально MinIO из compose.yaml.
     # Без бакета загрузка файлов отвечает 404.
     s3_endpoint_url: str | None = None  # None — сам AWS S3

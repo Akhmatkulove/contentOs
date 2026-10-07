@@ -18,11 +18,20 @@ describe('startTimeOptions', () => {
   })
 })
 
-describe('durations', () => {
-  it('offers 1 to 12 hours', () => {
-    expect(durationLabel(1)).toBe('1 hour')
-    expect(durationLabel(6)).toBe('6 hours')
-    expect(durationOptions).toHaveLength(12)
-    expect(durationOptions[5]).toEqual({ value: '6', label: '6 hours' })
+describe('durationLabel', () => {
+  it('writes minutes as hours and minutes', () => {
+    expect(durationLabel(30)).toBe('30 min')
+    expect(durationLabel(60)).toBe('1 h')
+    expect(durationLabel(90)).toBe('1 h 30 min')
+    expect(durationLabel(360)).toBe('6 h')
+  })
+})
+
+describe('durationOptions', () => {
+  it('runs every half hour from 30 min to 12 h, valued in minutes', () => {
+    expect(durationOptions).toHaveLength(24)
+    expect(durationOptions[0]).toEqual({ value: '30', label: '30 min' })
+    expect(durationOptions[2]).toEqual({ value: '90', label: '1 h 30 min' })
+    expect(durationOptions.at(-1)).toEqual({ value: '720', label: '12 h' })
   })
 })

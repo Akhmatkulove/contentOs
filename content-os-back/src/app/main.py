@@ -13,6 +13,7 @@ from app.core.db import create_engine, create_sessionmaker
 from app.core.storage import build_storage
 from app.files.router import router as files_router
 from app.health.router import router as health_router
+from app.locations.router import router as locations_router
 from app.onboarding.router import router as onboarding_router
 from app.products.router import router as products_router
 from app.profile.router import router as profile_router
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # endpoint can't be left open by forgetting a dependency. Roles are checked on top.
     product = APIRouter(dependencies=[Depends(get_approved_user)])
     product.include_router(files_router)
+    product.include_router(locations_router)
     product.include_router(products_router)
     product.include_router(references_router)
     product.include_router(team_router)

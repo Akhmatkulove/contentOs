@@ -10,10 +10,11 @@ export function useShootForm() {
     name: '',
     // ISO date, YYYY-MM-DD.
     date: '',
-    location: undefined as string | undefined,
+    // Address picked from Yandex suggestions, as text.
+    location: '',
     // "HH:MM", see startTimeOptions.
     startTime: undefined as string | undefined,
-    // Hours as a string, see durationOptions.
+    // Minutes as a string, see durationOptions.
     duration: undefined as string | undefined,
   })
 

@@ -282,6 +282,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/locations/suggest': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Suggest Locations
+     * @description Подсказки адресов в Узбекистане для поля Location (API Геосаджеста).
+     */
+    get: operations['suggest_locations_api_locations_suggest_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/products': {
     parameters: {
       query?: never
@@ -604,6 +624,15 @@ export interface components {
     HealthResponse: {
       /** Status */
       status: string
+    }
+    /** LocationSuggestion */
+    LocationSuggestion: {
+      /** Title */
+      title: string
+      /** Subtitle */
+      subtitle: string | null
+      /** Address */
+      address: string
     }
     /** LoginRequest */
     LoginRequest: {
@@ -1623,6 +1652,39 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['FileResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  suggest_locations_api_locations_suggest_get: {
+    parameters: {
+      query?: {
+        q?: string
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['LocationSuggestion'][]
         }
       }
       /** @description Validation Error */
