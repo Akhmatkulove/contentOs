@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { shootDetailsSchema } from './shoot-form'
+import { shootDetailsSchema, shootSchema } from './shoot-form'
 
 const filled = {
   name: 'Autumn Collection — Lifestyle Shoot',
@@ -32,5 +32,15 @@ describe('shootDetailsSchema', () => {
 
   it('does not take spaces for a name', () => {
     expect(errorsOf({ ...filled, name: '   ' })).toEqual({ name: ['Enter the shoot name.'] })
+  })
+})
+
+describe('shootSchema', () => {
+  it('needs at least one ticked product', () => {
+    expect(v.safeParse(shootSchema, { details: filled, productIds: ['p1'] }).success).toBe(true)
+
+    const result = v.safeParse(shootSchema, { details: filled, productIds: [] })
+    expect(result.success).toBe(false)
+    expect(result.issues?.map((issue) => issue.message)).toEqual(['Select at least one product.'])
   })
 })

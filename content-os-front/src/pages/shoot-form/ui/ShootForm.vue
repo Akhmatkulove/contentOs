@@ -19,6 +19,7 @@ const {
   products,
   productSearch,
   selectedProducts,
+  browseProducts,
   references,
   referenceSearch,
   referenceSource,
@@ -111,6 +112,8 @@ async function onSubmit() {
       v-model:search="productSearch"
       v-model:selected="selectedProducts"
       :products="products"
+      :error="errors.products"
+      @browse="browseProducts"
     />
 
     <ShootReferencesSection

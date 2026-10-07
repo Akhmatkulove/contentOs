@@ -1,17 +1,10 @@
-import type { ShootDeliverable, ShootProduct, ShootReference, TeamMember } from './shoot-draft'
+import type { ShootDeliverable, ShootReference, TeamMember } from './shoot-draft'
 
 // TODO(api): demo content of the Figma mockup, so the layout can be reviewed
 // before the shoots API exists. Remove together with its import in shoot-form.ts.
 
 const amina: TeamMember = { id: 'demo-amina', name: 'Amina', photo_url: null }
 const odina: TeamMember = { id: 'demo-odina', name: 'Odina', photo_url: null }
-
-export const demoProducts: ShootProduct[] = [
-  { id: 'demo-p1', name: 'Black Abaya 042', collection: 'Autumn 26', photoUrl: null },
-  { id: 'demo-p2', name: 'Cream Dress 011', collection: 'Autumn 26', photoUrl: null },
-  { id: 'demo-p3', name: 'Olive Set 003', collection: 'Everyday', photoUrl: null },
-  { id: 'demo-p4', name: 'Sand Abaya 017', collection: 'Autumn 26', photoUrl: null },
-]
 
 export const demoReferences: ShootReference[] = [
   {

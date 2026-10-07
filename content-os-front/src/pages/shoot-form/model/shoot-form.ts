@@ -1,7 +1,9 @@
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref } from 'vue'
-import { demoDeliverables, demoProducts, demoReferences } from './demo'
+import { openBrowseProducts } from './browse-products'
+import { demoDeliverables, demoReferences } from './demo'
+import type { ShootProduct } from './shoot-draft'
 
 // Shoot details: everything but the location is required.
 // TODO(api): match the rules to the shoots API once it exists.
@@ -12,6 +14,12 @@ export const shootDetailsSchema = v.object({
   // The selects hold undefined until something is picked.
   startTime: v.string('Pick the start time.'),
   duration: v.string('Pick the estimated duration.'),
+})
+
+// The whole form: the details and at least one ticked product.
+export const shootSchema = v.object({
+  details: shootDetailsSchema,
+  productIds: v.pipe(v.array(v.string()), v.minLength(1, 'Select at least one product.')),
 })
 
 // State of the create-shoot screen. Layout stage: the screen holds what the
@@ -30,18 +38,32 @@ export function useShootForm() {
     duration: undefined as string | undefined,
   })
 
+  // The shoot's products, from "Browse all products"; the ticked ones go into the shoot.
+  const products = ref<ShootProduct[]>([])
+  const productSearch = ref('')
+  const selectedProducts = ref<string[]>([])
+
+  // What gets validated. reactive() unwraps the ref, so the form and the
+  // section's checkboxes share one list of ticked ids.
+  const form = reactive({ details, productIds: selectedProducts })
   // rewardEarly: a field turns valid as soon as it is fixed, but invalid only on submit.
-  const { r$ } = useRegleSchema(details, shootDetailsSchema, { rewardEarly: true })
+  const { r$ } = useRegleSchema(form, shootSchema, { rewardEarly: true })
   const errors = computed(() => ({
-    name: r$.name.$errors[0] ?? '',
-    date: r$.date.$errors[0] ?? '',
-    startTime: r$.startTime.$errors[0] ?? '',
-    duration: r$.duration.$errors[0] ?? '',
+    name: r$.details.name.$errors[0] ?? '',
+    date: r$.details.date.$errors[0] ?? '',
+    startTime: r$.details.startTime.$errors[0] ?? '',
+    duration: r$.details.duration.$errors[0] ?? '',
+    products: r$.productIds.$errors.$self[0] ?? '',
   }))
 
-  const products = ref(demoProducts)
-  const productSearch = ref('')
-  const selectedProducts = ref(products.value.map((product) => product.id))
+  // The modal starts from the ticked products; its pick replaces the list, all ticked.
+  async function browseProducts() {
+    const ticked = products.value.filter((product) => selectedProducts.value.includes(product.id))
+    const picked = await openBrowseProducts(ticked)
+    if (!picked) return
+    products.value = picked
+    selectedProducts.value = picked.map((product) => product.id)
+  }
 
   const references = ref(demoReferences)
   const referenceSearch = ref('')
@@ -51,7 +73,7 @@ export function useShootForm() {
   const deliverables = ref(demoDeliverables)
   const selectedDeliverables = ref(deliverables.value.map((item) => item.id))
 
-  // Whether the details passed; the screen moves focus to the first error if not.
+  // Whether the form passed; the screen moves focus to the first error if not.
   // TODO(api): POST the shoot with `data`, then open it.
   async function submit(): Promise<boolean> {
     const { valid } = await r$.$validate()
@@ -67,6 +89,7 @@ export function useShootForm() {
     products,
     productSearch,
     selectedProducts,
+    browseProducts,
     references,
     referenceSearch,
     referenceSource,

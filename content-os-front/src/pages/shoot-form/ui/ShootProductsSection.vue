@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VCheckbox } from '@/shared/ui/checkbox'
 import { VSearch } from '@/shared/ui/search'
@@ -9,10 +9,17 @@ import MediaPreview from './MediaPreview.vue'
 
 // Figma "Card / Select products": search, how many are picked, and the
 // products as cards with a checkbox. Two per row on mobile, four on desktop.
-const { products } = defineProps<{ products: ShootProduct[] }>()
+const { products, error } = defineProps<{
+  products: ShootProduct[]
+  // "Select at least one product."; empty while fine.
+  error?: string
+}>()
 
 const search = defineModel<string>('search', { required: true })
 const selected = defineModel<string[]>('selected', { required: true })
+
+// "Browse all products": the form opens the picker.
+const emit = defineEmits<{ browse: [] }>()
 
 function isSelected(id: string) {
   return selected.value.includes(id)
@@ -23,16 +30,24 @@ function setSelected(id: string, value: boolean | 'indeterminate') {
 }
 
 const count = computed(() => selectionLabel(selected.value.length, products.length))
+const errorId = useId()
 </script>
 
 <template>
   <VSectionCard
     title="Select products"
     description="Search for products and add them to this shoot."
+    required
   >
     <template #action>
-      <!-- TODO(ui): product picker — "Browse all products" is not in Figma yet. -->
-      <VButton variant="secondary" class="h-11 w-full md:h-10 md:w-auto">
+      <!-- Carries the error: a failed submit focuses it and screen readers read why. -->
+      <VButton
+        variant="secondary"
+        class="h-11 w-full md:h-10 md:w-auto"
+        :aria-invalid="error ? true : undefined"
+        :aria-describedby="error ? errorId : undefined"
+        @click="emit('browse')"
+      >
         Browse all products
       </VButton>
     </template>
@@ -50,7 +65,10 @@ const count = computed(() => selectionLabel(selected.value.length, products.leng
       </p>
     </div>
 
-    <ul class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+    <ul
+      v-if="products.length"
+      class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4"
+    >
       <li v-for="product in products" :key="product.id">
         <!-- The whole card is the checkbox's label: a click anywhere picks it. -->
         <label class="flex cursor-pointer flex-col gap-2.5">
@@ -66,5 +84,15 @@ const count = computed(() => selectionLabel(selected.value.length, products.leng
         </label>
       </li>
     </ul>
+    <p
+      v-else
+      :class="[
+        'flex h-[117px] items-center justify-center rounded-[20px] bg-subtle p-8 text-center text-p1 font-medium text-secondary',
+        error && 'border border-red-400',
+      ]"
+    >
+      The products you add will be displayed here
+    </p>
+    <p v-if="error" :id="errorId" class="text-p3 font-medium text-red-400">{{ error }}</p>
   </VSectionCard>
 </template>

@@ -54,6 +54,7 @@ describe('ShootForm', () => {
       'Pick the shoot date.',
       'Pick the start time.',
       'Pick the estimated duration.',
+      'Select at least one product.',
     ])
     expect(document.activeElement).toBe(
       wrapper.get('input[placeholder="Enter shoot name"]').element,
@@ -81,6 +82,19 @@ describe('ShootForm', () => {
     await flushPromises()
 
     expect(errorTexts(wrapper)).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('asks for at least one product on the browse button', async () => {
+    const wrapper = await mountForm()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    const browse = wrapper.findAll('button').find((b) => b.text() === 'Browse all products')!
+    expect(browse.attributes('aria-invalid')).toBe('true')
+    const message = document.getElementById(browse.attributes('aria-describedby')!)
+    expect(message?.textContent).toBe('Select at least one product.')
     wrapper.unmount()
   })
 })
