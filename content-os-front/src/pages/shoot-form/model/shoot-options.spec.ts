@@ -1,19 +1,20 @@
-import { durationLabel, durationOptions, formatStartTime, startTimeOptions } from './shoot-options'
+import { durationLabel, durationOptions, formatTime, startTimeOptions } from './shoot-options'
 
-describe('formatStartTime', () => {
-  it('reads "HH:MM" as a 12-hour time', () => {
-    expect(formatStartTime('10:00')).toBe('10:00 AM')
-    expect(formatStartTime('13:30')).toBe('1:30 PM')
-    expect(formatStartTime('12:00')).toBe('12:00 PM')
-    expect(formatStartTime('00:30')).toBe('12:30 AM')
+describe('formatTime', () => {
+  it('writes minutes since midnight as a 24-hour time', () => {
+    expect(formatTime(10 * 60)).toBe('10:00')
+    expect(formatTime(13 * 60 + 30)).toBe('13:30')
+    expect(formatTime(9 * 60 + 5)).toBe('09:05')
+    expect(formatTime(0)).toBe('00:00')
   })
 })
 
 describe('startTimeOptions', () => {
-  it('runs every half hour from 6 AM to 10 PM', () => {
-    expect(startTimeOptions[0]).toEqual({ value: '06:00', label: '6:00 AM' })
-    expect(startTimeOptions[1]?.value).toBe('06:30')
-    expect(startTimeOptions.at(-1)).toEqual({ value: '22:00', label: '10:00 PM' })
+  it('runs every half hour from 06:00 to 22:00, labelled as the value', () => {
+    expect(startTimeOptions[0]).toEqual({ value: '06:00', label: '06:00' })
+    expect(startTimeOptions[1]).toEqual({ value: '06:30', label: '06:30' })
+    expect(startTimeOptions.find((option) => option.value === '13:00')?.label).toBe('13:00')
+    expect(startTimeOptions.at(-1)).toEqual({ value: '22:00', label: '22:00' })
   })
 })
 

@@ -17,6 +17,7 @@
     "gen:api": "mkdir -p node_modules/.tmp && (cd ../content-os-back && uv run --quiet python -m app.openapi) > node_modules/.tmp/openapi.json && openapi-typescript node_modules/.tmp/openapi.json -o src/shared/api/schema.d.ts && prettier --write src/shared/api/schema.d.ts"
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.4",
     "@pinia/colada": "^1.4.7",
     "@regle/core": "^1.29.4",
     "@regle/schemas": "^1.29.4",

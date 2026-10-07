@@ -2,19 +2,16 @@ import type { SelectOption } from '@/shared/ui/select'
 
 // Options of the Shoot details selects.
 
-// "10:00" → "10:00 AM", "13:30" → "1:30 PM".
-export function formatStartTime(value: string): string {
-  const [hours = 0, minutes = 0] = value.split(':').map(Number)
-  const period = hours < 12 ? 'AM' : 'PM'
-  const hour = hours % 12 || 12
-  return `${hour}:${String(minutes).padStart(2, '0')} ${period}`
+// Minutes since midnight as a 24-hour time: 780 → "13:00", 570 → "09:30".
+export function formatTime(minutes: number): string {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0')
+  return `${hours}:${String(minutes % 60).padStart(2, '0')}`
 }
 
-// Every half hour of a working day, 6:00 AM–10:00 PM; the value is "HH:MM".
+// Every half hour of a working day, 06:00–22:00; the value is the label.
 export const startTimeOptions: SelectOption[] = Array.from({ length: 33 }, (_, index) => {
-  const minutes = 6 * 60 + index * 30
-  const value = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
-  return { value, label: formatStartTime(value) }
+  const time = formatTime(6 * 60 + index * 30)
+  return { value: time, label: time }
 })
 
 // "1 hour", "6 hours".
