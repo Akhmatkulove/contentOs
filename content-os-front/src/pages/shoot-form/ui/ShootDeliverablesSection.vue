@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useId } from 'vue'
 import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
@@ -13,10 +14,16 @@ import ShootDeliverableCard from './ShootDeliverableCard.vue'
 // Mobile: the card holds only the title and "Add deliverable"; the rows follow
 // it as separate cards (Figma "Task / …"). Checkboxes of the Figma rows are left
 // out: a deliverable added to the shoot is in it until removed with ×.
-const { deliverables } = defineProps<{ deliverables: ShootDeliverable[] }>()
+const { deliverables, error } = defineProps<{
+  deliverables: ShootDeliverable[]
+  // "Add at least one deliverable."; empty while fine.
+  error?: string
+}>()
 
 // "Add deliverable": the form opens the modal; × takes a deliverable out.
 const emit = defineEmits<{ add: []; remove: [id: string] }>()
+
+const errorId = useId()
 
 const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
 </script>
@@ -25,9 +32,17 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
   <VSectionCard
     title="Deliverables for this shoot"
     description="Select and assign deliverables for the selected products."
+    required
   >
     <template #action>
-      <VButton variant="secondary" class="h-11 w-full md:h-10 md:w-auto" @click="emit('add')">
+      <!-- Carries the error: a failed submit focuses it and screen readers read why. -->
+      <VButton
+        variant="secondary"
+        class="h-11 w-full md:h-10 md:w-auto"
+        :aria-invalid="error ? true : undefined"
+        :aria-describedby="error ? errorId : undefined"
+        @click="emit('add')"
+      >
         <VIcon name="plus-sign" />
         Add deliverable
       </VButton>
@@ -35,7 +50,10 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
 
     <p
       v-if="!deliverables.length"
-      class="flex h-[117px] items-center justify-center rounded-[20px] bg-subtle p-8 text-center text-p1 font-medium text-secondary"
+      :class="[
+        'flex h-[117px] items-center justify-center rounded-[20px] bg-subtle p-8 text-center text-p1 font-medium text-secondary',
+        error && 'border border-red-400',
+      ]"
     >
       The deliverables you add will be displayed here
     </p>
@@ -146,6 +164,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
         </tbody>
       </table>
     </div>
+    <p v-if="error" :id="errorId" class="text-p3 font-medium text-red-400">{{ error }}</p>
   </VSectionCard>
 
   <!-- Mobile rows, outside the card as in Figma. -->

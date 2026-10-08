@@ -36,11 +36,28 @@ describe('shootDetailsSchema', () => {
 })
 
 describe('shootSchema', () => {
-  it('needs at least one ticked product', () => {
-    expect(v.safeParse(shootSchema, { details: filled, productIds: ['p1'] }).success).toBe(true)
+  const messages = (input: Record<string, unknown>) =>
+    v.safeParse(shootSchema, { details: filled, ...input }).issues?.map((issue) => issue.message)
 
-    const result = v.safeParse(shootSchema, { details: filled, productIds: [] })
-    expect(result.success).toBe(false)
-    expect(result.issues?.map((issue) => issue.message)).toEqual(['Select at least one product.'])
+  it('needs a ticked product and a deliverable', () => {
+    expect(messages({ productIds: ['p1'], deliverableProductIds: ['p1'] })).toBeUndefined()
+    expect(messages({ productIds: [], deliverableProductIds: [] })).toEqual([
+      'Select at least one product.',
+      'Add at least one deliverable.',
+    ])
+  })
+
+  it('needs every deliverable to be for a ticked product', () => {
+    const result = v.safeParse(shootSchema, {
+      details: filled,
+      productIds: ['p1'],
+      deliverableProductIds: ['p1', 'p2'],
+    })
+    expect(result.issues?.map((issue) => issue.message)).toEqual([
+      'A deliverable is for a product that is no longer selected.',
+    ])
+    expect(v.flatten<typeof shootSchema>(result.issues!).nested).toHaveProperty(
+      'deliverableProductIds',
+    )
   })
 })

@@ -41,7 +41,7 @@ const {
   submit,
   saving,
   saveDraft,
-} = useShootForm(members)
+} = useShootForm({ members, creatorIds, mobilographerId })
 
 const formElement = useTemplateRef('formElement')
 
@@ -128,6 +128,7 @@ async function onSubmit() {
 
     <ShootDeliverablesSection
       :deliverables="deliverables"
+      :error="errors.deliverables"
       @add="addDeliverable"
       @remove="removeDeliverable"
     />

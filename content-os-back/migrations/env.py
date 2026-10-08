@@ -15,6 +15,15 @@ from app.files.models import StoredFile  # noqa: F401
 from app.products.models import Product, ProductPhoto  # noqa: F401
 from app.references.models import Reference, ReferenceFavorite, ReferenceFile  # noqa: F401
 from app.review.models import ReviewMessage  # noqa: F401
+from app.shoots.models import (  # noqa: F401
+    Shoot,
+    ShootDeliverable,
+    ShootDeliverableAssignee,
+    ShootDeliverableReference,
+    ShootMember,
+    ShootProduct,
+    ShootReference,
+)
 
 config = context.config
 

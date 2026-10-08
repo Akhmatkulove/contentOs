@@ -36,6 +36,9 @@ export function useShootReferences(products: MaybeRefOrGetter<ShootProduct[]>) {
   const saved = ref<Reference[]>([])
   const drafts = shallowRef<DraftEntry[]>([])
   const selected = ref<string[]>([])
+  // Draft id → its id in the pool once saved: deliverables still hold the draft's.
+  const savedIds = new Map<string, string>()
+  const savedId = (id: string) => savedIds.get(id) ?? id
 
   // New ones first, as in the product form.
   const references = computed<Reference[]>(() => [
@@ -86,6 +89,7 @@ export function useShootReferences(products: MaybeRefOrGetter<ShootProduct[]>) {
     try {
       for (const entry of ticked) {
         const reference = toReference(await saveReference(entry.draft))
+        savedIds.set(entry.draft.id, reference.id)
         revoke(entry)
         drafts.value = drafts.value.filter((item) => item !== entry)
         saved.value = [reference, ...saved.value]
@@ -99,5 +103,5 @@ export function useShootReferences(products: MaybeRefOrGetter<ShootProduct[]>) {
 
   onScopeDispose(() => drafts.value.forEach(revoke))
 
-  return { references, selected, addReference, browse, saveDrafts }
+  return { references, selected, addReference, browse, saveDrafts, savedId }
 }

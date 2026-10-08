@@ -98,6 +98,13 @@ def _visible(user: User) -> ColumnElement[bool]:
     return false()
 
 
+async def visible_ids(db: AsyncSession, user: User, ids: set[uuid.UUID]) -> set[uuid.UUID]:
+    """Те из ids, что пользователь видит в пуле: для чужих фич (съёмки, docs/adr/0007)."""
+    if not ids:
+        return set()
+    return set(await db.scalars(select(Reference.id).where(Reference.id.in_(ids), _visible(user))))
+
+
 def _favorite(user: User, reference_id: Any) -> ColumnElement[bool]:
     return exists().where(
         ReferenceFavorite.user_id == user.id, ReferenceFavorite.reference_id == reference_id

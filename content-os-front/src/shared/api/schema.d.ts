@@ -465,6 +465,33 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/shoots': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Shoots
+     * @description Съёмки арт-директора или те, где креатор в команде (docs/adr/0007).
+     *
+     *     Поиск по названию, адресу и названиям продуктов без учёта регистра. `counts` —
+     *     размеры вкладок по статусам под поиском и фильтрами, `total` — выбранного статуса.
+     */
+    get: operations['list_shoots_api_shoots_get']
+    put?: never
+    /**
+     * Create Shoot
+     * @description Съёмка одной транзакцией: команда, продукты, референсы, deliverables (docs/adr/0007).
+     */
+    post: operations['create_shoot_api_shoots_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -1015,6 +1042,134 @@ export interface components {
      * @enum {string}
      */
     Role: 'brand' | 'art_director' | 'creator'
+    /**
+     * ShootCounts
+     * @description Размеры вкладок под текущими поиском и фильтрами.
+     */
+    ShootCounts: {
+      /** All */
+      all: number
+      /** Upcoming */
+      upcoming: number
+      /** To Shoot */
+      to_shoot: number
+      /** In Progress */
+      in_progress: number
+      /** Completed */
+      completed: number
+    }
+    /** ShootCreate */
+    ShootCreate: {
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /**
+       * Start Time
+       * Format: time
+       */
+      start_time: string
+      /** Duration Minutes */
+      duration_minutes: number
+      /**
+       * Location
+       * @default
+       */
+      location: string
+      /** Creator Ids */
+      creator_ids?: string[]
+      /** Mobilographer Id */
+      mobilographer_id?: string | null
+      /** Product Ids */
+      product_ids: string[]
+      /** Reference Ids */
+      reference_ids?: string[]
+      /** Deliverables */
+      deliverables: components['schemas']['ShootDeliverableDraft'][]
+    }
+    /**
+     * ShootDeliverableDraft
+     * @description Deliverable новой съёмки: всё выбирается из того, что есть у съёмки.
+     */
+    ShootDeliverableDraft: {
+      /** Name */
+      name: string
+      /**
+       * Product Id
+       * Format: uuid
+       */
+      product_id: string
+      /** Assignee Ids */
+      assignee_ids?: string[]
+      /** Reference Ids */
+      reference_ids?: string[]
+      /** Due Date */
+      due_date?: string | null
+      /** @default to_shoot */
+      status: components['schemas']['DeliverableStatus']
+    }
+    /** ShootList */
+    ShootList: {
+      /** Items */
+      items: components['schemas']['ShootListItem'][]
+      /** Total */
+      total: number
+      counts: components['schemas']['ShootCounts']
+    }
+    /** ShootListItem */
+    ShootListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /**
+       * Start Time
+       * Format: time
+       */
+      start_time: string
+      /** Duration Minutes */
+      duration_minutes: number
+      /** Location */
+      location: string | null
+      status: components['schemas']['ShootStatus']
+      photo: components['schemas']['FileResponse'] | null
+      /** Products */
+      products: number
+      /** Deliverables */
+      deliverables: number
+      /** Approved */
+      approved: number
+      /** Team */
+      team: components['schemas']['TeamMember'][]
+    }
+    /**
+     * ShootPeriod
+     * @description Фильтр Date и период Shoot overview: по дате съёмки.
+     * @enum {string}
+     */
+    ShootPeriod: 'this_week' | 'this_month' | 'last_3_months' | 'last_6_months'
+    /**
+     * ShootSort
+     * @enum {string}
+     */
+    ShootSort: 'newest' | 'oldest' | 'name_asc' | 'name_desc'
+    /**
+     * ShootStatus
+     * @description Статус выводится из даты и deliverables, не хранится (docs/adr/0007).
+     * @enum {string}
+     */
+    ShootStatus: 'upcoming' | 'to_shoot' | 'in_progress' | 'completed'
     /** SignupRequest */
     SignupRequest: {
       /**
@@ -2118,6 +2273,79 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_shoots_api_shoots_get: {
+    parameters: {
+      query?: {
+        search?: string
+        status?: components['schemas']['ShootStatus'] | null
+        period?: components['schemas']['ShootPeriod'] | null
+        sort?: components['schemas']['ShootSort']
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_shoot_api_shoots_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootListItem']
+        }
       }
       /** @description Validation Error */
       422: {

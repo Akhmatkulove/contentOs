@@ -55,6 +55,7 @@ describe('ShootForm', () => {
       'Pick the start time.',
       'Pick the estimated duration.',
       'Select at least one product.',
+      'Add at least one deliverable.',
     ])
     expect(document.activeElement).toBe(
       wrapper.get('input[placeholder="Enter shoot name"]').element,

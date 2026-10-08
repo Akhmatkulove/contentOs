@@ -1,0 +1,64 @@
+import type { ShootDeliverable } from './shoot-draft'
+import { toShootCreate, type ShootFormData } from './shoot-request'
+
+const member = (id: string) => ({ id, name: id, photo_url: null })
+
+const walk: ShootDeliverable = {
+  id: 'd1',
+  name: 'Walking transition',
+  product: { id: 'p1', name: 'Abaya', collection: '', photoUrl: null },
+  references: [
+    { id: 'draft-1', title: 'New', previewUrl: null },
+    { id: 'r2', title: 'Unticked later', previewUrl: null },
+  ],
+  assignees: [member('lana'), member('gone')],
+  dueDate: '',
+  status: 'to_shoot',
+}
+
+const data: ShootFormData = {
+  details: {
+    name: 'Autumn Drop',
+    date: '2024-09-18',
+    location: '',
+    startTime: '10:00',
+    duration: '90',
+  },
+  creatorIds: ['lana'],
+  mobilographerId: 'odina',
+  productIds: ['p1'],
+  referenceIds: ['r1'],
+  deliverables: [walk],
+}
+
+describe('toShootCreate', () => {
+  it('maps the form to the request', () => {
+    const body = toShootCreate(data, (id) => (id === 'draft-1' ? 'r1' : id))
+    expect(body).toMatchObject({
+      name: 'Autumn Drop',
+      date: '2024-09-18',
+      start_time: '10:00',
+      duration_minutes: 90,
+      creator_ids: ['lana'],
+      mobilographer_id: 'odina',
+      product_ids: ['p1'],
+      reference_ids: ['r1'],
+    })
+    // Saved drafts by their pool id; people out of the team and unticked
+    // references left out.
+    expect(body.deliverables).toEqual([
+      {
+        name: 'Walking transition',
+        product_id: 'p1',
+        assignee_ids: ['lana'],
+        reference_ids: ['r1'],
+        due_date: null,
+        status: 'to_shoot',
+      },
+    ])
+  })
+
+  it('sends no mobilographer as null', () => {
+    expect(toShootCreate({ ...data, mobilographerId: undefined }).mobilographer_id).toBeNull()
+  })
+})
