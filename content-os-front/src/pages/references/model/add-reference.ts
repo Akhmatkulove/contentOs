@@ -1,21 +1,9 @@
 import { useQuery, useQueryCache } from '@pinia/colada'
 import { computed, ref } from 'vue'
 import { useSessionStore } from '@/entities/session'
-import { openAddReference, toRequest, type ReferenceDraft } from '@/features/add-reference'
-import { uploadFile } from '@/shared/api'
-import { uploadAll } from '@/shared/lib'
+import { openAddReference, saveReference, type ReferenceDraft } from '@/features/add-reference'
 import { toast } from '@/shared/ui/toast'
-import { createReference, fetchProductOptions, type ReferenceCreate } from '../api/references'
-
-// The draft as the pool's request, once its files are uploaded.
-export function toCreateRequest(draft: ReferenceDraft, fileIds: string[]): ReferenceCreate {
-  return {
-    ...toRequest(draft, fileIds),
-    product_id: draft.productId ?? null,
-    collection: draft.collection || null,
-    favorite: draft.favorite,
-  }
-}
+import { fetchProductOptions } from '../api/references'
 
 // "Add reference" on the pool: saves at once, the author is the user.
 export function useAddReference() {
@@ -34,13 +22,7 @@ export function useAddReference() {
   )
 
   async function save(draft: ReferenceDraft) {
-    const uploaded = await uploadAll(draft.files, uploadFile)
-    await createReference(
-      toCreateRequest(
-        draft,
-        uploaded.map((file) => file.id),
-      ),
-    )
+    await saveReference(draft)
     // The list, its tab counts and the filter options all may change.
     await queryCache.invalidateQueries({ key: ['references'] })
   }

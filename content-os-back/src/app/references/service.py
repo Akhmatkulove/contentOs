@@ -22,6 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.models import ArtDirectorCreator
 from app.auth.models import Role, User
 from app.core.config import Settings
 from app.core.storage import Storage
@@ -77,13 +78,23 @@ def _visible(user: User) -> ColumnElement[bool]:
     """Что из пула видит пользователь.
 
     Свои референсы, а арт-директор ещё и референсы продуктов, где на него назначен
-    deliverable (docs/adr/0004). Креатор получит чужие через съёмки, бренд страницы
-    пула не видит.
+    deliverable (docs/adr/0004). Креатор видит весь пул своих арт-директоров: их
+    референсы и референсы их продуктов (docs/adr/0006). Бренд страницы пула не видит.
     """
     if user.role == Role.ART_DIRECTOR:
         return or_(Reference.owner_id == user.id, _assigned(user, Reference.product_id))
     if user.role == Role.CREATOR:
-        return Reference.owner_id == user.id
+        art_directors = select(ArtDirectorCreator.art_director_id).where(
+            ArtDirectorCreator.creator_id == user.id
+        )
+        return or_(
+            Reference.owner_id == user.id,
+            Reference.owner_id.in_(art_directors),
+            exists().where(
+                Deliverable.product_id == Reference.product_id,
+                Deliverable.assignee_id.in_(art_directors),
+            ),
+        )
     return false()
 
 

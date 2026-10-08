@@ -5,9 +5,10 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.models import ArtDirectorCreator
 from app.auth.models import Role
 from app.core.config import Settings
 from app.core.db import get_session
@@ -25,6 +26,7 @@ from tests.test_products import (
     product,
     sign_up,
 )
+from tests.test_team import add_creator
 
 
 @pytest.fixture
@@ -227,6 +229,37 @@ async def test_references_go_with_the_deliverables(
     # Так снимает с deliverables админка, когда убирает связку с брендом (docs/adr/0004).
     await db_session.execute(update(Deliverable).values(assignee_id=None))
 
+    assert await listing(client) == EMPTY
+
+
+async def test_creator_sees_the_pool_of_their_art_directors(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Brand", "link": "https://example.com/b"}]
+    )
+    await product_with_references(
+        client, "Hijab", [odina], [{"title": "Other", "link": "https://example.com/o"}]
+    )
+    await log_in(client, "amina@example.com")
+    await add_reference(client, title="Amina", link="https://example.com/a")
+    await log_in(client, "odina@example.com")
+    await add_reference(client, title="Odina", link="https://example.com/d")
+    await sign_up(client, db_session, "creator@example.com", Role.CREATOR, "Kai")
+    await add_creator(db_session, "amina@example.com", "creator@example.com")
+    await log_in(client, "creator@example.com")
+
+    # Всё, что видит арт-директор: его референсы и референсы его продуктов.
+    body = await listing(client)
+    assert {item["title"] for item in body["items"]} == {"Amina", "Brand"}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 0}
+    filters = (await client.get("/api/references/filters")).json()
+    assert {author["name"] for author in filters["authors"]} == {"Acme", "Amina"}
+
+    # Снятие креатора из команды убирает и пул арт-директора.
+    await db_session.execute(delete(ArtDirectorCreator))
     assert await listing(client) == EMPTY
 
 

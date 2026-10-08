@@ -1,5 +1,5 @@
-import type { ReferenceDraft } from '@/features/add-reference'
-import { draftCard, previewFile } from './reference-draft'
+import type { ReferenceDraft } from './reference-draft'
+import { draftCard, previewFile } from './draft-card'
 
 const image = new File(['x'], 'beach.jpg', { type: 'image/jpeg' })
 const video = new File(['x'], 'walk.mp4', { type: 'video/mp4' })

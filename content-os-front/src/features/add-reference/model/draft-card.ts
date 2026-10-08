@@ -1,9 +1,9 @@
 import { linkHost, type Reference } from '@/entities/reference'
-import type { ReferenceDraft } from '@/features/add-reference'
+import type { ReferenceDraft } from './reference-draft'
 import { isVideo } from '@/shared/lib'
 
-// A reference added on the product page is kept in memory until the product is
-// created; then its files are uploaded and it goes with the product.
+// A reference added on a form (a product, a shoot) is kept in memory until the
+// form is saved; then its files are uploaded and it is created.
 // The draft as a ReferenceCard shows it. `previewUrl` is the page's object URL
 // of the first image; videos and links have no preview yet.
 export function draftCard(

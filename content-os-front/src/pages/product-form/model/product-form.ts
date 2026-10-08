@@ -7,7 +7,13 @@ import { toDeliverable } from '@/entities/deliverable'
 import { productKey, useProduct, type ProductDetails, type ProductStatus } from '@/entities/product'
 import { toReference, type Reference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
-import { openAddReference, toRequest, type ReferenceDraft } from '@/features/add-reference'
+import {
+  draftCard,
+  openAddReference,
+  previewFile,
+  toRequest,
+  type ReferenceDraft,
+} from '@/features/add-reference'
 import { uploadFile, type Schemas } from '@/shared/api'
 import { uploadAll } from '@/shared/lib'
 import { toast } from '@/shared/ui/toast'
@@ -15,7 +21,6 @@ import { createProduct, updateProduct, type ProductCreate } from '../api/product
 import { toRequest as deliverableRequest } from './deliverable-draft'
 import { useDeliverables } from './deliverables'
 import { photoIds, useProductPhotos, type PhotoEntry } from './product-photos'
-import { draftCard, previewFile } from './reference-draft'
 
 export const productSchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.nonEmpty('Enter the product name.')),

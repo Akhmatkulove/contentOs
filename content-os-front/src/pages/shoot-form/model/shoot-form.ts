@@ -1,11 +1,11 @@
+import { useMutation } from '@pinia/colada'
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref } from 'vue'
 import { openBrowseProducts } from './browse-products'
-import type { Reference } from '@/entities/reference'
-import { openReferenceBank } from './browse-references'
 import { demoDeliverables } from './demo'
 import type { ShootProduct } from './shoot-draft'
+import { useShootReferences } from './shoot-references'
 
 // Shoot details: everything but the location is required.
 // TODO(api): match the rules to the shoots API once it exists.
@@ -67,28 +67,30 @@ export function useShootForm() {
     selectedProducts.value = picked.map((product) => product.id)
   }
 
-  // The shoot's references, from "Browse reference bank"; the ticked ones go into the shoot.
-  const references = ref<Reference[]>([])
-  const selectedReferences = ref<string[]>([])
-
-  // The bank starts from the ticked references; its pick replaces the list, all ticked.
-  async function browseReferences() {
-    const ticked = references.value.filter((reference) =>
-      selectedReferences.value.includes(reference.id),
-    )
-    const picked = await openReferenceBank(ticked)
-    if (!picked) return
-    references.value = picked
-    selectedReferences.value = picked.map((reference) => reference.id)
-  }
+  // New references take their product from the shoot's ticked products.
+  const {
+    references,
+    selected: selectedReferences,
+    addReference,
+    browse: browseReferences,
+    saveDrafts,
+  } = useShootReferences(() =>
+    products.value.filter((product) => selectedProducts.value.includes(product.id)),
+  )
 
   const deliverables = ref(demoDeliverables)
   const selectedDeliverables = ref(deliverables.value.map((item) => item.id))
 
+  // TODO(api): POST the shoot with `data` and the new references in one request
+  // (as the product form does), then open it. Until then the references are
+  // saved to the pool on their own.
+  const { mutate: create, isLoading: saving } = useMutation({ mutation: saveDrafts })
+
   // Whether the form passed; the screen moves focus to the first error if not.
-  // TODO(api): POST the shoot with `data`, then open it.
   async function submit(): Promise<boolean> {
+    if (saving.value) return true
     const { valid } = await r$.$validate()
+    if (valid) create()
     return valid
   }
   // A draft may stay incomplete: no validation.
@@ -104,10 +106,12 @@ export function useShootForm() {
     browseProducts,
     references,
     selectedReferences,
+    addReference,
     browseReferences,
     deliverables,
     selectedDeliverables,
     submit,
+    saving,
     saveDraft,
   }
 }

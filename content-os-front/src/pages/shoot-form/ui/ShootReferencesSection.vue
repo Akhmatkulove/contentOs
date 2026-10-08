@@ -7,13 +7,13 @@ import { toggleSelection } from '../model/shoot-draft'
 import SelectableReferenceCard from './SelectableReferenceCard.vue'
 
 // Figma "Card / References for this shoot": references picked in the bank
-// (searching and filtering happen there), shown as SelectableReferenceCard.
+// (searching and filtering happen there) and new ones, shown as SelectableReferenceCard.
 const { references } = defineProps<{ references: Reference[] }>()
 
 const selected = defineModel<string[]>('selected', { required: true })
 
-// "Browse reference bank": the form opens the picker.
-const emit = defineEmits<{ browse: [] }>()
+// "Add reference" and "Browse reference bank": the form opens the modals.
+const emit = defineEmits<{ add: []; browse: [] }>()
 
 function setSelected(id: string, picked: boolean) {
   selected.value = toggleSelection(selected.value, id, picked)
@@ -28,8 +28,7 @@ function setSelected(id: string, picked: boolean) {
     <template #action>
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         <!-- Figma mobile has no "Add reference": the bank is the way in there. -->
-        <!-- TODO(ui): add-reference modal for a shoot. -->
-        <VButton class="hidden md:inline-flex">
+        <VButton class="hidden md:inline-flex" @click="emit('add')">
           <VIcon name="plus-sign" />
           Add reference
         </VButton>
