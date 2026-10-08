@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, defineAsyncComponent, ref } from 'vue'
+import { confirmAction } from '@/shared/ui/confirm-modal'
 import { openModal } from '@/shared/ui/modal'
 import type { SegmentedOption } from '@/shared/ui/segmented'
 import { assignLink, fetchAdminUsers, unassignLink, type LinkRef } from '../api/admin'
@@ -17,9 +18,8 @@ import {
   type ManagedUser,
 } from './directory'
 
-// The modals' code loads on first open.
+// The modal's code loads on first open.
 const AssignModal = defineAsyncComponent(() => import('../ui/AssignModal.vue'))
-const ConfirmModal = defineAsyncComponent(() => import('../ui/ConfirmModal.vue'))
 
 const USERS_KEY = ['admin', 'users']
 
@@ -78,7 +78,7 @@ export function useAdminDirectory() {
   }
 
   async function confirmRemove(entry: DirectoryEntry, section: LinkSection, partner: ManagedUser) {
-    const confirmed = await openModal(ConfirmModal, {
+    const confirmed = await confirmAction({
       title: `Remove ${partnerNoun(section)}?`,
       description: removeLinkMessage(section, entry.user, partner),
       confirmLabel: 'Remove',

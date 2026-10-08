@@ -2,6 +2,8 @@
 import { VButton } from '@/shared/ui/button'
 import { VModal } from '@/shared/ui/modal'
 
+// "Are you sure?" before an action (the admin's link changes, deleting a note).
+// Open it with confirmAction().
 const { title, description, confirmLabel } = defineProps<{
   title: string
   description: string

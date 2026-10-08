@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, defineAsyncComponent, ref, toValue, type MaybeRefOrGetter } from 'vue'
+import { confirmAction } from '@/shared/ui/confirm-modal'
 import { openModal } from '@/shared/ui/modal'
 import { toast } from '@/shared/ui/toast'
 import {
@@ -55,13 +56,23 @@ export function useShootNotes(
     mutation: (note: ShootNote) => pinNote(shootId(), note.id, !note.pinned),
     onSuccess: refresh,
   })
-  const { mutate: remove } = useMutation({
+  const { mutate: deleteNow } = useMutation({
     mutation: (note: ShootNote) => deleteNote(shootId(), note.id),
     onSuccess: () => {
       toast.success('Note deleted')
       return refresh()
     },
   })
+
+  // Delete asks first: a deleted note can't be brought back.
+  async function remove(note: ShootNote) {
+    const confirmed = await confirmAction({
+      title: 'Delete note?',
+      description: `“${note.title}” will be deleted for the whole team. This can’t be undone.`,
+      confirmLabel: 'Delete',
+    })
+    if (confirmed) deleteNow(note)
+  }
 
   // New note without `note`; Edit with it.
   async function openForm(note?: ShootNote) {
