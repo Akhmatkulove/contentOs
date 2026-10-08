@@ -6,7 +6,7 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import { firstAndMore, type ShootDeliverable } from '../model/shoot-draft'
-import MediaPreview from './MediaPreview.vue'
+import { VThumbnail } from '@/shared/ui/thumbnail'
 
 // Figma "Task / …" (mobile) under "Card / Deliverables for this shoot": the
 // deliverable with its status, product and references, assignees and due date.
@@ -50,7 +50,7 @@ const media = computed(() => [
     <!-- A <dl> can't hold the thumbnails next to its terms, so plain text here. -->
     <div class="flex flex-col gap-3 rounded-xl bg-subtle p-3">
       <div v-for="row in media" :key="row.label" class="flex items-center gap-3">
-        <MediaPreview :src="row.src" :icon-size="14" class="h-10 w-8 rounded-lg" />
+        <VThumbnail :src="row.src" :icon-size="14" class="h-10 w-8 rounded-lg" />
         <div class="flex min-w-0 flex-col gap-1">
           <p class="text-p4 font-medium text-secondary">{{ row.label }}</p>
           <p class="truncate text-table font-medium text-primary">{{ row.value }}</p>

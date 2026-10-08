@@ -17,7 +17,13 @@ export function pickable(pool: TeamMember[], taken: string[]): TeamMember[] {
 // The shoot's team. The art director is whoever creates the shoot; creators
 // (any number) and the mobilographer (at most one) come from the art director's
 // own creators.
-export function useShootTeam() {
+// `initial`: the saved team when editing. Its people stay pickable even if an
+// admin has since unlinked them from the art director.
+export function useShootTeam(initial?: {
+  creatorIds: string[]
+  mobilographerId: string | undefined
+  members: TeamMember[]
+}) {
   const session = useSessionStore()
 
   const artDirector = computed<TeamMember | null>(() => {
@@ -26,10 +32,16 @@ export function useShootTeam() {
   })
 
   const { data, isLoading } = useQuery({ key: ['team', 'creators'], query: fetchCreators })
-  const pool = computed(() => data.value ?? [])
+  const pool = computed(() => {
+    const linked = data.value ?? []
+    const kept = (initial?.members ?? []).filter(
+      (member) => !linked.some((item) => item.id === member.id),
+    )
+    return [...linked, ...kept]
+  })
 
-  const creatorIds = ref<string[]>([])
-  const mobilographerId = ref<string>()
+  const creatorIds = ref<string[]>(initial?.creatorIds ?? [])
+  const mobilographerId = ref<string | undefined>(initial?.mobilographerId)
 
   const creators = computed(() => membersByIds(pool.value, creatorIds.value))
   const mobilographer = computed(

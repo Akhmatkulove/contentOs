@@ -238,3 +238,106 @@ async def test_searches_filters_and_counts(client: AsyncClient) -> None:
     assert [i["name"] for i in (await listing(client, search="dre"))["items"]] == ["Summer"]
     assert [i["name"] for i in (await listing(client, search="white"))["items"]] == ["Autumn"]
     assert (await listing(client, period="last_3_months"))["total"] == 2
+
+
+# --- Shoot page and editing ---
+
+
+async def test_shoot_page_shows_team_products_and_deliverables(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    created = await post(client, await shoot(client))
+
+    page = (await client.get(f"/api/shoots/{created['id']}")).json()
+    assert page["can_edit"] is True
+    assert page["art_director"]["name"] == "Amina"
+    assert [m["name"] for m in page["creators"]] == ["Lana"]
+    assert page["mobilographer"]["name"] == "Odina"
+    [abaya] = page["products"]
+    assert abaya["name"] == "Abaya"
+    assert abaya["photo"]["url"]
+    assert abaya["deliverables"] == {
+        "total": 1,
+        "to_shoot": 1,
+        "in_progress": 0,
+        "needs_changes": 0,
+        "approved": 0,
+    }
+    [walk] = page["deliverables"]
+    assert walk["name"] == "Walking transition"
+    assert walk["product_id"] == abaya["id"]
+    assert [a["name"] for a in walk["assignees"]] == ["Lana"]
+
+    # The team sees it but can't edit; others get 404.
+    await log_in(client, "lana@example.com")
+    response = await client.get(f"/api/shoots/{created['id']}")
+    assert response.status_code == 200
+    assert response.json()["can_edit"] is False
+    await sign_up(client, db_session, "ad2@example.com", Role.ART_DIRECTOR, "Risolat")
+    assert (await client.get(f"/api/shoots/{created['id']}")).status_code == 404
+
+
+async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> None:
+    body = await shoot(client)
+    created = await post(client, body)
+    page = (await client.get(f"/api/shoots/{created['id']}")).json()
+    walk = page["deliverables"][0]
+    dress = (await products(client))["Dress"]
+    team = await creators(client)
+
+    response = await client.put(
+        f"/api/shoots/{created['id']}",
+        json={
+            **body,
+            "name": "Renamed",
+            "creator_ids": [team["Lana"], team["Odina"]],
+            "mobilographer_id": None,
+            "product_ids": [*body["product_ids"], dress],
+            "deliverables": [
+                {"name": "Close-up", "product_id": dress, "assignee_ids": [team["Odina"]]},
+                {
+                    "id": walk["id"],
+                    "name": "Walk, renamed",
+                    "product_id": walk["product_id"],
+                    "assignee_ids": [team["Odina"]],
+                    "status": "approved",
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200, response.text
+    edited = response.json()
+    assert edited["name"] == "Renamed"
+    assert [m["name"] for m in edited["creators"]] == ["Lana", "Odina"]
+    assert edited["mobilographer"] is None
+    assert [d["name"] for d in edited["deliverables"]] == ["Close-up", "Walk, renamed"]
+    kept = edited["deliverables"][1]
+    assert (kept["id"], kept["status"]) == (walk["id"], "approved")
+    assert [a["name"] for a in kept["assignees"]] == ["Odina"]
+
+    # Dropping a deliverable from the list deletes it.
+    response = await client.put(
+        f"/api/shoots/{created['id']}",
+        json={**body, "deliverables": [{**body["deliverables"][0], "id": walk["id"]}]},
+    )
+    assert [d["id"] for d in response.json()["deliverables"]] == [walk["id"]]
+
+
+async def test_only_the_author_edits_and_only_its_deliverables(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    body = await shoot(client)
+    first = await post(client, body)
+    second = await post(client, body)
+    foreign = (await client.get(f"/api/shoots/{second['id']}")).json()["deliverables"][0]["id"]
+
+    response = await client.put(
+        f"/api/shoots/{first['id']}",
+        json={**body, "deliverables": [{**body["deliverables"][0], "id": foreign}]},
+    )
+    assert response.status_code == 422
+
+    await sign_up(client, db_session, "ad2@example.com", Role.ART_DIRECTOR, "Risolat")
+    assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 404
+    await log_in(client, "lana@example.com")
+    assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 403

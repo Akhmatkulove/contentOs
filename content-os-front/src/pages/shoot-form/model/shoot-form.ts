@@ -4,11 +4,13 @@ import * as v from 'valibot'
 import { computed, reactive, ref, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from '@/shared/ui/toast'
-import { createShoot } from '../api/shoots'
+import { shootKey } from '@/entities/shoot'
+import { createShoot, updateShoot } from '../api/shoots'
 import { openAddDeliverable } from './add-deliverable'
 import { openBrowseProducts } from './browse-products'
 import type { ShootDeliverable, ShootProduct, TeamMember } from './shoot-draft'
 import { useShootReferences } from './shoot-references'
+import type { ShootFormInitial } from './shoot-initial'
 import { toShootCreate } from './shoot-request'
 
 // Shoot details: everything but the location is required, as on the server
@@ -58,29 +60,37 @@ export interface ShootFormTeam {
   mobilographerId: Ref<string | undefined>
 }
 
-// State of the create-shoot screen. Create shoot saves the new references to
-// the pool, then the shoot with everything in it, and goes back to the shoots.
+// The form being saved: a new shoot, or an existing one with its id.
+export interface ShootFormTarget {
+  id: string
+  initial: ShootFormInitial
+}
+
+// State of the create and edit shoot screens. Saving puts the new references
+// in the pool, then the shoot with everything in it, and opens the shoot.
 // TODO(api): save a draft.
-export function useShootForm(team: ShootFormTeam) {
+export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
+  const initial = editing?.initial
   const details = reactive({
-    name: '',
+    name: initial?.details.name ?? '',
     // ISO date, YYYY-MM-DD.
-    date: '',
+    date: initial?.details.date ?? '',
     // Address picked from Yandex suggestions, as text.
-    location: '',
+    location: initial?.details.location ?? '',
     // "HH:MM", see startTimeOptions.
-    startTime: undefined as string | undefined,
+    startTime: initial?.details.startTime as string | undefined,
     // Minutes as a string, see durationOptions.
-    duration: undefined as string | undefined,
+    duration: initial?.details.duration as string | undefined,
   })
 
   // The shoot's products, from "Browse all products"; the ticked ones go into the shoot.
-  const products = ref<ShootProduct[]>([])
+  const products = ref<ShootProduct[]>(initial?.products ?? [])
   const productSearch = ref('')
-  const selectedProducts = ref<string[]>([])
+  const selectedProducts = ref<string[]>((initial?.products ?? []).map((product) => product.id))
 
-  // Deliverables added here: all of them go into the shoot.
-  const deliverables = ref<ShootDeliverable[]>([])
+  // Deliverables of the shoot: all of them go into it. Removing a saved one
+  // deletes it on save.
+  const deliverables = ref<ShootDeliverable[]>(initial?.deliverables ?? [])
 
   // What gets validated. reactive() unwraps the refs, so the form and the
   // section's checkboxes share one list of ticked ids.
@@ -121,7 +131,7 @@ export function useShootForm(team: ShootFormTeam) {
     browse: browseReferences,
     saveDrafts,
     savedId,
-  } = useShootReferences(tickedProducts)
+  } = useShootReferences(tickedProducts, initial?.references)
 
   // Picked from what the shoot has now.
   async function addDeliverable() {
@@ -148,26 +158,28 @@ export function useShootForm(team: ShootFormTeam) {
   const { mutate: create, isLoading: saving } = useMutation({
     mutation: async (validated: { details: v.InferOutput<typeof shootDetailsSchema> }) => {
       await saveDrafts()
-      return createShoot(
-        toShootCreate(
-          {
-            details: validated.details,
-            creatorIds: team.creatorIds.value,
-            mobilographerId: team.mobilographerId.value,
-            productIds: selectedProducts.value,
-            referenceIds: selectedReferences.value,
-            deliverables: deliverables.value,
-          },
-          savedId,
-        ),
+      const body = toShootCreate(
+        {
+          details: validated.details,
+          creatorIds: team.creatorIds.value,
+          mobilographerId: team.mobilographerId.value,
+          productIds: selectedProducts.value,
+          referenceIds: selectedReferences.value,
+          deliverables: deliverables.value,
+        },
+        savedId,
       )
+      if (!editing) return { id: (await createShoot(body)).id }
+      const saved = await updateShoot(editing.id, body)
+      // The shoot page opens with what the server saved, without a refetch.
+      queryCache.setQueryData(shootKey(saved.id), saved)
+      return { id: saved.id }
     },
-    onSuccess: async () => {
-      // The list, its tab counts and the location filter show the new shoot.
+    onSuccess: async ({ id }) => {
+      // The list, its tab counts and Next shoot show the change.
       await queryCache.invalidateQueries({ key: ['shoots'] })
-      toast.success('Shoot created')
-      // TODO(ui): open the shoot's page once it is designed.
-      await router.push({ name: 'shoots' })
+      toast.success(editing ? 'Changes saved' : 'Shoot created')
+      await router.push({ name: 'shoot', params: { id } })
     },
   })
 

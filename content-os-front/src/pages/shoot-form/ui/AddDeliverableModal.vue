@@ -17,7 +17,7 @@ import {
   type TeamMember,
 } from '../model/shoot-draft'
 import ListPicker from './ListPicker.vue'
-import MediaPreview from './MediaPreview.vue'
+import { VThumbnail } from '@/shared/ui/thumbnail'
 
 // Figma "Edit / Edit product" (Add deliverable) for a shoot. Everything is
 // picked from what the shoot has: its ticked products, its team (several
@@ -142,7 +142,7 @@ const referencesId = useId()
         >
           <template #default>
             <button :id="referencesId" type="button" :class="selectTriggerClass(false)">
-              <MediaPreview
+              <VThumbnail
                 v-if="references[0]"
                 :src="references[0].previewUrl"
                 :icon-size="12"
@@ -163,7 +163,7 @@ const referencesId = useId()
             </button>
           </template>
           <template #item="{ item }">
-            <MediaPreview :src="item.previewUrl" :icon-size="12" class="h-7 w-[22px] rounded-md" />
+            <VThumbnail :src="item.previewUrl" :icon-size="12" class="h-7 w-[22px] rounded-md" />
             <span class="min-w-0 flex-1 truncate">{{ item.title }}</span>
           </template>
         </ListPicker>

@@ -492,6 +492,30 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/shoots/{shoot_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Shoot
+     * @description Страница съёмки: автору и её команде, остальным 404 (docs/adr/0008).
+     */
+    get: operations['get_shoot_api_shoots__shoot_id__get']
+    /**
+     * Update Shoot
+     * @description Форма редактирования целиком; только автор съёмки (docs/adr/0008).
+     */
+    put: operations['update_shoot_api_shoots__shoot_id__put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -594,6 +618,22 @@ export interface components {
        * Format: date-time
        */
       assigned_at: string
+    }
+    /**
+     * DeliverableCounts
+     * @description Deliverables съёмки по статусам: прогресс продукта или всей съёмки.
+     */
+    DeliverableCounts: {
+      /** Total */
+      total: number
+      /** To Shoot */
+      to_shoot: number
+      /** In Progress */
+      in_progress: number
+      /** Needs Changes */
+      needs_changes: number
+      /** Approved */
+      approved: number
     }
     /**
      * DeliverableDraft
@@ -1092,9 +1132,11 @@ export interface components {
     }
     /**
      * ShootDeliverableDraft
-     * @description Deliverable новой съёмки: всё выбирается из того, что есть у съёмки.
+     * @description Deliverable съёмки: всё выбирается из того, что есть у съёмки.
      */
     ShootDeliverableDraft: {
+      /** Id */
+      id?: string | null
       /** Name */
       name: string
       /**
@@ -1109,6 +1151,28 @@ export interface components {
       /** Due Date */
       due_date?: string | null
       /** @default to_shoot */
+      status: components['schemas']['DeliverableStatus']
+    }
+    /** ShootDeliverableResponse */
+    ShootDeliverableResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Product Id
+       * Format: uuid
+       */
+      product_id: string
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+      /** Reference Ids */
+      reference_ids: string[]
+      /** Due Date */
+      due_date: string | null
       status: components['schemas']['DeliverableStatus']
     }
     /** ShootList */
@@ -1159,6 +1223,62 @@ export interface components {
      * @enum {string}
      */
     ShootPeriod: 'this_week' | 'this_month' | 'last_3_months' | 'last_6_months'
+    /** ShootProductItem */
+    ShootProductItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Collection */
+      collection: string | null
+      /** Category */
+      category: string | null
+      photo: components['schemas']['FileResponse'] | null
+      deliverables: components['schemas']['DeliverableCounts']
+    }
+    /**
+     * ShootResponse
+     * @description Страница съёмки и форма её редактирования (docs/adr/0008).
+     */
+    ShootResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /**
+       * Start Time
+       * Format: time
+       */
+      start_time: string
+      /** Duration Minutes */
+      duration_minutes: number
+      /** Location */
+      location: string | null
+      status: components['schemas']['ShootStatus']
+      art_director: components['schemas']['TeamMember']
+      /** Creators */
+      creators: components['schemas']['TeamMember'][]
+      mobilographer: components['schemas']['TeamMember'] | null
+      /** Products */
+      products: components['schemas']['ShootProductItem'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /** Deliverables */
+      deliverables: components['schemas']['ShootDeliverableResponse'][]
+      /** Can Edit */
+      can_edit: boolean
+    }
     /**
      * ShootSort
      * @enum {string}
@@ -2345,6 +2465,76 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ShootListItem']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_shoot_api_shoots__shoot_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_shoot_api_shoots__shoot_id__put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootResponse']
         }
       }
       /** @description Validation Error */

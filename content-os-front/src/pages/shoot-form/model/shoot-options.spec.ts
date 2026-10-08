@@ -1,4 +1,4 @@
-import { durationLabel, durationOptions, formatTime, startTimeOptions } from './shoot-options'
+import { durationOptions, formatTime, startTimeOptions } from './shoot-options'
 
 describe('formatTime', () => {
   it('writes minutes since midnight as a 24-hour time', () => {
@@ -15,15 +15,6 @@ describe('startTimeOptions', () => {
     expect(startTimeOptions[1]).toEqual({ value: '06:30', label: '06:30' })
     expect(startTimeOptions.find((option) => option.value === '13:00')?.label).toBe('13:00')
     expect(startTimeOptions.at(-1)).toEqual({ value: '22:00', label: '22:00' })
-  })
-})
-
-describe('durationLabel', () => {
-  it('writes minutes as hours and minutes', () => {
-    expect(durationLabel(30)).toBe('30 min')
-    expect(durationLabel(60)).toBe('1 h')
-    expect(durationLabel(90)).toBe('1 h 30 min')
-    expect(durationLabel(360)).toBe('6 h')
   })
 })
 

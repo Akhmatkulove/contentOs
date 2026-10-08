@@ -7,7 +7,7 @@ import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import { VStatus } from '@/shared/ui/status'
 import { firstAndMore, type ShootDeliverable } from '../model/shoot-draft'
-import MediaPreview from './MediaPreview.vue'
+import { VThumbnail } from '@/shared/ui/thumbnail'
 import ShootDeliverableCard from './ShootDeliverableCard.vue'
 
 // Figma "Card / Deliverables for this shoot". Desktop: a table inside the card.
@@ -92,7 +92,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
             </th>
             <td class="pr-3">
               <div class="flex items-center gap-2">
-                <MediaPreview
+                <VThumbnail
                   :src="item.product.photoUrl"
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"
@@ -102,7 +102,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
             </td>
             <td class="pr-3">
               <div v-if="item.references[0]" class="flex items-center gap-2">
-                <MediaPreview
+                <VThumbnail
                   :src="item.references[0].previewUrl"
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"

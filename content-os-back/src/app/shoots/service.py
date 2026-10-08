@@ -15,6 +15,7 @@ from sqlalchemy import (
     and_,
     case,
     cast,
+    delete,
     exists,
     false,
     func,
@@ -34,6 +35,7 @@ from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.products.models import Product, ProductPhoto
 from app.references import service as references
+from app.references.models import Reference
 from app.shoots.models import (
     Shoot,
     ShootDeliverable,
@@ -45,10 +47,15 @@ from app.shoots.models import (
     ShootRole,
 )
 from app.shoots.schemas import (
+    DeliverableCounts,
     ShootCounts,
     ShootCreate,
+    ShootDeliverableDraft,
+    ShootDeliverableResponse,
     ShootList,
     ShootListItem,
+    ShootProductItem,
+    ShootResponse,
     ShootStatus,
 )
 from app.team.schemas import TeamMember
@@ -97,25 +104,48 @@ async def _require_assigned_products(
         raise _unprocessable("Product not found")
 
 
-async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) -> Shoot:
-    """Съёмка с командой, продуктами, референсами и deliverables одной транзакцией."""
-    await _require_own_creators(db, art_director, set(body.team_ids()))
-    await _require_assigned_products(db, art_director, set(body.product_ids))
-    wanted = set(body.reference_ids)
+async def _check(
+    db: AsyncSession, art_director: User, body: ShootCreate, shoot: Shoot | None = None
+) -> None:
+    """Команда, продукты и референсы — те, что арт-директор может взять в съёмку.
+
+    При редактировании уже стоящие в съёмке проходят без проверки: связку с
+    креатором или назначение на продукт могли снять после создания.
+    """
+    members: set[uuid.UUID] = set()
+    products: set[uuid.UUID] = set()
+    shoot_references: set[uuid.UUID] = set()
+    if shoot is not None:
+        members = set(
+            await db.scalars(select(ShootMember.user_id).where(ShootMember.shoot_id == shoot.id))
+        )
+        products = set(
+            await db.scalars(
+                select(ShootProduct.product_id).where(ShootProduct.shoot_id == shoot.id)
+            )
+        )
+        shoot_references = set(
+            await db.scalars(
+                select(ShootReference.reference_id).where(ShootReference.shoot_id == shoot.id)
+            )
+        )
+    await _require_own_creators(db, art_director, set(body.team_ids()) - members)
+    await _require_assigned_products(db, art_director, set(body.product_ids) - products)
+    wanted = set(body.reference_ids) - shoot_references
     if await references.visible_ids(db, art_director, wanted) != wanted:
         raise _unprocessable("Reference not found")
 
-    shoot = Shoot(
-        art_director_id=art_director.id,
-        name=body.name,
-        date=body.date,
-        start_time=body.start_time,
-        duration_minutes=body.duration_minutes,
-        location=body.location or None,
-    )
-    db.add(shoot)
-    await db.flush()
 
+def _set_fields(shoot: Shoot, body: ShootCreate) -> None:
+    shoot.name = body.name
+    shoot.date = body.date
+    shoot.start_time = body.start_time
+    shoot.duration_minutes = body.duration_minutes
+    shoot.location = body.location or None
+
+
+def _add_links(db: AsyncSession, shoot: Shoot, body: ShootCreate) -> None:
+    """Команда, продукты и референсы съёмки в порядке запроса."""
     roles = [(user_id, ShootRole.CREATOR) for user_id in body.creator_ids]
     if body.mobilographer_id:
         roles.append((body.mobilographer_id, ShootRole.MOBILOGRAPHER))
@@ -131,16 +161,25 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
         ShootReference(shoot_id=shoot.id, reference_id=reference_id, position=index)
         for index, reference_id in enumerate(body.reference_ids)
     )
-    for index, draft in enumerate(body.deliverables):
-        deliverable = ShootDeliverable(
-            shoot_id=shoot.id,
-            position=index,
-            product_id=draft.product_id,
-            name=draft.name,
-            status=draft.status,
-            due_date=draft.due_date,
-        )
-        db.add(deliverable)
+
+
+async def _write_deliverables(
+    db: AsyncSession,
+    shoot: Shoot,
+    drafts: list[ShootDeliverableDraft],
+    existing: dict[uuid.UUID, ShootDeliverable],
+) -> None:
+    """Deliverables по порядку: с `id` — обновляются (из `existing`), без — создаются."""
+    for index, draft in enumerate(drafts):
+        deliverable = existing[draft.id] if draft.id is not None else None
+        if deliverable is None:
+            deliverable = ShootDeliverable(shoot_id=shoot.id)
+            db.add(deliverable)
+        deliverable.position = index
+        deliverable.product_id = draft.product_id
+        deliverable.name = draft.name
+        deliverable.status = draft.status
+        deliverable.due_date = draft.due_date
         await db.flush()
         db.add_all(
             ShootDeliverableAssignee(deliverable_id=deliverable.id, user_id=user_id, position=i)
@@ -152,8 +191,67 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
             )
             for i, reference_id in enumerate(draft.reference_ids)
         )
+
+
+async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) -> Shoot:
+    """Съёмка с командой, продуктами, референсами и deliverables одной транзакцией."""
+    if any(draft.id is not None for draft in body.deliverables):
+        raise _unprocessable("Unknown deliverable")
+    await _check(db, art_director, body)
+    shoot = Shoot(art_director_id=art_director.id)
+    _set_fields(shoot, body)
+    db.add(shoot)
+    await db.flush()
+    _add_links(db, shoot, body)
+    await _write_deliverables(db, shoot, body.deliverables, {})
     await db.flush()
     return shoot
+
+
+async def update_shoot(
+    db: AsyncSession, art_director: User, shoot_id: uuid.UUID, body: ShootCreate
+) -> Shoot:
+    """Форма редактирования целиком (docs/adr/0008). Только автор съёмки, остальным 404.
+
+    Команда, продукты и референсы записываются заново. Deliverables с `id`
+    обновляются и сохраняют свой id (на нём будут задачи и загрузки), без `id` —
+    создаются, не перечисленные — удаляются.
+    """
+    shoot = await db.scalar(
+        select(Shoot)
+        .where(Shoot.id == shoot_id, Shoot.art_director_id == art_director.id)
+        .with_for_update()
+    )
+    if shoot is None:
+        raise _not_found()
+    await _check(db, art_director, body, shoot)
+    existing = {
+        deliverable.id: deliverable
+        for deliverable in await db.scalars(
+            select(ShootDeliverable).where(ShootDeliverable.shoot_id == shoot.id)
+        )
+    }
+    kept = {draft.id for draft in body.deliverables if draft.id is not None}
+    if not kept <= set(existing):
+        raise _unprocessable("Unknown deliverable")
+
+    for model in (ShootMember, ShootProduct, ShootReference):
+        await db.execute(delete(model).where(model.shoot_id == shoot.id))
+    if removed := set(existing) - kept:
+        await db.execute(delete(ShootDeliverable).where(ShootDeliverable.id.in_(removed)))
+    if kept:
+        for link in (ShootDeliverableAssignee, ShootDeliverableReference):
+            await db.execute(delete(link).where(link.deliverable_id.in_(kept)))
+    _set_fields(shoot, body)
+    _add_links(db, shoot, body)
+    await _write_deliverables(db, shoot, body.deliverables, existing)
+    await db.flush()
+    return shoot
+
+
+def _not_found() -> HTTPException:
+    # Чужая съёмка отвечает так же, как несуществующая.
+    return HTTPException(status.HTTP_404_NOT_FOUND, "Shoot not found")
 
 
 def _visible(user: User) -> ColumnElement[bool]:
@@ -320,7 +418,7 @@ async def get_item(
     """Съёмка в виде строки списка: ответ на создание."""
     rows = (await db.execute(_with_status(user).where(Shoot.id == shoot_id))).all()
     if not rows:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Shoot not found")
+        raise _not_found()
     return (await _to_items(db, storage, settings, rows))[0]
 
 
@@ -391,3 +489,126 @@ async def _to_items(
         )
         for row in rows
     ]
+
+
+async def get_shoot(
+    db: AsyncSession, user: User, storage: Storage, settings: Settings, shoot_id: uuid.UUID
+) -> ShootResponse:
+    """Страница съёмки: автору и команде (_visible), остальным 404.
+
+    Число запросов не зависит от размера съёмки.
+    """
+    row = (await db.execute(_with_status(user).where(Shoot.id == shoot_id))).one_or_none()
+    if row is None:
+        raise _not_found()
+    shoot: Shoot = row.Shoot
+
+    members = (
+        await db.execute(
+            select(ShootMember.user_id, ShootMember.role)
+            .where(ShootMember.shoot_id == shoot.id)
+            .order_by(ShootMember.position)
+        )
+    ).all()
+    deliverables = list(
+        await db.scalars(
+            select(ShootDeliverable)
+            .where(ShootDeliverable.shoot_id == shoot.id)
+            .order_by(ShootDeliverable.position, ShootDeliverable.id)
+        )
+    )
+    deliverable_ids = [deliverable.id for deliverable in deliverables]
+    assignees: dict[uuid.UUID, list[uuid.UUID]] = defaultdict(list)
+    for row_ in await db.execute(
+        select(ShootDeliverableAssignee.deliverable_id, ShootDeliverableAssignee.user_id)
+        .where(ShootDeliverableAssignee.deliverable_id.in_(deliverable_ids))
+        .order_by(ShootDeliverableAssignee.position)
+    ):
+        assignees[row_.deliverable_id].append(row_.user_id)
+    deliverable_references: dict[uuid.UUID, list[uuid.UUID]] = defaultdict(list)
+    for row_ in await db.execute(
+        select(ShootDeliverableReference.deliverable_id, ShootDeliverableReference.reference_id)
+        .where(ShootDeliverableReference.deliverable_id.in_(deliverable_ids))
+        .order_by(ShootDeliverableReference.position)
+    ):
+        deliverable_references[row_.deliverable_id].append(row_.reference_id)
+
+    wanted = {
+        shoot.art_director_id,
+        *(member.user_id for member in members),
+        *(user_id for ids in assignees.values() for user_id in ids),
+    }
+    people = {
+        person.id: person for person in await db.scalars(select(User).where(User.id.in_(wanted)))
+    }
+
+    def member(user_id: uuid.UUID) -> TeamMember:
+        return TeamMember.of(people[user_id], settings)
+
+    products = (
+        await db.execute(
+            select(Product, StoredFile)
+            .join(ShootProduct, ShootProduct.product_id == Product.id)
+            .outerjoin(
+                ProductPhoto,
+                and_(ProductPhoto.product_id == Product.id, ProductPhoto.position == 0),
+            )
+            .outerjoin(StoredFile, StoredFile.id == ProductPhoto.file_id)
+            .where(ShootProduct.shoot_id == shoot.id)
+            .order_by(ShootProduct.position)
+        )
+    ).all()
+
+    def counts(items: list[ShootDeliverable]) -> DeliverableCounts:
+        by_status = dict.fromkeys(DeliverableStatus, 0)
+        for item in items:
+            by_status[item.status] += 1
+        return DeliverableCounts(total=len(items), **{k.value: v for k, v in by_status.items()})
+
+    shoot_references = list(
+        await db.scalars(
+            select(Reference)
+            .join(ShootReference, ShootReference.reference_id == Reference.id)
+            .where(ShootReference.shoot_id == shoot.id)
+            .order_by(ShootReference.position)
+        )
+    )
+
+    mobilographer = next((m.user_id for m in members if m.role == ShootRole.MOBILOGRAPHER), None)
+    return ShootResponse(
+        id=shoot.id,
+        name=shoot.name,
+        date=shoot.date,
+        start_time=shoot.start_time,
+        duration_minutes=shoot.duration_minutes,
+        location=shoot.location,
+        status=ShootStatus(row.status),
+        art_director=member(shoot.art_director_id),
+        creators=[member(m.user_id) for m in members if m.role == ShootRole.CREATOR],
+        mobilographer=member(mobilographer) if mobilographer else None,
+        products=[
+            ShootProductItem(
+                id=product.id,
+                name=product.name,
+                collection=product.collection,
+                category=product.category,
+                photo=FileResponse.of(photo, storage) if photo is not None else None,
+                deliverables=counts([d for d in deliverables if d.product_id == product.id]),
+            )
+            for product, photo in products
+        ],
+        references=await references.to_responses(db, user, storage, shoot_references),
+        deliverables=[
+            ShootDeliverableResponse(
+                id=deliverable.id,
+                name=deliverable.name,
+                product_id=deliverable.product_id,
+                assignees=[member(user_id) for user_id in assignees[deliverable.id]],
+                reference_ids=deliverable_references[deliverable.id],
+                due_date=deliverable.due_date,
+                status=deliverable.status,
+            )
+            for deliverable in deliverables
+        ],
+        can_edit=shoot.art_director_id == user.id,
+    )

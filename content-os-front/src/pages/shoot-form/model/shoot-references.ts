@@ -28,14 +28,18 @@ export function referenceProductOptions(products: ShootProduct[]): SelectOption[
 // added here. A new reference stays a draft in memory until the shoot is
 // created; then it goes to the pool, where the art director's creators see it
 // too (docs/adr/0006). The ticked ones go into the shoot.
-export function useShootReferences(products: MaybeRefOrGetter<ShootProduct[]>) {
+// `initial`: the shoot's saved references when editing; all of them ticked.
+export function useShootReferences(
+  products: MaybeRefOrGetter<ShootProduct[]>,
+  initial: Reference[] = [],
+) {
   const session = useSessionStore()
   const queryCache = useQueryCache()
 
   // From the bank, plus drafts once they are saved.
-  const saved = ref<Reference[]>([])
+  const saved = ref<Reference[]>(initial)
   const drafts = shallowRef<DraftEntry[]>([])
-  const selected = ref<string[]>([])
+  const selected = ref<string[]>(initial.map((reference) => reference.id))
   // Draft id → its id in the pool once saved: deliverables still hold the draft's.
   const savedIds = new Map<string, string>()
   const savedId = (id: string) => savedIds.get(id) ?? id

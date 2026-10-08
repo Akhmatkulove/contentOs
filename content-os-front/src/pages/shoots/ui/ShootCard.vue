@@ -5,7 +5,8 @@ import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
-import { productsLabel, shootStatuses, type Shoot } from '../model/shoot'
+import { shootStatuses } from '@/entities/shoot'
+import { productsLabel, type Shoot } from '../model/shoot'
 
 // Figma "Card / Shoot …". From xl a single row: photo, details, progress, team
 // and Open shoot, spread over the width: details and progress share the free

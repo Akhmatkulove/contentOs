@@ -48,6 +48,7 @@ describe('toShootCreate', () => {
     // references left out.
     expect(body.deliverables).toEqual([
       {
+        id: null,
         name: 'Walking transition',
         product_id: 'p1',
         assignee_ids: ['lana'],
@@ -56,6 +57,11 @@ describe('toShootCreate', () => {
         status: 'to_shoot',
       },
     ])
+  })
+
+  it('keeps the id of a saved deliverable', () => {
+    const body = toShootCreate({ ...data, deliverables: [{ ...walk, saved: true }] })
+    expect(body.deliverables[0]?.id).toBe('d1')
   })
 
   it('sends no mobilographer as null', () => {

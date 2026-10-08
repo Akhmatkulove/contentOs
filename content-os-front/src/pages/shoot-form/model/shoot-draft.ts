@@ -23,6 +23,8 @@ export interface DeliverableReference {
 
 export interface ShootDeliverable {
   id: string
+  // Already on the server (editing a shoot): keeps its id when the shoot is saved.
+  saved?: boolean
   name: string
   product: ShootProduct
   // The shoot's references to follow; may be none.

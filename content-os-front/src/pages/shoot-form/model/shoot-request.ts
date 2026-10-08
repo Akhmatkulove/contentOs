@@ -41,6 +41,7 @@ export function toShootCreate(
     product_ids: data.productIds,
     reference_ids: data.referenceIds,
     deliverables: data.deliverables.map((deliverable) => ({
+      id: deliverable.saved ? deliverable.id : null,
       name: deliverable.name,
       product_id: deliverable.product.id,
       assignee_ids: deliverable.assignees.map((member) => member.id).filter((id) => team.has(id)),

@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -8,7 +9,7 @@ from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
 from app.shoots import service
-from app.shoots.schemas import ShootCreate, ShootList, ShootListItem, ShootStatus
+from app.shoots.schemas import ShootCreate, ShootList, ShootListItem, ShootResponse, ShootStatus
 
 router = APIRouter(prefix="/shoots", tags=["shoots"])
 
@@ -49,3 +50,30 @@ async def create_shoot(
     shoot = await service.create_shoot(db, art_director, body)
     await db.commit()
     return await service.get_item(db, art_director, storage, settings, shoot.id)
+
+
+@router.get("/{shoot_id}")
+async def get_shoot(
+    shoot_id: uuid.UUID,
+    user: ApprovedUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ShootResponse:
+    """Страница съёмки: автору и её команде, остальным 404 (docs/adr/0008)."""
+    return await service.get_shoot(db, user, storage, settings, shoot_id)
+
+
+@router.put("/{shoot_id}")
+async def update_shoot(
+    shoot_id: uuid.UUID,
+    body: ShootCreate,
+    art_director: ArtDirectorUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ShootResponse:
+    """Форма редактирования целиком; только автор съёмки (docs/adr/0008)."""
+    shoot = await service.update_shoot(db, art_director, shoot_id, body)
+    await db.commit()
+    return await service.get_shoot(db, art_director, storage, settings, shoot.id)

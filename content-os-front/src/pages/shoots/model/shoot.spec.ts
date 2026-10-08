@@ -1,5 +1,5 @@
 import type { ShootListItem } from '../api/shoots'
-import { productsLabel, progressPercent, toShoot } from './shoot'
+import { productsLabel, toShoot } from './shoot'
 import { shootTabs } from './shoot-filters'
 
 const item: ShootListItem = {
@@ -25,14 +25,6 @@ describe('toShoot', () => {
       photoUrl: null,
       percent: 57,
     })
-  })
-})
-
-describe('progressPercent', () => {
-  it('is 0 without deliverables and never above 100', () => {
-    expect(progressPercent(0, 0)).toBe(0)
-    expect(progressPercent(8, 8)).toBe(100)
-    expect(progressPercent(9, 8)).toBe(100)
   })
 })
 

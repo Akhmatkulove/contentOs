@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 from app.deliverables.models import DeliverableStatus
 from app.files.schemas import FileResponse
+from app.references.schemas import ReferenceResponse
 from app.team.schemas import TeamMember
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -20,8 +21,10 @@ def _unique(ids: list[uuid.UUID]) -> bool:
 
 
 class ShootDeliverableDraft(BaseModel):
-    """Deliverable новой съёмки: всё выбирается из того, что есть у съёмки."""
+    """Deliverable съёмки: всё выбирается из того, что есть у съёмки."""
 
+    # Уже сохранённый deliverable при редактировании; без id — новый.
+    id: uuid.UUID | None = None
     name: Name
     # Один из продуктов съёмки.
     product_id: uuid.UUID
@@ -59,7 +62,8 @@ class ShootCreate(BaseModel):
     @model_validator(mode="after")
     def consistent(self) -> Self:
         # У человека одна роль на съёмке.
-        for ids in (self.team_ids(), self.product_ids, self.reference_ids):
+        deliverable_ids = [d.id for d in self.deliverables if d.id is not None]
+        for ids in (self.team_ids(), self.product_ids, self.reference_ids, deliverable_ids):
             if not _unique(ids):
                 raise ValueError("Ids repeat")
         team, products, references = (
@@ -118,3 +122,55 @@ class ShootList(BaseModel):
     items: list[ShootListItem]
     total: int
     counts: ShootCounts
+
+
+class DeliverableCounts(BaseModel):
+    """Deliverables съёмки по статусам: прогресс продукта или всей съёмки."""
+
+    total: int
+    to_shoot: int
+    in_progress: int
+    needs_changes: int
+    approved: int
+
+
+class ShootProductItem(BaseModel):
+    id: uuid.UUID
+    name: str
+    collection: str | None
+    category: str | None
+    # Первое фото продукта, presigned URL.
+    photo: FileResponse | None
+    # Deliverables этой съёмки по продукту.
+    deliverables: DeliverableCounts
+
+
+class ShootDeliverableResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    product_id: uuid.UUID
+    assignees: list[TeamMember]
+    # Из references съёмки, в порядке выбора.
+    reference_ids: list[uuid.UUID]
+    due_date: dt.date | None
+    status: DeliverableStatus
+
+
+class ShootResponse(BaseModel):
+    """Страница съёмки и форма её редактирования (docs/adr/0008)."""
+
+    id: uuid.UUID
+    name: str
+    date: dt.date
+    start_time: dt.time
+    duration_minutes: int
+    location: str | None
+    status: ShootStatus
+    art_director: TeamMember
+    creators: list[TeamMember]
+    mobilographer: TeamMember | None
+    products: list[ShootProductItem]
+    references: list[ReferenceResponse]
+    deliverables: list[ShootDeliverableResponse]
+    # Пользователь — автор съёмки: ему доступно редактирование.
+    can_edit: bool

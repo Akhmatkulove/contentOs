@@ -17,7 +17,7 @@ import { ProductCreatePage, ProductEditPage } from '@/pages/product-form'
 import { ProductsPage } from '@/pages/products'
 import { ReferencesPage } from '@/pages/references'
 import { ShootPage } from '@/pages/shoot'
-import { ShootCreatePage } from '@/pages/shoot-form'
+import { ShootCreatePage, ShootEditPage } from '@/pages/shoot-form'
 import { ShootsPage } from '@/pages/shoots'
 import { SignupPage } from '@/pages/signup'
 import { TasksPage } from '@/pages/tasks'
@@ -44,6 +44,14 @@ export const router = createRouter({
           name: 'shoot-create',
           component: ShootCreatePage,
           // The art director creates a shoot and is its art director.
+          meta: { section: 'shoots', roles: ['art_director'] },
+        },
+        {
+          path: 'shoots/:id/edit',
+          name: 'shoot-edit',
+          component: ShootEditPage,
+          props: true,
+          // Only the art director who created the shoot edits it (docs/adr/0008).
           meta: { section: 'shoots', roles: ['art_director'] },
         },
         {
