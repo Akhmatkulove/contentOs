@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { VButton } from '@/shared/ui/button'
-import { VCheckbox } from '@/shared/ui/checkbox'
 import { VIcon } from '@/shared/ui/icon'
 import { VModal } from '@/shared/ui/modal'
 import { VSearch } from '@/shared/ui/search'
 import { useProductPicker } from '../model/product-picker'
 import type { ShootProduct } from '../model/shoot-draft'
-import MediaPreview from './MediaPreview.vue'
+import SelectableProductCard from './SelectableProductCard.vue'
 
 // "Browse all products": Figma "Modal / Add reference" (Reference bank) with
 // products instead of references and only the search in the toolbar.
@@ -62,22 +61,11 @@ const {
           class="grid grid-cols-2 gap-x-3 gap-y-4 md:grid-cols-4 md:gap-x-5 md:gap-y-6 lg:grid-cols-5"
         >
           <li v-for="product in products" :key="product.id">
-            <!-- The whole card is the checkbox's label: a click anywhere ticks it. -->
-            <label class="flex cursor-pointer flex-col gap-3">
-              <MediaPreview :src="product.photoUrl" class="aspect-[4/5] rounded-2xl">
-                <VCheckbox
-                  :model-value="isPicked(product.id)"
-                  class="absolute top-2.5 right-2.5"
-                  @update:model-value="setPicked(product, $event === true)"
-                />
-              </MediaPreview>
-              <span class="flex min-w-0 flex-col gap-1.5">
-                <span class="truncate text-p1 font-semibold text-primary">{{ product.name }}</span>
-                <span v-if="product.collection" class="truncate text-p3 font-medium text-secondary">
-                  {{ product.collection }}
-                </span>
-              </span>
-            </label>
+            <SelectableProductCard
+              :product="product"
+              :selected="isPicked(product.id)"
+              @update:selected="setPicked(product, $event)"
+            />
           </li>
         </ul>
 

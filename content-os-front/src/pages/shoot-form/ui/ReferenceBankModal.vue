@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ReferenceCard, sortOptions, typeOptions, type Reference } from '@/entities/reference'
+import { sortOptions, typeOptions, type Reference } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
-import { VCheckbox } from '@/shared/ui/checkbox'
 import { VIcon } from '@/shared/ui/icon'
 import { VModal } from '@/shared/ui/modal'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
 import { useReferencePicker } from '../model/reference-picker'
+import SelectableReferenceCard from './SelectableReferenceCard.vue'
 
 // Figma "Modal / Add reference" (Reference bank): the pool with the references
-// page's search and filters, the app's ReferenceCard with a checkbox.
+// page's search and filters, shown as SelectableReferenceCard.
 const { selected } = defineProps<{ selected: Reference[] }>()
 
 // Closes with the new pick; nothing when cancelled.
@@ -110,15 +110,11 @@ const statusClass = 'py-10 text-center text-p2 font-medium text-secondary'
           class="grid grid-cols-2 gap-x-3 gap-y-4 md:grid-cols-4 md:gap-x-5 md:gap-y-6 lg:grid-cols-5"
         >
           <li v-for="reference in references" :key="reference.id">
-            <ReferenceCard :reference="reference">
-              <template #action>
-                <VCheckbox
-                  :model-value="isPicked(reference.id)"
-                  :aria-label="`Select ${reference.title}`"
-                  @update:model-value="setPicked(reference, $event === true)"
-                />
-              </template>
-            </ReferenceCard>
+            <SelectableReferenceCard
+              :reference="reference"
+              :selected="isPicked(reference.id)"
+              @update:selected="setPicked(reference, $event)"
+            />
           </li>
         </ul>
 

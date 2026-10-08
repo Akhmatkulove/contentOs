@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ReferenceCard, type Reference } from '@/entities/reference'
+import type { Reference } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
-import { VCheckbox } from '@/shared/ui/checkbox'
 import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import { toggleSelection } from '../model/shoot-draft'
+import SelectableReferenceCard from './SelectableReferenceCard.vue'
 
 // Figma "Card / References for this shoot": references picked in the bank
-// (searching and filtering happen there). The cards are the app's
-// ReferenceCard, with a checkbox where the favourite star usually is.
+// (searching and filtering happen there), shown as SelectableReferenceCard.
 const { references } = defineProps<{ references: Reference[] }>()
 
 const selected = defineModel<string[]>('selected', { required: true })
@@ -46,15 +45,11 @@ function setSelected(id: string, picked: boolean) {
       class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,230px)] md:gap-5"
     >
       <li v-for="reference in references" :key="reference.id">
-        <ReferenceCard :reference="reference">
-          <template #action>
-            <VCheckbox
-              :model-value="selected.includes(reference.id)"
-              :aria-label="`Select ${reference.title}`"
-              @update:model-value="setSelected(reference.id, $event === true)"
-            />
-          </template>
-        </ReferenceCard>
+        <SelectableReferenceCard
+          :reference="reference"
+          :selected="selected.includes(reference.id)"
+          @update:selected="setSelected(reference.id, $event)"
+        />
       </li>
     </ul>
     <p
