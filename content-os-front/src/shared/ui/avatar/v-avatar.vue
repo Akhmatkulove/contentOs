@@ -12,12 +12,13 @@ const {
 } = defineProps<{
   name: string | null
   src: string | null
-  size?: 24 | 28 | 36
+  size?: 24 | 28 | 36 | 44
   class?: HTMLAttributes['class']
 }>()
 
 const initial = computed(() => (name || 'U').charAt(0).toUpperCase())
-const sizeClasses = { 24: 'size-6', 28: 'size-7', 36: 'size-9' } as const
+// 44 (member cards) shows a larger initial, as in Figma.
+const sizeClasses = { 24: 'size-6', 28: 'size-7', 36: 'size-9', 44: 'size-11 text-h6' } as const
 const sizeClass = computed(() => sizeClasses[size])
 </script>
 

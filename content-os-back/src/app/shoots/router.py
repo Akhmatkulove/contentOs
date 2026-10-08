@@ -8,8 +8,17 @@ from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
-from app.shoots import service
-from app.shoots.schemas import ShootCreate, ShootList, ShootListItem, ShootResponse, ShootStatus
+from app.shoots import notes, service
+from app.shoots.schemas import (
+    ShootCreate,
+    ShootList,
+    ShootListItem,
+    ShootNoteCreate,
+    ShootNotePatch,
+    ShootNoteResponse,
+    ShootResponse,
+    ShootStatus,
+)
 
 router = APIRouter(prefix="/shoots", tags=["shoots"])
 
@@ -77,3 +86,61 @@ async def update_shoot(
     shoot = await service.update_shoot(db, art_director, shoot_id, body)
     await db.commit()
     return await service.get_shoot(db, art_director, storage, settings, shoot.id)
+
+
+@router.get("/{shoot_id}/notes")
+async def list_notes(
+    shoot_id: uuid.UUID, user: ApprovedUser, db: SessionDep, settings: SettingsDep
+) -> list[ShootNoteResponse]:
+    """Заметки съёмки, которые пользователь может читать (docs/adr/0010)."""
+    return await notes.list_notes(db, user, settings, shoot_id)
+
+
+@router.post("/{shoot_id}/notes", status_code=status.HTTP_201_CREATED)
+async def create_note(
+    shoot_id: uuid.UUID,
+    body: ShootNoteCreate,
+    user: ApprovedUser,
+    db: SessionDep,
+    settings: SettingsDep,
+) -> ShootNoteResponse:
+    note = await notes.create_note(db, user, settings, shoot_id, body)
+    await db.commit()
+    return note
+
+
+@router.put("/{shoot_id}/notes/{note_id}")
+async def update_note(
+    shoot_id: uuid.UUID,
+    note_id: uuid.UUID,
+    body: ShootNoteCreate,
+    user: ApprovedUser,
+    db: SessionDep,
+    settings: SettingsDep,
+) -> ShootNoteResponse:
+    """Только автор заметки и арт-директор съёмки; остальным 404."""
+    note = await notes.update_note(db, user, settings, shoot_id, note_id, body)
+    await db.commit()
+    return note
+
+
+@router.patch("/{shoot_id}/notes/{note_id}")
+async def pin_note(
+    shoot_id: uuid.UUID,
+    note_id: uuid.UUID,
+    body: ShootNotePatch,
+    user: ApprovedUser,
+    db: SessionDep,
+    settings: SettingsDep,
+) -> ShootNoteResponse:
+    note = await notes.pin_note(db, user, settings, shoot_id, note_id, body.pinned)
+    await db.commit()
+    return note
+
+
+@router.delete("/{shoot_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_note(
+    shoot_id: uuid.UUID, note_id: uuid.UUID, user: ApprovedUser, db: SessionDep
+) -> None:
+    await notes.delete_note(db, user, shoot_id, note_id)
+    await db.commit()

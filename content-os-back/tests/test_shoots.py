@@ -344,3 +344,71 @@ async def test_only_the_author_edits_and_only_its_deliverables(
     assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 404
     await log_in(client, "lana@example.com")
     assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 403
+
+
+# --- Notes ---
+
+
+def note(**fields: Any) -> dict[str, Any]:
+    return {"title": "Studio reminders", "body": "Arrive early\nCheck outfits", **fields}
+
+
+async def test_team_writes_and_reads_notes(client: AsyncClient, db_session: AsyncSession) -> None:
+    created = await post(client, await shoot(client))
+    url = f"/api/shoots/{created['id']}/notes"
+    team = await creators(client)
+
+    response = await client.post(url, json=note(pinned=True, assignee_ids=[team["Lana"]]))
+    assert response.status_code == 201, response.text
+    pinned = response.json()
+    assert (pinned["author"]["name"], pinned["type"], pinned["visibility"]) == (
+        "Amina",
+        "general",
+        "internal",
+    )
+    assert [a["name"] for a in pinned["assignees"]] == ["Lana"]
+    assert pinned["can_manage"] is True
+
+    # A creator on the team writes too; the list puts pinned notes first.
+    await log_in(client, "lana@example.com")
+    feedback = (await client.post(url, json=note(title="Creator feedback", type="feedback"))).json()
+    listed = (await client.get(url)).json()
+    assert [n["title"] for n in listed] == ["Studio reminders", "Creator feedback"]
+    assert [n["can_manage"] for n in listed] == [False, True]
+    # Someone else's note is not Lana's to change.
+    response = await client.patch(f"{url}/{pinned['id']}", json={"pinned": False})
+    assert response.status_code == 404
+
+    # The art director manages every note; outsiders see nothing.
+    await log_in(client, "amina@example.com")
+    response = await client.put(f"{url}/{feedback['id']}", json=note(title="Edited"))
+    assert response.json()["title"] == "Edited"
+    assert (await client.delete(f"{url}/{feedback['id']}")).status_code == 204
+    await sign_up(client, db_session, "other@example.com", Role.CREATOR, "Other")
+    assert (await client.get(url)).status_code == 404
+
+
+async def test_private_notes_reach_only_their_people(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    created = await post(client, await shoot(client))
+    url = f"/api/shoots/{created['id']}/notes"
+    team = await creators(client)
+    await client.post(url, json=note(visibility="private", assignee_ids=[team["Odina"]]))
+
+    for email, seen in (("odina@example.com", 1), ("lana@example.com", 0)):
+        await log_in(client, email)
+        assert len((await client.get(url)).json()) == seen
+
+
+async def test_note_assignees_come_from_the_team(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    created = await post(client, await shoot(client))
+    await sign_up(client, db_session, "stranger@example.com", Role.CREATOR, "Stranger")
+    stranger = str(await user_id(db_session, "stranger@example.com"))
+    await log_in(client, "amina@example.com")
+    response = await client.post(
+        f"/api/shoots/{created['id']}/notes", json=note(assignee_ids=[stranger])
+    )
+    assert response.status_code == 422

@@ -516,6 +516,49 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/shoots/{shoot_id}/notes': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Notes
+     * @description Заметки съёмки, которые пользователь может читать (docs/adr/0010).
+     */
+    get: operations['list_notes_api_shoots__shoot_id__notes_get']
+    put?: never
+    /** Create Note */
+    post: operations['create_note_api_shoots__shoot_id__notes_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/shoots/{shoot_id}/notes/{note_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update Note
+     * @description Только автор заметки и арт-директор съёмки; остальным 404.
+     */
+    put: operations['update_note_api_shoots__shoot_id__notes__note_id__put']
+    post?: never
+    /** Delete Note */
+    delete: operations['delete_note_api_shoots__shoot_id__notes__note_id__delete']
+    options?: never
+    head?: never
+    /** Pin Note */
+    patch: operations['pin_note_api_shoots__shoot_id__notes__note_id__patch']
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -778,6 +821,16 @@ export interface components {
        */
       readonly onboarding_step: ('role' | 'profile' | 'review') | null
     }
+    /**
+     * NoteType
+     * @enum {string}
+     */
+    NoteType: 'general' | 'creative' | 'logistics' | 'feedback' | 'post_production'
+    /**
+     * NoteVisibility
+     * @enum {string}
+     */
+    NoteVisibility: 'internal' | 'private'
     /**
      * OnboardingUpdate
      * @description Ответы шага онбординга. Неуказанные поля не меняются.
@@ -1220,6 +1273,61 @@ export interface components {
       approved: number
       /** Team */
       team: components['schemas']['TeamMember'][]
+    }
+    /**
+     * ShootNoteCreate
+     * @description Новая заметка или форма её редактирования целиком (docs/adr/0010).
+     */
+    ShootNoteCreate: {
+      /** Title */
+      title: string
+      /** @default general */
+      type: components['schemas']['NoteType']
+      /** @default internal */
+      visibility: components['schemas']['NoteVisibility']
+      /** Body */
+      body: string
+      /**
+       * Pinned
+       * @default false
+       */
+      pinned: boolean
+      /** Assignee Ids */
+      assignee_ids?: string[]
+    }
+    /**
+     * ShootNotePatch
+     * @description Закрепить или открепить из меню «…» заметки.
+     */
+    ShootNotePatch: {
+      /** Pinned */
+      pinned: boolean
+    }
+    /** ShootNoteResponse */
+    ShootNoteResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Title */
+      title: string
+      type: components['schemas']['NoteType']
+      visibility: components['schemas']['NoteVisibility']
+      /** Body */
+      body: string
+      /** Pinned */
+      pinned: boolean
+      author: components['schemas']['TeamMember']
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Can Manage */
+      can_manage: boolean
     }
     /**
      * ShootPeriod
@@ -2539,6 +2647,184 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ShootResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_notes_api_shoots__shoot_id__notes_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootNoteResponse'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  create_note_api_shoots__shoot_id__notes_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootNoteCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootNoteResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  update_note_api_shoots__shoot_id__notes__note_id__put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+        note_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootNoteCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootNoteResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  delete_note_api_shoots__shoot_id__notes__note_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+        note_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  pin_note_api_shoots__shoot_id__notes__note_id__patch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+        note_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootNotePatch']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootNoteResponse']
         }
       }
       /** @description Validation Error */

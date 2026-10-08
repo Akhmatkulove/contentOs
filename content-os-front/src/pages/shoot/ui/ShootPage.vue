@@ -5,10 +5,14 @@ import { useActiveTabInView } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
+import { useShootNotes } from '../model/shoot-notes'
 import { useShootPage } from '../model/shoot-page'
 import ShootOverview from './ShootOverview.vue'
 import ShootProductsTab from './ShootProductsTab.vue'
+import ShootReferencesTab from './ShootReferencesTab.vue'
+import ShootNotesTab from './ShootNotesTab.vue'
 import ShootReviewTab from './ShootReviewTab.vue'
+import ShootTeamTab from './ShootTeamTab.vue'
 import ShootTasksTab from './ShootTasksTab.vue'
 
 // The route's :id.
@@ -41,18 +45,44 @@ const {
   approvedTasks,
   approvedFilters,
   foundApprovedTasks,
+  referenceFilters,
+  foundReferences,
+  referenceProducts,
+  referenceUses,
+  team,
+  teamSearch,
+  teamRole,
+  foundTeam,
+  summary,
   canReview,
 } = useShootPage(() => id)
 useActiveTabInView(useTemplateRef('tabList'), tab)
 
 const editRoute = { name: 'shoot-edit', params: { id } }
+
+// Notes load when their tab opens; anyone on the team can be assigned.
+const notesTab = useShootNotes(
+  () => id,
+  () => team.value.map((card) => card.member),
+  () => tab.value === 'notes',
+)
+const {
+  notes: allNotes,
+  loading: notesLoading,
+  search: noteSearch,
+  filter: noteFilter,
+  pinned: pinnedNotes,
+  others: otherNotes,
+  openForm,
+  pin,
+  remove,
+} = notesTab
 </script>
 
 <!--
-  Figma "Shoot / Overview", "Shoot / Products", "Shoot / Tasks" (desktop and
-  mobile). Edit is the author's (the art director who created the shoot).
-  TODO(ui): tabs References, Files, Team, Notes and the
-  "…" menu — come later.
+  Figma "Shoot / …" screens, one per tab (desktop and mobile). Edit is the
+  author's (the art director who created the shoot).
+  TODO(ui): the "…" menu of the header — comes later.
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
@@ -194,6 +224,49 @@ const editRoute = { name: 'shoot-edit', params: { id } }
             :tasks="foundApprovedTasks"
             :total="approvedTasks.length"
             approved
+          />
+        </TabsContent>
+
+        <TabsContent value="references" class="outline-none">
+          <ShootReferencesTab
+            v-model:filters="referenceFilters"
+            :references="foundReferences"
+            :total="shoot.references.length"
+            :products="referenceProducts"
+            :uses="referenceUses"
+          />
+        </TabsContent>
+
+        <!-- TODO(api): the shoot's files (shot lists, briefs, addresses) — no uploads yet. -->
+        <TabsContent value="files" class="outline-none">
+          <p class="rounded-2xl bg-card p-8 text-center text-p2 font-medium text-secondary">
+            Files of this shoot will show up here.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="team" class="outline-none">
+          <ShootTeamTab
+            v-model:search="teamSearch"
+            v-model:role="teamRole"
+            :members="foundTeam"
+            :total="team.length"
+            :summary="summary"
+            :add-to="canEdit ? editRoute : null"
+          />
+        </TabsContent>
+
+        <TabsContent value="notes" class="outline-none">
+          <ShootNotesTab
+            v-model:search="noteSearch"
+            v-model:filter="noteFilter"
+            :pinned="pinnedNotes"
+            :others="otherNotes"
+            :loading="notesLoading"
+            :total="allNotes.length"
+            @create="openForm()"
+            @edit="openForm"
+            @pin="pin"
+            @remove="remove"
           />
         </TabsContent>
       </TabsRoot>

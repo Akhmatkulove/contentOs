@@ -16,7 +16,7 @@ import {
   type ShootDeliverable,
   type TeamMember,
 } from '../model/shoot-draft'
-import ListPicker from './ListPicker.vue'
+import { VListPicker } from '@/shared/ui/list-picker'
 import { VThumbnail } from '@/shared/ui/thumbnail'
 
 // Figma "Edit / Edit product" (Add deliverable) for a shoot. Everything is
@@ -77,7 +77,7 @@ const referencesId = useId()
 
         <div class="flex min-w-0 flex-col gap-2">
           <label :for="assigneeId" class="text-p3 font-medium text-secondary">Assignee</label>
-          <ListPicker
+          <VListPicker
             :items="context.team"
             :selected="form.assigneeIds"
             :text="memberName"
@@ -115,7 +115,7 @@ const referencesId = useId()
               <VAvatar :name="item.name" :src="item.photo_url" :size="24" />
               <span class="min-w-0 flex-1 truncate">{{ item.name || 'Unnamed' }}</span>
             </template>
-          </ListPicker>
+          </VListPicker>
         </div>
 
         <VDatePicker v-model="form.dueDate" label="Due date" placeholder="Select due date" />
@@ -130,7 +130,7 @@ const referencesId = useId()
 
       <div class="flex min-w-0 flex-col gap-2">
         <label :for="referencesId" class="text-p3 font-medium text-secondary">References</label>
-        <ListPicker
+        <VListPicker
           :items="context.references"
           :selected="form.referenceIds"
           :text="referenceTitle"
@@ -166,7 +166,7 @@ const referencesId = useId()
             <VThumbnail :src="item.previewUrl" :icon-size="12" class="h-7 w-[22px] rounded-md" />
             <span class="min-w-0 flex-1 truncate">{{ item.title }}</span>
           </template>
-        </ListPicker>
+        </VListPicker>
       </div>
     </form>
 

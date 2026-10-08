@@ -116,5 +116,8 @@ const badges = computed(() => {
         {{ tag }}
       </li>
     </ul>
+
+    <!-- A last line the screen adds (shoot page: "Used in 2 deliverables"). -->
+    <slot name="footer" />
   </article>
 </template>

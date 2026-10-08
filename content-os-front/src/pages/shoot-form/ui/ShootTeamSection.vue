@@ -5,7 +5,7 @@ import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import type { TeamMember } from '../model/shoot-draft'
-import ListPicker from './ListPicker.vue'
+import { VListPicker } from '@/shared/ui/list-picker'
 
 // Figma "Card / Team": art director, creators, mobilographer side by side on
 // desktop, stacked on mobile. The art director is the one creating the shoot;
@@ -97,7 +97,7 @@ const boxClass =
           </li>
           <!-- Mobile: its own full-width row under the chips. -->
           <li class="flex basis-full md:basis-auto">
-            <ListPicker
+            <VListPicker
               :items="creatorOptions"
               :selected="creatorIds"
               :text="memberName"
@@ -114,7 +114,7 @@ const boxClass =
                 <VIcon name="plus-sign" />
                 Add creator
               </VButton>
-            </ListPicker>
+            </VListPicker>
           </li>
         </ul>
       </div>
@@ -124,7 +124,7 @@ const boxClass =
           Mobilographer
         </span>
         <div class="relative">
-          <ListPicker
+          <VListPicker
             :items="mobilographerOptions"
             :selected="mobilographerId ? [mobilographerId] : []"
             :text="memberName"
@@ -161,7 +161,7 @@ const boxClass =
                 </span>
               </template>
             </button>
-          </ListPicker>
+          </VListPicker>
           <!-- Beside the field, not inside: a button can't hold another button. -->
           <VButton
             v-if="mobilographer"

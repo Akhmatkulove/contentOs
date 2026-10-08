@@ -2,14 +2,22 @@ import { shootDetails } from './fixtures'
 import {
   assigneesLabel,
   coverPhotos,
+  defaultReferenceFilters,
   defaultTaskFilters,
   findProducts,
+  findReferences,
+  findTeam,
+  referenceUsage,
   findTasks,
   shootCounts,
   shootFacts,
   shootPeople,
   toProducts,
+  tasksLabel,
+  teamCards,
+  teamSummary,
   toTasks,
+  usageLabel,
 } from './shoot'
 
 const shoot = shootDetails()
@@ -125,5 +133,76 @@ describe('assigneesLabel', () => {
     const [, second] = toTasks(shoot)
     expect(assigneesLabel(second!.assignees)).toBe('Amina +1')
     expect(assigneesLabel([])).toBe('')
+  })
+})
+
+describe('findReferences', () => {
+  const walk = shoot.references[0]!
+  const references = [
+    walk,
+    {
+      ...walk,
+      id: 'r2',
+      title: 'Light',
+      type: 'image' as const,
+      product_id: 'p1',
+      tags: ['soft'],
+      created_at: '2024-09-02T00:00:00Z',
+    },
+    {
+      ...walk,
+      id: 'r3',
+      title: null,
+      type: 'moodboard' as const,
+      created_at: '2024-08-01T00:00:00Z',
+    },
+  ]
+  const ids = (filters: Partial<typeof defaultReferenceFilters>) =>
+    findReferences([...references], { ...defaultReferenceFilters, ...filters }).map((r) => r.id)
+
+  it('searches titles and tags', () => {
+    expect(ids({ search: 'soft' })).toEqual(['r2'])
+  })
+  it('filters by product and type', () => {
+    expect(ids({ productId: 'p1' })).toEqual(['r2'])
+    expect(ids({ type: 'moodboard' })).toEqual(['r3'])
+  })
+  it('sorts by date and by name with untitled last', () => {
+    expect(ids({})).toEqual(['r2', 'r1', 'r3'])
+    expect(ids({ sort: 'oldest' })).toEqual(['r3', 'r1', 'r2'])
+    expect(ids({ sort: 'title_asc' })).toEqual(['r2', 'r1', 'r3'])
+  })
+})
+
+describe('referenceUsage', () => {
+  it('counts the deliverables that follow each reference', () => {
+    expect(referenceUsage(shoot)).toEqual(new Map([['r1', 1]]))
+  })
+  it('labels used and unused references', () => {
+    expect(usageLabel(0)).toBe('Assigned to this shoot')
+    expect(usageLabel(1)).toBe('Used in 1 deliverable')
+    expect(usageLabel(2)).toBe('Used in 2 deliverables')
+  })
+})
+
+describe('team', () => {
+  const cards = teamCards(shoot)
+
+  it("counts each member's tasks; the art director oversees all", () => {
+    expect(cards.map((card) => tasksLabel(card))).toEqual([
+      'Oversees 3 deliverables',
+      '1 task assigned',
+      '2 tasks assigned',
+    ])
+  })
+  it('sums the team up', () => {
+    expect(teamSummary(shoot)).toEqual({ members: 3, creators: 1, tasks: 2, mobilographers: 1 })
+  })
+  it('searches names, roles and responsibilities and filters by role', () => {
+    const names = (search: string, role = 'all') =>
+      findTeam(cards, search, role).map((card) => card.member.name)
+    expect(names('camera')).toEqual(['Odina'])
+    expect(names('', 'Creator')).toEqual(['Amina'])
+    expect(names('risolat')).toEqual(['Risolat'])
   })
 })

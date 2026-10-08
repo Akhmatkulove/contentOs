@@ -15,8 +15,8 @@ import {
 import { VIcon } from '@/shared/ui/icon'
 import { selectContentClass, selectItemClass } from '@/shared/ui/select'
 
-// Searchable picker styled as the select dropdowns (people in "Card / Team",
-// people and references in "Add deliverable"; not in Figma yet). The trigger
+// Searchable picker styled as the select dropdowns (people in "Card / Team" and
+// "New note", people and references in "Add deliverable"). The trigger
 // comes from the default slot, each row's content from the `item` slot.
 // `multiple` keeps the list open and ticks items on and off; otherwise one pick
 // closes it. The picker only reports what was clicked: the form decides.

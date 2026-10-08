@@ -2,7 +2,7 @@ import datetime as dt
 import enum
 import uuid
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Time, func
+from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, string_enum
@@ -126,5 +126,57 @@ class ShootDeliverableReference(Base):
     )
     reference_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("references.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    position: Mapped[int]
+
+
+class NoteType(enum.StrEnum):
+    GENERAL = "general"
+    CREATIVE = "creative"
+    LOGISTICS = "logistics"
+    FEEDBACK = "feedback"
+    POST_PRODUCTION = "post_production"
+
+
+class NoteVisibility(enum.StrEnum):
+    # Вся команда съёмки.
+    INTERNAL = "internal"
+    # Автор, отмеченные в заметке и арт-директор съёмки.
+    PRIVATE = "private"
+
+
+class ShootNote(Base):
+    """Заметка во вкладке Notes съёмки (docs/adr/0010)."""
+
+    __tablename__ = "shoot_notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    shoot_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shoots.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(200))
+    type: Mapped[NoteType] = mapped_column(string_enum(NoteType, "note_type"))
+    visibility: Mapped[NoteVisibility] = mapped_column(
+        string_enum(NoteVisibility, "note_visibility")
+    )
+    # Текст; каждая непустая строка показывается пунктом списка.
+    body: Mapped[str] = mapped_column(Text)
+    pinned: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.clock_timestamp()
+    )
+
+
+class ShootNoteAssignee(Base):
+    """Участник команды, отмеченный в заметке (Assign to)."""
+
+    __tablename__ = "shoot_note_assignees"
+
+    note_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shoot_notes.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     position: Mapped[int]

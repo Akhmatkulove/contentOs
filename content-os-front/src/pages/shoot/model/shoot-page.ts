@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { deliverableStatusOptions } from '@/entities/deliverable'
+import { toReference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import { shootStatuses, useShoot } from '@/entities/shoot'
 import { queryParam, useQueryParams } from '@/shared/lib'
@@ -7,7 +8,13 @@ import type { SelectOption } from '@/shared/ui/select'
 import {
   ALL,
   coverPhotos,
+  defaultReferenceFilters,
   defaultTaskFilters,
+  findReferences,
+  findTeam,
+  teamCards,
+  teamSummary,
+  referenceUsage,
   findProducts,
   findTasks,
   shootCounts,
@@ -16,10 +23,21 @@ import {
   toProducts,
   toTasks,
   type ProductSort,
+  type ReferenceFilters,
   type TaskFilters,
 } from './shoot'
 
-export const shootTabValues = ['overview', 'products', 'tasks', 'needs_review', 'approved'] as const
+export const shootTabValues = [
+  'overview',
+  'products',
+  'tasks',
+  'needs_review',
+  'approved',
+  'references',
+  'files',
+  'team',
+  'notes',
+] as const
 export type ShootTab = (typeof shootTabValues)[number]
 
 // The tab lives in the URL (?tab=tasks), so a link or a reload opens it.
@@ -57,6 +75,10 @@ export function useShootPage(id: () => string) {
     { value: 'tasks' as const, label: `Tasks (${tasks.value.length})` },
     { value: 'needs_review' as const, label: `Needs review (${reviewTasks.value.length})` },
     { value: 'approved' as const, label: `Approved (${approvedTasks.value.length})` },
+    { value: 'references' as const, label: 'References' },
+    { value: 'files' as const, label: 'Files' },
+    { value: 'team' as const, label: 'Team' },
+    { value: 'notes' as const, label: 'Notes' },
   ])
 
   // Only an art director reviews uploads: the Actions column is theirs.
@@ -76,6 +98,34 @@ export function useShootPage(id: () => string) {
   const reviewFilters = ref<TaskFilters>({ ...defaultTaskFilters })
   const foundReviewTasks = computed(() => findTasks(reviewTasks.value, reviewFilters.value))
   const approvedFilters = ref<TaskFilters>({ ...defaultTaskFilters })
+
+  const teamSearch = ref('')
+  const teamRole = ref<string>(ALL)
+  const team = computed(() => (shoot.value ? teamCards(shoot.value) : []))
+  const foundTeam = computed(() => findTeam(team.value, teamSearch.value, teamRole.value))
+  const summary = computed(() =>
+    shoot.value
+      ? teamSummary(shoot.value)
+      : { members: 0, creators: 0, tasks: 0, mobilographers: 0 },
+  )
+
+  const referenceFilters = ref<ReferenceFilters>({ ...defaultReferenceFilters })
+  const foundReferences = computed(() =>
+    findReferences(shoot.value?.references ?? [], referenceFilters.value).map(toReference),
+  )
+  const referenceUses = computed(() =>
+    shoot.value ? referenceUsage(shoot.value) : new Map<string, number>(),
+  )
+  // Products the shoot's references belong to, by the shoot's product names.
+  const referenceProducts = computed<SelectOption[]>(() => {
+    const used = new Set((shoot.value?.references ?? []).map((item) => item.product_id))
+    return [
+      { value: ALL, label: 'All products' },
+      ...products.value
+        .filter((product) => used.has(product.id))
+        .map((product) => ({ value: product.id, label: product.name })),
+    ]
+  })
   const foundApprovedTasks = computed(() => findTasks(approvedTasks.value, approvedFilters.value))
   const taskOptions = computed(() => ({
     products: [
@@ -125,6 +175,15 @@ export function useShootPage(id: () => string) {
     approvedTasks,
     approvedFilters,
     foundApprovedTasks,
+    referenceFilters,
+    foundReferences,
+    referenceProducts,
+    referenceUses,
+    team,
+    teamSearch,
+    teamRole,
+    foundTeam,
+    summary,
     canReview,
   }
 }

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, StringConstraints, model_validator
 from app.deliverables.models import DeliverableStatus
 from app.files.schemas import FileResponse
 from app.references.schemas import ReferenceResponse
+from app.shoots.models import NoteType, NoteVisibility
 from app.team.schemas import TeamMember
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -178,3 +179,45 @@ class ShootResponse(BaseModel):
     deliverables: list[ShootDeliverableResponse]
     # Пользователь — автор съёмки: ему доступно редактирование.
     can_edit: bool
+
+
+NoteTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+NoteBody = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
+
+
+class ShootNoteCreate(BaseModel):
+    """Новая заметка или форма её редактирования целиком (docs/adr/0010)."""
+
+    title: NoteTitle
+    type: NoteType = NoteType.GENERAL
+    visibility: NoteVisibility = NoteVisibility.INTERNAL
+    body: NoteBody
+    pinned: bool = False
+    # Из команды съёмки: арт-директор, креаторы, мобилограф.
+    assignee_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+    @model_validator(mode="after")
+    def ids_unique(self) -> Self:
+        if not _unique(self.assignee_ids):
+            raise ValueError("Ids repeat")
+        return self
+
+
+class ShootNotePatch(BaseModel):
+    """Закрепить или открепить из меню «…» заметки."""
+
+    pinned: bool
+
+
+class ShootNoteResponse(BaseModel):
+    id: uuid.UUID
+    title: str
+    type: NoteType
+    visibility: NoteVisibility
+    body: str
+    pinned: bool
+    author: TeamMember
+    assignees: list[TeamMember]
+    created_at: dt.datetime
+    # Edit, Pin и Delete: автору заметки и арт-директору съёмки.
+    can_manage: bool

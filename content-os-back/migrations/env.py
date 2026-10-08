@@ -21,6 +21,8 @@ from app.shoots.models import (  # noqa: F401
     ShootDeliverableAssignee,
     ShootDeliverableReference,
     ShootMember,
+    ShootNote,
+    ShootNoteAssignee,
     ShootProduct,
     ShootReference,
 )
