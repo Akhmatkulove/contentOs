@@ -317,8 +317,8 @@ def _with_status(user: User) -> Select[Any]:
     """Видимые съёмки со статусом и прогрессом.
 
     Статус выводится, а не хранится (docs/adr/0007): все deliverables approved —
-    completed; хоть один начат — in_progress; иначе upcoming, пока съёмка не началась,
-    и to_shoot после.
+    completed; хоть один ждёт проверки — needs_review (docs/adr/0009); хоть один
+    начат — in_progress; иначе upcoming, пока съёмка не началась, и to_shoot после.
     """
     stats = (
         select(
@@ -330,6 +330,9 @@ def _with_status(user: User) -> Select[Any]:
             func.count()
             .filter(ShootDeliverable.status != DeliverableStatus.TO_SHOOT)
             .label("started"),
+            func.count()
+            .filter(ShootDeliverable.status == DeliverableStatus.NEEDS_REVIEW)
+            .label("in_review"),
         )
         .group_by(ShootDeliverable.shoot_id)
         .subquery()
@@ -337,9 +340,11 @@ def _with_status(user: User) -> Select[Any]:
     total = func.coalesce(stats.c.total, 0)
     approved = func.coalesce(stats.c.approved, 0)
     started = func.coalesce(stats.c.started, 0)
+    in_review = func.coalesce(stats.c.in_review, 0)
     starts_at = func.timezone(TIMEZONE, Shoot.date + Shoot.start_time)
     shoot_status = case(
         (and_(total > 0, approved == total), ShootStatus.COMPLETED.value),
+        (in_review > 0, ShootStatus.NEEDS_REVIEW.value),
         (started > 0, ShootStatus.IN_PROGRESS.value),
         (starts_at > func.now(), ShootStatus.UPCOMING.value),
         else_=ShootStatus.TO_SHOOT.value,

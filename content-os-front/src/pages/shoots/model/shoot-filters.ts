@@ -2,12 +2,12 @@ import { queryParam, type QueryParams } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
 import type { ShootCounts, ShootPeriod, ShootSort, ShootStatus } from '../api/shoots'
 
-// A shoot's status is worked out from its date and deliverables (docs/adr/0007).
-// TODO(api): Needs review — once deliverables can wait for the art director's review.
+// A shoot's status is worked out from its date and deliverables (docs/adr/0007, 0009).
 export const statusFilterOptions = [
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'to_shoot', label: 'To shoot' },
   { value: 'in_progress', label: 'In progress' },
+  { value: 'needs_review', label: 'Needs review' },
   { value: 'completed', label: 'Completed' },
 ] as const satisfies readonly (SelectOption & { value: ShootStatus })[]
 

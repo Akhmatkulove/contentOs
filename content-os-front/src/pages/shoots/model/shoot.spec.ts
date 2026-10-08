@@ -38,7 +38,14 @@ describe('productsLabel', () => {
 describe('shootTabs', () => {
   it('shows a count per tab, zero before the list loads', () => {
     expect(shootTabs(undefined).map((tab) => tab.count)).toEqual([0, 0, 0, 0])
-    const counts = { all: 12, upcoming: 4, to_shoot: 0, in_progress: 5, completed: 3 }
+    const counts = {
+      all: 12,
+      upcoming: 4,
+      to_shoot: 0,
+      in_progress: 5,
+      needs_review: 0,
+      completed: 3,
+    }
     expect(shootTabs(counts).map((tab) => `${tab.label} (${tab.count})`)).toEqual([
       'All (12)',
       'Upcoming (4)',

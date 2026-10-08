@@ -8,6 +8,7 @@ import { VStatus } from '@/shared/ui/status'
 import { useShootPage } from '../model/shoot-page'
 import ShootOverview from './ShootOverview.vue'
 import ShootProductsTab from './ShootProductsTab.vue'
+import ShootReviewTab from './ShootReviewTab.vue'
 import ShootTasksTab from './ShootTasksTab.vue'
 
 // The route's :id.
@@ -34,6 +35,10 @@ const {
   taskFilters,
   foundTasks,
   taskOptions,
+  reviewTasks,
+  reviewFilters,
+  foundReviewTasks,
+  canReview,
 } = useShootPage(() => id)
 useActiveTabInView(useTemplateRef('tabList'), tab)
 
@@ -43,7 +48,7 @@ const editRoute = { name: 'shoot-edit', params: { id } }
 <!--
   Figma "Shoot / Overview", "Shoot / Products", "Shoot / Tasks" (desktop and
   mobile). Edit is the author's (the art director who created the shoot).
-  TODO(ui): tabs Needs review, Approved, References, Files, Team, Notes and the
+  TODO(ui): tabs Approved, References, Files, Team, Notes and the
   "…" menu — come later.
 -->
 <template>
@@ -166,6 +171,16 @@ const editRoute = { name: 'shoot-edit', params: { id } }
             :options="taskOptions"
             :tasks="foundTasks"
             :total="tasks.length"
+          />
+        </TabsContent>
+
+        <TabsContent value="needs_review" class="outline-none">
+          <ShootReviewTab
+            v-model:filters="reviewFilters"
+            :options="taskOptions"
+            :tasks="foundReviewTasks"
+            :total="reviewTasks.length"
+            :can-review="canReview"
           />
         </TabsContent>
       </TabsRoot>

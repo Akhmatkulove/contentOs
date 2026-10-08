@@ -197,6 +197,7 @@ async def test_status_follows_date_and_deliverables(
         return str(items[0]["status"])
 
     assert await status_after(DeliverableStatus.IN_PROGRESS) == "in_progress"
+    assert await status_after(DeliverableStatus.NEEDS_REVIEW) == "needs_review"
     assert await status_after(DeliverableStatus.NEEDS_CHANGES) == "in_progress"
     assert await status_after(DeliverableStatus.APPROVED) == "completed"
     assert (await listing(client))["items"][0]["approved"] == 1
@@ -223,6 +224,7 @@ async def test_searches_filters_and_counts(client: AsyncClient) -> None:
         "upcoming": 1,
         "to_shoot": 1,
         "in_progress": 0,
+        "needs_review": 0,
         "completed": 0,
     }
     assert [i["name"] for i in (await listing(client, sort="oldest"))["items"]] == [
@@ -260,6 +262,7 @@ async def test_shoot_page_shows_team_products_and_deliverables(
         "total": 1,
         "to_shoot": 1,
         "in_progress": 0,
+        "needs_review": 0,
         "needs_changes": 0,
         "approved": 0,
     }

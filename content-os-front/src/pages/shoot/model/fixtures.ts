@@ -6,6 +6,7 @@ const counts = (approved: number, total: number) => ({
   approved,
   to_shoot: total - approved,
   in_progress: 0,
+  needs_review: 0,
   needs_changes: 0,
 })
 

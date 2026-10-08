@@ -10,6 +10,7 @@ export const shootStatuses = {
   upcoming: { label: 'Upcoming', tone: 'accent' },
   to_shoot: { label: 'To shoot', tone: 'info' },
   in_progress: { label: 'In progress', tone: 'info' },
+  needs_review: { label: 'Needs review', tone: 'warning' },
   completed: { label: 'Completed', tone: 'success' },
 } as const satisfies Record<ShootStatus, { label: string; tone: string }>
 

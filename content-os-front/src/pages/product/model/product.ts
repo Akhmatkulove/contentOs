@@ -35,6 +35,7 @@ export function deliveryProgress(deliverables: Deliverable[]): DeliveryProgress 
     approved: 0,
     needs_changes: 0,
     in_progress: 0,
+    needs_review: 0,
     to_shoot: 0,
   }
   for (const deliverable of deliverables) counts[deliverable.status] += 1

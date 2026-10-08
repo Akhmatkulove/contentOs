@@ -630,6 +630,8 @@ export interface components {
       to_shoot: number
       /** In Progress */
       in_progress: number
+      /** Needs Review */
+      needs_review: number
       /** Needs Changes */
       needs_changes: number
       /** Approved */
@@ -674,7 +676,7 @@ export interface components {
      * DeliverableStatus
      * @enum {string}
      */
-    DeliverableStatus: 'to_shoot' | 'in_progress' | 'needs_changes' | 'approved'
+    DeliverableStatus: 'to_shoot' | 'in_progress' | 'needs_review' | 'needs_changes' | 'approved'
     /**
      * FileKind
      * @enum {string}
@@ -1095,6 +1097,8 @@ export interface components {
       to_shoot: number
       /** In Progress */
       in_progress: number
+      /** Needs Review */
+      needs_review: number
       /** Completed */
       completed: number
     }
@@ -1289,7 +1293,7 @@ export interface components {
      * @description Статус выводится из даты и deliverables, не хранится (docs/adr/0007).
      * @enum {string}
      */
-    ShootStatus: 'upcoming' | 'to_shoot' | 'in_progress' | 'completed'
+    ShootStatus: 'upcoming' | 'to_shoot' | 'in_progress' | 'needs_review' | 'completed'
     /** SignupRequest */
     SignupRequest: {
       /**

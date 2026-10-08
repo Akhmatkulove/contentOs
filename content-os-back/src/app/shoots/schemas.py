@@ -87,6 +87,8 @@ class ShootStatus(enum.StrEnum):
     UPCOMING = "upcoming"
     TO_SHOOT = "to_shoot"
     IN_PROGRESS = "in_progress"
+    # Хоть один deliverable ждёт проверки арт-директора (docs/adr/0009).
+    NEEDS_REVIEW = "needs_review"
     COMPLETED = "completed"
 
 
@@ -115,6 +117,7 @@ class ShootCounts(BaseModel):
     upcoming: int
     to_shoot: int
     in_progress: int
+    needs_review: int
     completed: int
 
 
@@ -130,6 +133,7 @@ class DeliverableCounts(BaseModel):
     total: int
     to_shoot: int
     in_progress: int
+    needs_review: int
     needs_changes: int
     approved: int
 

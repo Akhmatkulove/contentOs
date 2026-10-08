@@ -104,7 +104,14 @@ export function shootPeople(shoot: ShootDetails): ShootPerson[] {
 
 // Deliverables of the whole shoot by status.
 export function shootCounts(tasks: ShootTask[]): DeliverableCounts {
-  const counts = { total: tasks.length, to_shoot: 0, in_progress: 0, needs_changes: 0, approved: 0 }
+  const counts: DeliverableCounts = {
+    total: tasks.length,
+    to_shoot: 0,
+    in_progress: 0,
+    needs_review: 0,
+    needs_changes: 0,
+    approved: 0,
+  }
   for (const task of tasks) counts[task.status] += 1
   return counts
 }
@@ -181,12 +188,18 @@ export const defaultTaskFilters: TaskFilters = {
   sort: 'order',
 }
 
-// The Tasks tab: search by task and product name, filter, then sort. Tasks
+// The Tasks and Needs review tabs: search by task, product and assignee name,
+// filter, then sort. Tasks
 // without a due date go last when sorted by it.
 export function findTasks(tasks: ShootTask[], filters: TaskFilters): ShootTask[] {
   const found = tasks.filter(
     (task) =>
-      matches(`${task.name} ${task.product.name}`, filters.search) &&
+      matches(
+        [task.name, task.product.name, ...task.assignees.map((member) => member.name ?? '')].join(
+          ' ',
+        ),
+        filters.search,
+      ) &&
       (filters.productId === ALL || task.product.id === filters.productId) &&
       (filters.assigneeId === ALL ||
         task.assignees.some((member) => member.id === filters.assigneeId)) &&

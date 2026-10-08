@@ -57,6 +57,7 @@ describe('shootCounts', () => {
       approved: 1,
       to_shoot: 2,
       in_progress: 0,
+      needs_review: 0,
       needs_changes: 0,
     })
   })
@@ -101,8 +102,9 @@ describe('findTasks', () => {
   const names = (filters: Partial<typeof defaultTaskFilters>) =>
     findTasks(tasks, { ...defaultTaskFilters, ...filters }).map((task) => task.name)
 
-  it('searches task and product names', () => {
+  it('searches task, product and assignee names', () => {
     expect(names({ search: 'cream' })).toEqual(['Story clips'])
+    expect(names({ search: 'amina' })).toEqual(['Detail movement'])
   })
   it('filters by product, assignee and status', () => {
     expect(names({ productId: 'p2' })).toEqual(['Story clips'])

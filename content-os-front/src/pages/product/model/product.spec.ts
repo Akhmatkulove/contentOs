@@ -69,7 +69,7 @@ describe('deliveryProgress', () => {
       done: 2,
       total: 3,
       percent: 67,
-      counts: { approved: 2, needs_changes: 1, in_progress: 0, to_shoot: 0 },
+      counts: { approved: 2, needs_changes: 1, in_progress: 0, needs_review: 0, to_shoot: 0 },
     })
   })
 

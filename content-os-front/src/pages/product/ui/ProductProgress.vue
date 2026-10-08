@@ -9,6 +9,7 @@ const { progress } = defineProps<{ progress: DeliveryProgress }>()
 // Figma's short labels and the colours of the count chips.
 const summary: { status: DeliverableStatus; label: string; chip: string }[] = [
   { status: 'approved', label: 'Approved', chip: 'bg-mint-100 text-mint-400' },
+  { status: 'needs_review', label: 'Review', chip: 'bg-status-warning text-orange-400' },
   { status: 'needs_changes', label: 'Changes', chip: 'bg-red-100 text-red-400' },
   { status: 'in_progress', label: 'In progress', chip: 'bg-status-info text-status-info' },
   { status: 'to_shoot', label: 'To shoot', chip: 'bg-neutral-300 text-secondary' },

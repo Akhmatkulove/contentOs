@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { deliverableStatusOptions } from '@/entities/deliverable'
+import { useSessionStore } from '@/entities/session'
 import { shootStatuses, useShoot } from '@/entities/shoot'
 import { queryParam, useQueryParams } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
@@ -18,7 +19,7 @@ import {
   type TaskFilters,
 } from './shoot'
 
-export const shootTabValues = ['overview', 'products', 'tasks'] as const
+export const shootTabValues = ['overview', 'products', 'tasks', 'needs_review'] as const
 export type ShootTab = (typeof shootTabValues)[number]
 
 // The tab lives in the URL (?tab=tasks), so a link or a reload opens it.
@@ -45,13 +46,20 @@ export function useShootPage(id: () => string) {
   const tasks = computed(() => (shoot.value ? toTasks(shoot.value) : []))
   const people = computed(() => (shoot.value ? shootPeople(shoot.value) : []))
   const counts = computed(() => shootCounts(tasks.value))
+  // Deliverables whose content waits for the art director (docs/adr/0009).
+  const reviewTasks = computed(() => tasks.value.filter((task) => task.status === 'needs_review'))
   const covers = computed(() => coverPhotos(products.value, 5))
 
   const tabs = computed(() => [
     { value: 'overview' as const, label: 'Overview' },
     { value: 'products' as const, label: `Products (${products.value.length})` },
     { value: 'tasks' as const, label: `Tasks (${tasks.value.length})` },
+    { value: 'needs_review' as const, label: `Needs review (${reviewTasks.value.length})` },
   ])
+
+  // Only an art director reviews uploads: the Actions column is theirs.
+  const session = useSessionStore()
+  const canReview = computed(() => session.me?.role === 'art_director')
 
   const productSearch = ref('')
   const productSort = ref<ProductSort>('order')
@@ -61,6 +69,10 @@ export function useShootPage(id: () => string) {
 
   const taskFilters = ref<TaskFilters>({ ...defaultTaskFilters })
   const foundTasks = computed(() => findTasks(tasks.value, taskFilters.value))
+
+  // The Needs review tab: the same search and filters, its own state.
+  const reviewFilters = ref<TaskFilters>({ ...defaultTaskFilters })
+  const foundReviewTasks = computed(() => findTasks(reviewTasks.value, reviewFilters.value))
   const taskOptions = computed(() => ({
     products: [
       { value: ALL, label: 'All products' },
@@ -103,5 +115,9 @@ export function useShootPage(id: () => string) {
     taskFilters,
     foundTasks,
     taskOptions,
+    reviewTasks,
+    reviewFilters,
+    foundReviewTasks,
+    canReview,
   }
 }

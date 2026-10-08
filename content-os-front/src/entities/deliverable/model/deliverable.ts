@@ -32,6 +32,7 @@ export function toDeliverable(item: Schemas['DeliverableResponse']): Deliverable
 export const deliverableStatusOptions = [
   { value: 'to_shoot', label: 'To shoot' },
   { value: 'in_progress', label: 'In progress' },
+  { value: 'needs_review', label: 'Needs review' },
   { value: 'needs_changes', label: 'Needs changes' },
   { value: 'approved', label: 'Approved' },
 ] as const satisfies readonly (SelectOption & { value: DeliverableStatus })[]
@@ -40,6 +41,8 @@ export const deliverableStatusOptions = [
 export const deliverableStatuses = {
   to_shoot: { label: 'To shoot', tone: 'info' },
   in_progress: { label: 'In progress', tone: 'info' },
+  // Uploaded and waiting for the art director (docs/adr/0009).
+  needs_review: { label: 'Needs review', tone: 'warning' },
   needs_changes: { label: 'Needs changes', tone: 'danger' },
   approved: { label: 'Approved', tone: 'success' },
 } as const satisfies Record<DeliverableStatus, { label: string; tone: string }>

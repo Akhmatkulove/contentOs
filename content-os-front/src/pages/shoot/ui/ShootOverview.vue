@@ -35,6 +35,7 @@ const percent = computed(() => progressPercent(counts.approved, counts.total))
 const summary = [
   'approved',
   'in_progress',
+  'needs_review',
   'needs_changes',
   'to_shoot',
 ] as const satisfies (keyof DeliverableCounts)[]
@@ -151,7 +152,7 @@ const shownReferences = computed(() => references.value.slice(0, 2))
           <span class="font-semibold">{{ percent }}%</span>
         </div>
         <ProgressBar :percent="percent" />
-        <dl class="grid grid-cols-2 gap-3 2xl:grid-cols-4">
+        <dl class="flex flex-wrap gap-3">
           <div
             v-for="key in summary"
             :key="key"

@@ -32,9 +32,16 @@ const rows: {
     count: 'text-link',
   },
   {
+    status: 'needs_review',
+    label: 'Needs review',
+    icon: 'file-view',
+    tile: 'bg-status-warning text-orange-400',
+    count: 'text-orange-400',
+  },
+  {
     status: 'needs_changes',
     label: 'Needs changes',
-    icon: 'file-view',
+    icon: 'edit-02',
     tile: 'bg-red-100 text-red-400',
     count: 'text-red-400',
   },

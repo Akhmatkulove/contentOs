@@ -11,6 +11,8 @@ from app.core.db import Base, string_enum
 class DeliverableStatus(enum.StrEnum):
     TO_SHOOT = "to_shoot"
     IN_PROGRESS = "in_progress"
+    # Контент загружен и ждёт проверки арт-директора (docs/adr/0009).
+    NEEDS_REVIEW = "needs_review"
     NEEDS_CHANGES = "needs_changes"
     APPROVED = "approved"
 
