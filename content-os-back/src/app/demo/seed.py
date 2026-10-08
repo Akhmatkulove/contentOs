@@ -10,7 +10,7 @@
 а файлы лежат в хранилище под `files/demo/`.
 
 Набор: 5 продуктов бренда brand1@example.com (deliverables назначены на
-ad1@example.com), 5 референсов ad1 и 5 его съёмок с креаторами creator1–3 —
+ad1@example.com), 5 референсов ad1 и 8 его съёмок (все статусы съёмок) с креаторами creator1–3 —
 с разными датами и статусами deliverables. Пользователи и связки должны уже быть.
 """
 
@@ -159,6 +159,57 @@ SHOOTS: list[ShootSpec] = [
             ("Lookbook", 3, [1], [2], S.TO_SHOOT, 24),
             ("Reels teaser", 4, [2, 0], [2], S.TO_SHOOT, 25),
             ("Product detail", 1, [], [], S.TO_SHOOT, 25),
+        ],
+    ),
+    (
+        "Shoot 06 — Studio Basics",
+        -7,
+        time(12),
+        240,
+        "White Studio",
+        [1, 2],
+        None,
+        [1, 3],
+        [1, 4],
+        [
+            ("Lookbook", 1, [1], [1], S.APPROVED, -5),
+            ("Coat walk", 3, [2], [4], S.IN_PROGRESS, 2),
+            ("Detail movement", 1, [1, 2], [], S.IN_PROGRESS, 3),
+            ("Portrait", 3, [2], [], S.TO_SHOOT, 4),
+        ],
+    ),
+    (
+        "Shoot 07 — Outerwear",
+        -12,
+        time(15),
+        180,
+        "Yunusobod, Tashkent",
+        [0],
+        2,
+        [3],
+        [4],
+        [
+            ("Coat on the street", 3, [0], [4], S.NEEDS_CHANGES, -3),
+            ("Belt detail", 3, [2], [], S.NEEDS_CHANGES, -2),
+            ("Full outfit", 3, [0, 2], [4], S.APPROVED, -6),
+        ],
+    ),
+    (
+        "Shoot 08 — Spring Preview",
+        45,
+        time(10, 30),
+        480,
+        "Tashkent Studio",
+        [0, 1, 2],
+        None,
+        [0, 1, 2, 3, 4],
+        [0, 1, 2, 3, 4],
+        [
+            ("Campaign hero", 0, [0], [2], S.TO_SHOOT, 50),
+            ("Dress twirl", 1, [1], [1], S.TO_SHOOT, 50),
+            ("Co-ord flatlay", 2, [2], [3], S.TO_SHOOT, 51),
+            ("Coat close-up", 3, [0], [4], S.TO_SHOOT, 51),
+            ("Sand set reel", 4, [1, 2], [0], S.TO_SHOOT, 52),
         ],
     ),
 ]

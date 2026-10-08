@@ -38,6 +38,9 @@ const {
   reviewTasks,
   reviewFilters,
   foundReviewTasks,
+  approvedTasks,
+  approvedFilters,
+  foundApprovedTasks,
   canReview,
 } = useShootPage(() => id)
 useActiveTabInView(useTemplateRef('tabList'), tab)
@@ -48,7 +51,7 @@ const editRoute = { name: 'shoot-edit', params: { id } }
 <!--
   Figma "Shoot / Overview", "Shoot / Products", "Shoot / Tasks" (desktop and
   mobile). Edit is the author's (the art director who created the shoot).
-  TODO(ui): tabs Approved, References, Files, Team, Notes and the
+  TODO(ui): tabs References, Files, Team, Notes and the
   "…" menu — come later.
 -->
 <template>
@@ -181,6 +184,16 @@ const editRoute = { name: 'shoot-edit', params: { id } }
             :tasks="foundReviewTasks"
             :total="reviewTasks.length"
             :can-review="canReview"
+          />
+        </TabsContent>
+
+        <TabsContent value="approved" class="outline-none">
+          <ShootTasksTab
+            v-model:filters="approvedFilters"
+            :options="taskOptions"
+            :tasks="foundApprovedTasks"
+            :total="approvedTasks.length"
+            approved
           />
         </TabsContent>
       </TabsRoot>

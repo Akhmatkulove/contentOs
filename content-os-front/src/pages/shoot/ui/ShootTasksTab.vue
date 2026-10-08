@@ -14,11 +14,20 @@ import ShootTaskCard from './ShootTaskCard.vue'
 // that scrolls sideways when the card is narrower than its columns; mobile:
 // cards. No checkboxes (no bulk actions yet).
 // TODO(api): Latest upload column and the row "…" menu — content uploads come later.
+// The Approved tab (Figma "Shoot / Approved") is the same table of approved
+// deliverables only: no Status filter, and its own count under the table.
 // TODO(ui): mobile filters sheet (Figma "CMS / Mobile / Filter button").
-const { options, tasks, total } = defineProps<{
+const {
+  options,
+  tasks,
+  total,
+  approved = false,
+} = defineProps<{
   options: { products: SelectOption[]; assignees: SelectOption[]; statuses: SelectOption[] }
   tasks: ShootTask[]
   total: number
+  // The Approved tab: every task here is approved.
+  approved?: boolean
 }>()
 
 const filters = defineModel<TaskFilters>('filters', { required: true })
@@ -35,6 +44,13 @@ function set(key: 'productId' | 'assigneeId' | 'status' | 'sort', value: string 
 
 const headCell = 'pr-4 text-left text-p4 font-medium whitespace-nowrap text-secondary'
 const showing = (count: number) => `Showing ${count} of ${total} ${total === 1 ? 'task' : 'tasks'}`
+// Figma "5 approved deliverables" under the Approved table.
+const footer = (count: number) =>
+  approved ? `${count} approved ${count === 1 ? 'deliverable' : 'deliverables'}` : showing(count)
+const empty = computed(() => {
+  if (total) return 'No tasks match the search or filters.'
+  return approved ? 'Nothing is approved yet.' : 'No tasks in this shoot.'
+})
 </script>
 
 <template>
@@ -67,6 +83,7 @@ const showing = (count: number) => `Showing ${count} of ${total} ${total === 1 ?
           @update:model-value="set('assigneeId', $event)"
         />
         <VSelect
+          v-if="!approved"
           :model-value="filters.status"
           :options="options.statuses"
           variant="filter"
@@ -168,16 +185,18 @@ const showing = (count: number) => `Showing ${count} of ${total} ${total === 1 ?
         </table>
       </div>
       <p v-else class="py-8 text-center text-p2 font-medium text-secondary">
-        {{ total ? 'No tasks match the search or filters.' : 'No tasks in this shoot.' }}
+        {{ empty }}
       </p>
       <p class="flex h-10 items-center text-p3 font-medium text-secondary">
-        {{ showing(tasks.length) }}
+        {{ footer(tasks.length) }}
       </p>
     </section>
 
     <!-- Mobile: Figma "Shoot / Tasks" cards under a count bar. -->
     <div class="flex flex-col gap-4 md:hidden">
+      <!-- Figma's Approved screen has no count bar. -->
       <p
+        v-if="!approved"
         class="flex h-12 items-center justify-between rounded-2xl bg-card px-4 text-p3 font-medium text-secondary shadow-[0_8px_32px_4px_rgb(29_42_60/0.05)]"
       >
         <span>Task</span>
@@ -189,7 +208,7 @@ const showing = (count: number) => `Showing ${count} of ${total} ${total === 1 ?
         </li>
       </ul>
       <p v-else class="rounded-2xl bg-card p-8 text-center text-p2 font-medium text-secondary">
-        {{ total ? 'No tasks match the search.' : 'No tasks in this shoot.' }}
+        {{ empty }}
       </p>
     </div>
   </div>

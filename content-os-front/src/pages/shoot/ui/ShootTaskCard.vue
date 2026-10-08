@@ -72,7 +72,8 @@ const { task } = defineProps<{ task: ShootTask }>()
       </div>
       <div class="flex flex-col gap-2">
         <dt class="text-p4 font-medium text-secondary">Due date</dt>
-        <dd class="flex h-7 items-center text-p2 font-medium text-secondary">
+        <dd class="flex h-7 items-center gap-2 text-p2 font-medium text-primary">
+          <VIcon name="calendar-02" :size="16" class="shrink-0 text-secondary" />
           {{ formatDueDate(task.dueDate) || '—' }}
         </dd>
       </div>

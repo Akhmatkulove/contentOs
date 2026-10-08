@@ -19,7 +19,7 @@ import {
   type TaskFilters,
 } from './shoot'
 
-export const shootTabValues = ['overview', 'products', 'tasks', 'needs_review'] as const
+export const shootTabValues = ['overview', 'products', 'tasks', 'needs_review', 'approved'] as const
 export type ShootTab = (typeof shootTabValues)[number]
 
 // The tab lives in the URL (?tab=tasks), so a link or a reload opens it.
@@ -48,6 +48,7 @@ export function useShootPage(id: () => string) {
   const counts = computed(() => shootCounts(tasks.value))
   // Deliverables whose content waits for the art director (docs/adr/0009).
   const reviewTasks = computed(() => tasks.value.filter((task) => task.status === 'needs_review'))
+  const approvedTasks = computed(() => tasks.value.filter((task) => task.status === 'approved'))
   const covers = computed(() => coverPhotos(products.value, 5))
 
   const tabs = computed(() => [
@@ -55,6 +56,7 @@ export function useShootPage(id: () => string) {
     { value: 'products' as const, label: `Products (${products.value.length})` },
     { value: 'tasks' as const, label: `Tasks (${tasks.value.length})` },
     { value: 'needs_review' as const, label: `Needs review (${reviewTasks.value.length})` },
+    { value: 'approved' as const, label: `Approved (${approvedTasks.value.length})` },
   ])
 
   // Only an art director reviews uploads: the Actions column is theirs.
@@ -73,6 +75,8 @@ export function useShootPage(id: () => string) {
   // The Needs review tab: the same search and filters, its own state.
   const reviewFilters = ref<TaskFilters>({ ...defaultTaskFilters })
   const foundReviewTasks = computed(() => findTasks(reviewTasks.value, reviewFilters.value))
+  const approvedFilters = ref<TaskFilters>({ ...defaultTaskFilters })
+  const foundApprovedTasks = computed(() => findTasks(approvedTasks.value, approvedFilters.value))
   const taskOptions = computed(() => ({
     products: [
       { value: ALL, label: 'All products' },
@@ -118,6 +122,9 @@ export function useShootPage(id: () => string) {
     reviewTasks,
     reviewFilters,
     foundReviewTasks,
+    approvedTasks,
+    approvedFilters,
+    foundApprovedTasks,
     canReview,
   }
 }
