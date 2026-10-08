@@ -6,6 +6,7 @@ import {
   fetchReferences,
   filterOptions,
   filterParams,
+  referenceKeys,
   toReference,
   type Reference,
   type ReferenceFilters,
@@ -24,7 +25,7 @@ export function useReferencePicker(initial: Reference[]) {
   const picked = ref<Reference[]>([...initial])
 
   const { data, isLoading, error, hasNextPage, loadNextPage, asyncStatus } = useInfiniteQuery({
-    key: () => ['references', 'picker', { search: search.value, ...filters }],
+    key: () => referenceKeys.picker({ search: search.value, ...filters }),
     query: ({ pageParam }) =>
       fetchReferences({
         search: search.value,
@@ -41,7 +42,7 @@ export function useReferencePicker(initial: Reference[]) {
 
   // Same cache entry as the references page: the pool's products, creators and tags.
   const { data: optionsData } = useQuery({
-    key: ['references', 'filters'],
+    key: referenceKeys.filters,
     query: fetchReferenceFilters,
   })
   const options = computed(() => filterOptions(optionsData.value))

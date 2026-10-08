@@ -169,7 +169,7 @@ const dropzone = useTemplateRef('dropzone')
             searchable
             search-placeholder="Search products…"
           />
-          <!-- TODO(api): Shoot — shoots don't exist yet; enable once they do. -->
+          <!-- TODO(api): Shoot — ReferenceCreate takes no shoot; enable once it does. -->
           <VSelect
             :model-value="undefined"
             :options="[]"

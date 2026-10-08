@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, defineAsyncComponent, ref, toValue, type MaybeRefOrGetter } from 'vue'
+import { shootKeys } from '@/entities/shoot'
 import { confirmAction } from '@/shared/ui/confirm-modal'
 import { openModal } from '@/shared/ui/modal'
 import { toast } from '@/shared/ui/toast'
@@ -18,8 +19,6 @@ import { ALL, type TeamMember } from './shoot'
 // The modal's code loads on first open.
 const NoteModal = defineAsyncComponent(() => import('../ui/NoteModal.vue'))
 
-export const notesKey = (shootId: string) => ['shoots', shootId, 'notes'] as const
-
 // The Notes tab (docs/adr/0010): the notes, their search and filter, and the
 // New note / Edit / Pin / Delete actions.
 export function useShootNotes(
@@ -30,7 +29,7 @@ export function useShootNotes(
   const queryCache = useQueryCache()
   // Loads when the tab is opened.
   const { data, isLoading } = useQuery({
-    key: () => notesKey(shootId()),
+    key: () => shootKeys.notes(shootId()),
     query: () => fetchNotes(shootId()),
     enabled: active,
   })
@@ -42,7 +41,7 @@ export function useShootNotes(
   const pinned = computed(() => found.value.filter((note) => note.pinned))
   const others = computed(() => found.value.filter((note) => !note.pinned))
 
-  const refresh = () => queryCache.invalidateQueries({ key: notesKey(shootId()) })
+  const refresh = () => queryCache.invalidateQueries({ key: shootKeys.notes(shootId()) })
 
   const { mutateAsync: save } = useMutation({
     mutation: ({ note, body }: { note?: ShootNote; body: ShootNoteBody }) =>

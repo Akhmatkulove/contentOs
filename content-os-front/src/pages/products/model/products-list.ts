@@ -1,5 +1,6 @@
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
+import { productKeys } from '@/entities/product'
 import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
 import { fetchProductFilters, fetchProducts, type ProductSort } from '../api/products'
@@ -41,7 +42,7 @@ export function useProductsList() {
   }))
 
   const { data, isLoading } = useQuery({
-    key: () => ['products', { ...query }],
+    key: () => productKeys.list({ ...query }),
     query: () =>
       fetchProducts({
         search: query.search,
@@ -53,9 +54,9 @@ export function useProductsList() {
     placeholderData: (previous) => previous,
   })
 
-  // Under ['products']: creating or editing a product refreshes the collections too.
+  // Under productKeys.lists: creating or editing a product refreshes the collections too.
   const { data: filterData } = useQuery({
-    key: ['products', 'filters'],
+    key: productKeys.filters,
     query: fetchProductFilters,
   })
   const collections = computed(() => collectionOptions(filterData.value))

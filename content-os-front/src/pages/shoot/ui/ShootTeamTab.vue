@@ -10,10 +10,10 @@ import {
   roleResponsibilities,
   tasksLabel,
   teamRoleOptions,
-  type ShootRoleLabel,
   type TeamCard,
   type teamSummary,
-} from '../model/shoot'
+} from '../model/team-tab'
+import type { ShootRoleLabel } from '../model/shoot'
 
 // Figma "Shoot / Team": summary, the members as cards and what each role does.
 // Add member opens the edit form (the author's only).

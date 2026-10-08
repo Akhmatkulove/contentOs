@@ -67,7 +67,7 @@ const statusClass = 'py-10 text-center text-p2 font-medium text-secondary'
           class="w-[118px]"
           @update:model-value="setFilter('productId', $event)"
         />
-        <!-- TODO(ui): All shoots filter — shoots don't exist yet. -->
+        <!-- TODO(api): All shoots filter — GET /references doesn't filter by shoot. -->
         <VSelect
           :model-value="filters.authorId"
           :options="options.creators"

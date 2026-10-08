@@ -1,5 +1,5 @@
 import { useMutation, useQueryCache } from '@pinia/colada'
-import type { Reference } from '@/entities/reference'
+import { referenceKeys, type Reference } from '@/entities/reference'
 import { confirmAction } from '@/shared/ui/confirm-modal'
 import { toast } from '@/shared/ui/toast'
 import { deleteReference } from '../api/references'
@@ -15,7 +15,7 @@ export function useRemoveReference(onDeleted?: () => void) {
       toast.success('Reference deleted')
       onDeleted?.()
       // The filters too: the reference may have been the last with its tag or product.
-      await queryCache.invalidateQueries({ key: ['references'] })
+      await queryCache.invalidateQueries({ key: referenceKeys.all })
     },
   })
 

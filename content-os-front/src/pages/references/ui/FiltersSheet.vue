@@ -11,7 +11,7 @@ import { VFilterOptions } from '@/shared/ui/filter-options'
 import { VModal } from '@/shared/ui/modal'
 
 // Figma "Sheet / Filters" (mobile). Choices apply only on Apply.
-// TODO(ui): Shoot section — shoots don't exist yet.
+// TODO(api): Shoot section — GET /references doesn't filter by shoot.
 const { filters, options } = defineProps<{ filters: ReferenceFilters; options: Options }>()
 
 const emit = defineEmits<{ close: [filters?: ReferenceFilters] }>()

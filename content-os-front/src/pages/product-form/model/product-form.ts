@@ -3,10 +3,16 @@ import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, nextTick, onScopeDispose, reactive, shallowRef, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { toDeliverable } from '@/entities/deliverable'
-import { productKey, useProduct, type ProductDetails, type ProductStatus } from '@/entities/product'
-import { toReference, type Reference } from '@/entities/reference'
+import { taskKeys, toDeliverable } from '@/entities/deliverable'
+import {
+  productKeys,
+  useProduct,
+  type ProductDetails,
+  type ProductStatus,
+} from '@/entities/product'
+import { referenceKeys, toReference, type Reference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
+import { shootKeys } from '@/entities/shoot'
 import {
   draftCard,
   openAddReference,
@@ -208,11 +214,14 @@ export function useProductForm(productId?: string) {
     },
     onSuccess: async (saved) => {
       // The product page opens with what the server saved, without a refetch.
-      queryCache.setQueryData(productKey(saved.id), saved)
-      // Lists, filter options and the pool may all show the product or its references.
+      queryCache.setQueryData(productKeys.detail(saved.id), saved)
+      // Lists, filter options and the pool may all show the product or its references;
+      // shoots and tasks show its name, collection and photo.
       await Promise.all([
-        queryCache.invalidateQueries({ key: ['products'] }),
-        queryCache.invalidateQueries({ key: ['references'] }),
+        queryCache.invalidateQueries({ key: productKeys.lists }),
+        queryCache.invalidateQueries({ key: referenceKeys.all }),
+        queryCache.invalidateQueries({ key: shootKeys.all }),
+        queryCache.invalidateQueries({ key: taskKeys.all }),
       ])
       toast.success(editing ? 'Changes saved' : 'Product created')
       await router.push({ name: 'product', params: { id: saved.id } })

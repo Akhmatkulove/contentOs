@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
+import { productKeys } from '@/entities/product'
 import { fetchProductsPage, toShootProduct } from '../api/products'
 import { nextPage } from './paging'
 import type { ShootProduct } from './shoot-draft'
@@ -15,7 +16,7 @@ export function useProductPicker(initial: ShootProduct[]) {
   const picked = ref<ShootProduct[]>([...initial])
 
   const { data, isLoading, error, hasNextPage, loadNextPage, asyncStatus } = useInfiniteQuery({
-    key: () => ['products', 'picker', search.value],
+    key: () => productKeys.picker(search.value),
     query: ({ pageParam }) => fetchProductsPage(search.value, pageParam, PRODUCTS_PAGE_SIZE),
     initialPageParam: 1,
     getNextPageParam: (last, _pages, page) => nextPage(last.total, page, PRODUCTS_PAGE_SIZE),

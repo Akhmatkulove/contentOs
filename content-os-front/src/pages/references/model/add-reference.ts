@@ -1,5 +1,7 @@
 import { useQuery, useQueryCache } from '@pinia/colada'
 import { computed, ref } from 'vue'
+import { productKeys } from '@/entities/product'
+import { referenceKeys } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import { openAddReference, saveReference, type ReferenceDraft } from '@/features/add-reference'
 import { toast } from '@/shared/ui/toast'
@@ -13,7 +15,7 @@ export function useAddReference() {
   // Products load on the first open, alongside the modal's code.
   const requested = ref(false)
   const { data } = useQuery({
-    key: ['products', 'options'],
+    key: productKeys.options,
     query: fetchProductOptions,
     enabled: requested,
   })
@@ -24,7 +26,7 @@ export function useAddReference() {
   async function save(draft: ReferenceDraft) {
     await saveReference(draft)
     // The list, its tab counts and the filter options all may change.
-    await queryCache.invalidateQueries({ key: ['references'] })
+    await queryCache.invalidateQueries({ key: referenceKeys.all })
   }
 
   async function addReference() {

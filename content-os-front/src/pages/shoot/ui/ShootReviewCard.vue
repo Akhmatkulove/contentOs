@@ -4,7 +4,7 @@ import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
-import { assigneesLabel, type ShootTask } from '../model/shoot'
+import { assigneesLabel, type ShootTask } from '../model/tasks-tab'
 import ReviewButton from './ReviewButton.vue'
 
 // Figma "Review / …" card of the mobile Needs review tab, without the checkbox

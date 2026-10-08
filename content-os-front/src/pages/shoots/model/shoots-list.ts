@@ -1,6 +1,7 @@
 import { useQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
 import { useSessionStore } from '@/entities/session'
+import { shootKeys } from '@/entities/shoot'
 import { useQueryParams } from '@/shared/lib'
 import { fetchShoots, type ShootPeriod } from '../api/shoots'
 import { toShoot } from './shoot'
@@ -44,7 +45,7 @@ export function useShootsList() {
   })
 
   const { data, isLoading } = useQuery({
-    key: () => ['shoots', { ...query }],
+    key: () => shootKeys.list({ ...query }),
     query: () =>
       fetchShoots({
         search: query.search,
@@ -82,7 +83,7 @@ export function useShootsList() {
 // Figma "Card / Next shoot": the closest shoot that hasn't started yet.
 export function useNextShoot() {
   const { data, isLoading } = useQuery({
-    key: ['shoots', 'next'],
+    key: shootKeys.next,
     query: () => fetchShoots({ status: 'upcoming', sort: 'oldest', perPage: 1 }),
   })
   const shoot = computed(() => {
@@ -97,7 +98,7 @@ export function useNextShoot() {
 export function useShootOverview() {
   const period = ref<ShootPeriod>('last_6_months')
   const { data } = useQuery({
-    key: () => ['shoots', 'overview', period.value],
+    key: () => shootKeys.overview(period.value),
     // Only the counts are needed: one item is the smallest page.
     query: () => fetchShoots({ period: period.value, perPage: 1 }),
     placeholderData: (previous) => previous,

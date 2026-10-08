@@ -1,4 +1,5 @@
 export { patchProduct, type ProductDetails } from './api/product'
 export type { ProductStatus } from './model/product'
-export { productKey, productStatuses, productStatusOptions } from './model/product'
+export { productStatuses, productStatusOptions } from './model/product'
+export { productKeys } from './model/product-keys'
 export { useProduct } from './model/product-query'

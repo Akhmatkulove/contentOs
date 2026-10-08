@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
-import { productSortOptions, type ProductSort, type ShootProduct } from '../model/shoot'
+import { productSortOptions, type ProductSort, type ShootProduct } from '../model/products-tab'
 import ShootProductCard from './ShootProductCard.vue'
 
 // Figma "Shoot / Products": search, sort and the products as cards.

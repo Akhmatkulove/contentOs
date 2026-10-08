@@ -1,8 +1,8 @@
 import type { DeliverableStatus } from '@/entities/deliverable'
 import type { Schemas } from '@/shared/api'
 
-// What the create-shoot screen shows. Shaped for the screen, not the API:
-// TODO(api): map from the shoots API once it lands.
+// What the shoot form shows. Shaped for the screen, not the API:
+// shoot-initial.ts maps a saved shoot in, shoot-request.ts maps the form out.
 
 export type TeamMember = Schemas['TeamMember']
 

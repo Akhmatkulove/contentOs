@@ -5,8 +5,12 @@ import { useActiveTabInView } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
+import { useProductsTab } from '../model/products-tab'
+import { useReferencesTab } from '../model/references-tab'
 import { useShootNotes } from '../model/shoot-notes'
 import { useShootPage } from '../model/shoot-page'
+import { useTaskList } from '../model/tasks-tab'
+import { useTeamTab } from '../model/team-tab'
 import ShootOverview from './ShootOverview.vue'
 import ShootProductsTab from './ShootProductsTab.vue'
 import ShootReferencesTab from './ShootReferencesTab.vue'
@@ -26,44 +30,54 @@ const {
   tab,
   tabs,
   canEdit,
+  canReview,
   status,
   facts,
   products,
   tasks,
+  reviewTasks,
+  approvedTasks,
   people,
   counts,
   covers,
-  productSearch,
-  productSort,
-  foundProducts,
-  taskFilters,
-  foundTasks,
   taskOptions,
-  reviewTasks,
-  reviewFilters,
-  foundReviewTasks,
-  approvedTasks,
-  approvedFilters,
-  foundApprovedTasks,
-  referenceFilters,
-  foundReferences,
-  referenceProducts,
-  referenceUses,
-  team,
-  teamSearch,
-  teamRole,
-  foundTeam,
-  summary,
-  canReview,
 } = useShootPage(() => id)
 useActiveTabInView(useTemplateRef('tabList'), tab)
 
 const editRoute = { name: 'shoot-edit', params: { id } }
 
+// Each tab keeps its search and filters while the user switches between tabs.
+const {
+  search: productSearch,
+  sort: productSort,
+  found: foundProducts,
+} = useProductsTab(() => products.value)
+const { filters: taskFilters, found: foundTasks } = useTaskList(() => tasks.value)
+const { filters: reviewFilters, found: foundReviewTasks } = useTaskList(() => reviewTasks.value)
+const { filters: approvedFilters, found: foundApprovedTasks } = useTaskList(
+  () => approvedTasks.value,
+)
+const {
+  filters: referenceFilters,
+  found: foundReferences,
+  uses: referenceUses,
+  productOptions: referenceProducts,
+} = useReferencesTab(
+  () => shoot.value,
+  () => products.value,
+)
+const {
+  search: teamSearch,
+  role: teamRole,
+  cards: team,
+  found: foundTeam,
+  summary,
+} = useTeamTab(() => shoot.value)
+
 // Notes load when their tab opens; anyone on the team can be assigned.
 const notesTab = useShootNotes(
   () => id,
-  () => team.value.map((card) => card.member),
+  () => people.value.map((person) => person.member),
   () => tab.value === 'notes',
 )
 const {

@@ -1,31 +1,10 @@
-import { computed, ref } from 'vue'
-import { deliverableStatusOptions } from '@/entities/deliverable'
-import { toReference } from '@/entities/reference'
+import { computed } from 'vue'
 import { useSessionStore } from '@/entities/session'
 import { shootStatuses, useShoot } from '@/entities/shoot'
 import { queryParam, useQueryParams } from '@/shared/lib'
-import type { SelectOption } from '@/shared/ui/select'
-import {
-  ALL,
-  coverPhotos,
-  defaultReferenceFilters,
-  defaultTaskFilters,
-  findReferences,
-  findTeam,
-  teamCards,
-  teamSummary,
-  referenceUsage,
-  findProducts,
-  findTasks,
-  shootCounts,
-  shootFacts,
-  shootPeople,
-  toProducts,
-  toTasks,
-  type ProductSort,
-  type ReferenceFilters,
-  type TaskFilters,
-} from './shoot'
+import { toProducts } from './products-tab'
+import { coverPhotos, shootCounts, shootFacts, shootPeople } from './shoot'
+import { taskFilterOptions, toTasks } from './tasks-tab'
 
 export const shootTabValues = [
   'overview',
@@ -45,7 +24,8 @@ export type ShootTab = (typeof shootTabValues)[number]
 const shootQueryParams = { tab: queryParam.oneOf(shootTabValues, 'overview') }
 
 // The shoot page (Figma "Shoot / Overview", "Products", "Tasks"). One request
-// brings everything; search, filters and sort of the tabs run in the browser.
+// brings everything; search, filters and sort of the tabs run in the browser,
+// each tab's in its own *-tab.ts.
 export function useShootPage(id: () => string) {
   const { data: shoot, error, isLoading } = useShoot(id)
 
@@ -85,64 +65,8 @@ export function useShootPage(id: () => string) {
   const session = useSessionStore()
   const canReview = computed(() => session.me?.role === 'art_director')
 
-  const productSearch = ref('')
-  const productSort = ref<ProductSort>('order')
-  const foundProducts = computed(() =>
-    findProducts(products.value, productSearch.value, productSort.value),
-  )
-
-  const taskFilters = ref<TaskFilters>({ ...defaultTaskFilters })
-  const foundTasks = computed(() => findTasks(tasks.value, taskFilters.value))
-
-  // The Needs review tab: the same search and filters, its own state.
-  const reviewFilters = ref<TaskFilters>({ ...defaultTaskFilters })
-  const foundReviewTasks = computed(() => findTasks(reviewTasks.value, reviewFilters.value))
-  const approvedFilters = ref<TaskFilters>({ ...defaultTaskFilters })
-
-  const teamSearch = ref('')
-  const teamRole = ref<string>(ALL)
-  const team = computed(() => (shoot.value ? teamCards(shoot.value) : []))
-  const foundTeam = computed(() => findTeam(team.value, teamSearch.value, teamRole.value))
-  const summary = computed(() =>
-    shoot.value
-      ? teamSummary(shoot.value)
-      : { members: 0, creators: 0, tasks: 0, mobilographers: 0 },
-  )
-
-  const referenceFilters = ref<ReferenceFilters>({ ...defaultReferenceFilters })
-  const foundReferences = computed(() =>
-    findReferences(shoot.value?.references ?? [], referenceFilters.value).map(toReference),
-  )
-  const referenceUses = computed(() =>
-    shoot.value ? referenceUsage(shoot.value) : new Map<string, number>(),
-  )
-  // Products the shoot's references belong to, by the shoot's product names.
-  const referenceProducts = computed<SelectOption[]>(() => {
-    const used = new Set((shoot.value?.references ?? []).map((item) => item.product_id))
-    return [
-      { value: ALL, label: 'All products' },
-      ...products.value
-        .filter((product) => used.has(product.id))
-        .map((product) => ({ value: product.id, label: product.name })),
-    ]
-  })
-  const foundApprovedTasks = computed(() => findTasks(approvedTasks.value, approvedFilters.value))
-  const taskOptions = computed(() => ({
-    products: [
-      { value: ALL, label: 'All products' },
-      ...products.value.map((product) => ({ value: product.id, label: product.name })),
-    ] satisfies SelectOption[],
-    assignees: [
-      { value: ALL, label: 'All assignees' },
-      ...people.value
-        .filter((person) => person.role !== 'Art Director')
-        .map(({ member }) => ({ value: member.id, label: member.name || 'Unnamed' })),
-    ] satisfies SelectOption[],
-    statuses: [
-      { value: ALL, label: 'All statuses' },
-      ...deliverableStatusOptions,
-    ] satisfies SelectOption[],
-  }))
+  // The selects of the Tasks, Needs review and Approved tabs.
+  const taskOptions = computed(() => taskFilterOptions(products.value, people.value))
 
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && shoot.value === undefined)
@@ -156,34 +80,16 @@ export function useShootPage(id: () => string) {
     tab,
     tabs,
     canEdit,
+    canReview,
     status,
     facts,
     products,
     tasks,
+    reviewTasks,
+    approvedTasks,
     people,
     counts,
     covers,
-    productSearch,
-    productSort,
-    foundProducts,
-    taskFilters,
-    foundTasks,
     taskOptions,
-    reviewTasks,
-    reviewFilters,
-    foundReviewTasks,
-    approvedTasks,
-    approvedFilters,
-    foundApprovedTasks,
-    referenceFilters,
-    foundReferences,
-    referenceProducts,
-    referenceUses,
-    team,
-    teamSearch,
-    teamRole,
-    foundTeam,
-    summary,
-    canReview,
   }
 }

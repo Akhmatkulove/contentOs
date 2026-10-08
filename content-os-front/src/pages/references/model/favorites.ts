@@ -1,6 +1,6 @@
 import { useMutation, useQueryCache } from '@pinia/colada'
 import { reactive } from 'vue'
-import type { Reference } from '@/entities/reference'
+import { referenceKeys, type Reference } from '@/entities/reference'
 import { toast } from '@/shared/ui/toast'
 import { setFavorite } from '../api/references'
 
@@ -19,7 +19,7 @@ export function useFavorites() {
     // The list refetches with the saved state, then the local flip isn't needed.
     onSuccess: async (_data, { id, favorite }) => {
       toast.success(favorite ? 'Added to favorites' : 'Removed from favorites')
-      await queryCache.invalidateQueries({ key: ['references', 'list'] })
+      await queryCache.invalidateQueries({ key: referenceKeys.lists })
       pending.delete(id)
     },
   })

@@ -7,13 +7,8 @@ import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon, type IconName } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
-import type {
-  DeliverableCounts,
-  ShootPerson,
-  ShootProduct,
-  coverPhotos,
-  shootFacts,
-} from '../model/shoot'
+import type { ShootProduct } from '../model/products-tab'
+import type { DeliverableCounts, ShootPerson, coverPhotos, shootFacts } from '../model/shoot'
 import ProgressBar from './ProgressBar.vue'
 
 // Figma "Shoot / Overview": covers, creative direction, products, progress,

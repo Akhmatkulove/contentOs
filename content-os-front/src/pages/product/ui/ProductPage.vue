@@ -47,7 +47,8 @@ useActiveTabInView(useTemplateRef('tabList'), tab)
   Figma "Product / Overview" (desktop) and the mobile Overview, References,
   Deliverables and Content screens. Edit, "+" and Add buttons are the owner's
   (the brand): each opens the edit form at its section.
-  TODO(api): Upcoming shoots and Latest content cards — no shoots and content yet.
+  TODO(api): Upcoming shoots and Latest content cards — ProductResponse has no shoots,
+  and content uploads don't exist yet.
 -->
 <template>
   <!-- Desktop: the summary column runs from the top, beside the back link. -->
@@ -208,7 +209,7 @@ useActiveTabInView(useTemplateRef('tabList'), tab)
               />
             </TabsContent>
 
-            <!-- TODO(api): the product's content — comes with shoots. -->
+            <!-- TODO(api): the product's content — content uploads don't exist yet. -->
             <TabsContent value="content" class="outline-none">
               <p class="rounded-2xl bg-card p-8 text-center text-p2 font-medium text-secondary">
                 Content from the shoots will show up here.

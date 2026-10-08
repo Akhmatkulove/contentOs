@@ -8,6 +8,7 @@ import {
   type ReferenceScope,
   filterOptions,
   filterParams,
+  referenceKeys,
 } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
@@ -28,7 +29,7 @@ export const REFERENCES_PER_PAGE = 20
 // The user's reference pool: searched, filtered, sorted and paged on the backend.
 // The tab, search, filters, sort and page live in the URL, so a link, reload or
 // Back opens the same list; a new tab, search or filter starts from the first page.
-// TODO(ui): Shoots filter — shoots don't exist yet.
+// TODO(api): Shoots filter — GET /references doesn't filter by shoot.
 export function useReferencesList() {
   // `filters` is the URL state itself: v-model="filters.type" writes to the URL.
   const {
@@ -53,7 +54,7 @@ export function useReferencesList() {
   })
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    key: () => ['references', 'list', { ...filters }],
+    key: () => referenceKeys.list({ ...filters }),
     query: () =>
       fetchReferences({
         scope: filters.scope,
@@ -67,7 +68,7 @@ export function useReferencesList() {
   })
 
   const { data: optionsData } = useQuery({
-    key: ['references', 'filters'],
+    key: referenceKeys.filters,
     query: fetchReferenceFilters,
   })
   const options = computed(() => filterOptions(optionsData.value))

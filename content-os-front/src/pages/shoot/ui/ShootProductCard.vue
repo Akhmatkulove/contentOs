@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { DeliverableStatus } from '@/entities/deliverable'
 import { VIcon, type IconName } from '@/shared/ui/icon'
 import { VThumbnail } from '@/shared/ui/thumbnail'
-import type { ShootProduct } from '../model/shoot'
+import type { ShootProduct } from '../model/products-tab'
 import ProgressBar from './ProgressBar.vue'
 
 // Figma "Card / <product>" of the Products tab: photo, progress and a count per

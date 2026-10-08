@@ -33,7 +33,7 @@ export function productsLabel(count: number): string {
 }
 
 // Share of finished deliverables, 0–100. No deliverables yet counts as 0%.
-// TODO(api): deliverables — the card's progress bar is hidden until they exist.
+// TODO(api): the card's progress bar is hidden: ProductListItem has no deliverable counts.
 export function deliveryPercent({ done, total }: { done: number; total: number }): number {
   if (total <= 0) return 0
   return Math.round((Math.min(done, total) / total) * 100)

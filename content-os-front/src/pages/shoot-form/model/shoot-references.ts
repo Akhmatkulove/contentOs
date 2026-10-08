@@ -1,6 +1,6 @@
 import { useQueryCache } from '@pinia/colada'
 import { computed, onScopeDispose, ref, shallowRef, toValue, type MaybeRefOrGetter } from 'vue'
-import { toReference, type Reference } from '@/entities/reference'
+import { referenceKeys, toReference, type Reference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import {
   draftCard,
@@ -103,7 +103,7 @@ export function useShootReferences(
       }
     } finally {
       // The pool, its tab counts and filter options may show the new references.
-      if (ticked.length) await queryCache.invalidateQueries({ key: ['references'] })
+      if (ticked.length) await queryCache.invalidateQueries({ key: referenceKeys.all })
     }
   }
 

@@ -9,7 +9,7 @@ import {
   referenceTypeOptions,
   usageLabel,
   type ReferenceFilters,
-} from '../model/shoot'
+} from '../model/references-tab'
 
 // Figma "Shoot / References": the shoot's references as the usual reference
 // cards, with search, filters and sort.

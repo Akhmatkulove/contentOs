@@ -64,7 +64,7 @@ const subtitle = computed(() => productSubtitle(product))
       </p>
     </div>
 
-    <!-- TODO(api): deliverables. Hidden until products have them (deliveryPercent in model).
+    <!-- TODO(api): deliverables. Hidden until ProductListItem has their counts (deliveryPercent in model).
     <div class="flex flex-col gap-2 px-3 md:px-0">
       <div class="flex items-center justify-between gap-2 text-p3 font-medium">
         <span class="truncate text-secondary">

@@ -1,5 +1,6 @@
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
+import { taskKeys } from '@/entities/deliverable'
 import { useSessionStore } from '@/entities/session'
 import { queryParam, useQueryParams, type QueryParams } from '@/shared/lib'
 import { fetchTaskFilters, fetchTasks, type TaskSort } from '../api/tasks'
@@ -75,7 +76,7 @@ export function useTasksList() {
     })
 
   const { data, isLoading } = useQuery({
-    key: () => ['tasks', role.value, { ...query }],
+    key: () => taskKeys.list(role.value, { ...query }),
     query: () =>
       fetchTasks({
         search: query.search,
@@ -91,7 +92,7 @@ export function useTasksList() {
     placeholderData: (previous) => previous,
   })
 
-  const { data: filterData } = useQuery({ key: ['tasks', 'filters'], query: fetchTaskFilters })
+  const { data: filterData } = useQuery({ key: taskKeys.filters, query: fetchTaskFilters })
   const options = (items: { id: string; name: string | null }[] | undefined, all: string) => [
     { value: ALL, label: all },
     ...(items ?? []).map((item) => ({ value: item.id, label: item.name || 'Unnamed' })),

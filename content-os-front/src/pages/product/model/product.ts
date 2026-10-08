@@ -45,7 +45,7 @@ export function deliveryProgress(deliverables: Deliverable[]): DeliveryProgress 
 }
 
 // Everyone assigned to the product's deliverables, once each, in order.
-// TODO(api): creators and mobilographers join the team with shoots.
+// TODO(api): creators and mobilographers of the product's shoots — ProductResponse has no shoots.
 export function productTeam(deliverables: Deliverable[]): Assignee[] {
   const team = new Map<string, Assignee>()
   for (const { assignee } of deliverables) {

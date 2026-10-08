@@ -3,8 +3,9 @@ import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { taskKeys } from '@/entities/deliverable'
+import { shootKeys } from '@/entities/shoot'
 import { toast } from '@/shared/ui/toast'
-import { shootKey } from '@/entities/shoot'
 import { createShoot, updateShoot } from '../api/shoots'
 import { openAddDeliverable } from './add-deliverable'
 import { openBrowseProducts } from './browse-products'
@@ -174,12 +175,16 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
       if (!editing) return { id: (await createShoot(body)).id }
       const saved = await updateShoot(editing.id, body)
       // The shoot page opens with what the server saved, without a refetch.
-      queryCache.setQueryData(shootKey(saved.id), saved)
+      queryCache.setQueryData(shootKeys.detail(saved.id), saved)
       return { id: saved.id }
     },
     onSuccess: async ({ id }) => {
-      // The list, its tab counts and Next shoot show the change.
-      await queryCache.invalidateQueries({ key: ['shoots'] })
+      // The list, its tab counts and Next shoot show the change; the deliverables
+      // are tasks. Not the saved shoot: it is already in the cache.
+      await Promise.all([
+        queryCache.invalidateQueries({ key: shootKeys.lists }),
+        queryCache.invalidateQueries({ key: taskKeys.all }),
+      ])
       toast.success(editing ? 'Changes saved' : 'Shoot created')
       await router.push({ name: 'shoot', params: { id } })
     },

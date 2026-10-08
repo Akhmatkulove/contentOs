@@ -1,6 +1,6 @@
 import { useMutation, useQueryCache } from '@pinia/colada'
 import { useRouter } from 'vue-router'
-import { patchProduct, productKey, type ProductStatus } from '@/entities/product'
+import { patchProduct, productKeys, type ProductStatus } from '@/entities/product'
 import { toast } from '@/shared/ui/toast'
 
 // What the "…" menu needs to know about the product.
@@ -38,9 +38,9 @@ export function useProductActions() {
   const { mutate: setStatus, isLoading: archiving } = useMutation({
     mutation: ({ id, status }: ProductActionsTarget) => patchProduct(id, { status }),
     onSuccess: async (saved) => {
-      queryCache.setQueryData(productKey(saved.id), saved)
+      queryCache.setQueryData(productKeys.detail(saved.id), saved)
       // Cards show the status; filters by status will too.
-      await queryCache.invalidateQueries({ key: ['products'] })
+      await queryCache.invalidateQueries({ key: productKeys.lists })
       toast.success(saved.status === 'archived' ? 'Product archived' : 'Product restored')
     },
   })

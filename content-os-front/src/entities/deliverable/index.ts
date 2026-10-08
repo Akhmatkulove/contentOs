@@ -6,4 +6,5 @@ export {
   formatDueDate,
   toDeliverable,
 } from './model/deliverable'
+export { taskKeys } from './model/task-keys'
 export { default as DeliverablesTable } from './ui/DeliverablesTable.vue'

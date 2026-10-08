@@ -131,7 +131,7 @@ function setSort(value: string | undefined) {
           searchable
           class="w-[118px]"
         />
-        <!-- TODO(ui): All shoots filter — shoots don't exist yet. -->
+        <!-- TODO(api): All shoots filter — GET /references doesn't filter by shoot. -->
         <VSelect
           v-model="filters.authorId"
           :options="options.creators"

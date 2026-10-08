@@ -13,7 +13,3 @@ export const productStatuses = {
 export const productStatusOptions = (Object.keys(productStatuses) as ProductStatus[]).map(
   (value) => ({ value, label: productStatuses[value].label }),
 ) satisfies SelectOption[]
-
-// Cache key of one product: the product page and the edit form share the entry.
-// Not under ['products'], so refreshing the list leaves the open product alone.
-export const productKey = (id: string) => ['product', id] as const

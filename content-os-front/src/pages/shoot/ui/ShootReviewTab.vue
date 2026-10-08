@@ -6,7 +6,12 @@ import { VSearch } from '@/shared/ui/search'
 import { VSelect, type SelectOption } from '@/shared/ui/select'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
-import { assigneesLabel, taskSortOptions, type ShootTask, type TaskFilters } from '../model/shoot'
+import {
+  assigneesLabel,
+  taskSortOptions,
+  type ShootTask,
+  type TaskFilters,
+} from '../model/tasks-tab'
 import ReviewButton from './ReviewButton.vue'
 import ShootReviewCard from './ShootReviewCard.vue'
 

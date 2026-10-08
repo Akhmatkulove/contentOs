@@ -1,31 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { Role } from '@/entities/session'
-import { ActivityPage } from '@/pages/activity'
-import { AdminPage } from '@/pages/admin'
-import { ContentPage } from '@/pages/content'
-import { HelpArticlePage, HelpPage } from '@/pages/help'
-import { HomePage } from '@/pages/home'
-import { LoginPage } from '@/pages/login'
-import {
-  OnboardingLayout,
-  OnboardingProfileStep,
-  OnboardingReviewStep,
-  OnboardingRoleStep,
-  OnboardingStatusPage,
-} from '@/pages/onboarding'
-import { ProductPage } from '@/pages/product'
-import { ProductCreatePage, ProductEditPage } from '@/pages/product-form'
-import { ProductsPage } from '@/pages/products'
-import { ProfilePage } from '@/pages/profile'
-import { ReferencesPage } from '@/pages/references'
-import { ShootPage } from '@/pages/shoot'
-import { ShootCreatePage, ShootEditPage } from '@/pages/shoot-form'
-import { ShootsPage } from '@/pages/shoots'
-import { SignupPage } from '@/pages/signup'
-import { TasksPage } from '@/pages/tasks'
 import AppLayout from '../layouts/AppLayout.vue'
 import AuthLayout from '../layouts/AuthLayout.vue'
 import { installAccessGuard } from './access'
+
+// Each page's code loads on its first visit; the layouts are in the main bundle.
 
 // Brands only see Home, Products and Content.
 const team: Role[] = ['art_director', 'creator']
@@ -38,20 +17,30 @@ export const router = createRouter({
       component: AppLayout,
       meta: { access: 'approved' },
       children: [
-        { path: '', name: 'home', component: HomePage },
-        { path: 'tasks', name: 'tasks', component: TasksPage, meta: { roles: team } },
-        { path: 'shoots', name: 'shoots', component: ShootsPage, meta: { roles: team } },
+        { path: '', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
+        {
+          path: 'tasks',
+          name: 'tasks',
+          component: () => import('@/pages/tasks').then((m) => m.TasksPage),
+          meta: { roles: team },
+        },
+        {
+          path: 'shoots',
+          name: 'shoots',
+          component: () => import('@/pages/shoots').then((m) => m.ShootsPage),
+          meta: { roles: team },
+        },
         {
           path: 'shoots/new',
           name: 'shoot-create',
-          component: ShootCreatePage,
+          component: () => import('@/pages/shoot-form').then((m) => m.ShootCreatePage),
           // The art director creates a shoot and is its art director.
           meta: { section: 'shoots', roles: ['art_director'] },
         },
         {
           path: 'shoots/:id/edit',
           name: 'shoot-edit',
-          component: ShootEditPage,
+          component: () => import('@/pages/shoot-form').then((m) => m.ShootEditPage),
           props: true,
           // Only the art director who created the shoot edits it (docs/adr/0008).
           meta: { section: 'shoots', roles: ['art_director'] },
@@ -59,45 +48,71 @@ export const router = createRouter({
         {
           path: 'shoots/:id',
           name: 'shoot',
-          component: ShootPage,
+          component: () => import('@/pages/shoot').then((m) => m.ShootPage),
           props: true,
           meta: { section: 'shoots', roles: team },
         },
-        { path: 'products', name: 'products', component: ProductsPage },
+        {
+          path: 'products',
+          name: 'products',
+          component: () => import('@/pages/products').then((m) => m.ProductsPage),
+        },
         {
           path: 'products/new',
           name: 'product-create',
-          component: ProductCreatePage,
+          component: () => import('@/pages/product-form').then((m) => m.ProductCreatePage),
           // Only brands create products; the team gets them through deliverables.
           meta: { section: 'products', roles: ['brand'] },
         },
         {
           path: 'products/:id',
           name: 'product',
-          component: ProductPage,
+          component: () => import('@/pages/product').then((m) => m.ProductPage),
           props: true,
           meta: { section: 'products' },
         },
         {
           path: 'products/:id/edit',
           name: 'product-edit',
-          component: ProductEditPage,
+          component: () => import('@/pages/product-form').then((m) => m.ProductEditPage),
           props: true,
           // The backend lets only the owning brand save; the form sends others to the page.
           meta: { section: 'products', roles: ['brand'] },
         },
-        { path: 'content', name: 'content', component: ContentPage },
+        {
+          path: 'content',
+          name: 'content',
+          component: () => import('@/pages/content').then((m) => m.ContentPage),
+        },
         {
           path: 'references',
           name: 'references',
-          component: ReferencesPage,
+          component: () => import('@/pages/references').then((m) => m.ReferencesPage),
           meta: { roles: team, title: 'References' },
         },
-        { path: 'activity', name: 'activity', component: ActivityPage, meta: { roles: team } },
+        {
+          path: 'activity',
+          name: 'activity',
+          component: () => import('@/pages/activity').then((m) => m.ActivityPage),
+          meta: { roles: team },
+        },
         // From the account menu at the bottom of the sidebar; no nav section.
-        { path: 'profile', name: 'profile', component: ProfilePage },
-        { path: 'help', name: 'help', component: HelpPage },
-        { path: 'help/:slug', name: 'help-article', component: HelpArticlePage, props: true },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/pages/profile').then((m) => m.ProfilePage),
+        },
+        {
+          path: 'help',
+          name: 'help',
+          component: () => import('@/pages/help').then((m) => m.HelpPage),
+        },
+        {
+          path: 'help/:slug',
+          name: 'help-article',
+          component: () => import('@/pages/help').then((m) => m.HelpArticlePage),
+          props: true,
+        },
       ],
     },
     {
@@ -105,37 +120,45 @@ export const router = createRouter({
       component: AuthLayout,
       meta: { access: 'guest' },
       children: [
-        { path: 'login', name: 'login', component: LoginPage },
-        { path: 'signup', name: 'signup', component: SignupPage },
+        {
+          path: 'login',
+          name: 'login',
+          component: () => import('@/pages/login').then((m) => m.LoginPage),
+        },
+        {
+          path: 'signup',
+          name: 'signup',
+          component: () => import('@/pages/signup').then((m) => m.SignupPage),
+        },
       ],
     },
     {
       path: '/onboarding',
-      component: OnboardingLayout,
+      component: () => import('@/pages/onboarding').then((m) => m.OnboardingLayout),
       children: [
         { path: '', redirect: { name: 'onboarding-role' } },
         {
           path: 'role',
           name: 'onboarding-role',
-          component: OnboardingRoleStep,
+          component: () => import('@/pages/onboarding').then((m) => m.OnboardingRoleStep),
           meta: { access: 'onboarding', step: 'role' },
         },
         {
           path: 'profile',
           name: 'onboarding-profile',
-          component: OnboardingProfileStep,
+          component: () => import('@/pages/onboarding').then((m) => m.OnboardingProfileStep),
           meta: { access: 'onboarding', step: 'profile' },
         },
         {
           path: 'review',
           name: 'onboarding-review',
-          component: OnboardingReviewStep,
+          component: () => import('@/pages/onboarding').then((m) => m.OnboardingReviewStep),
           meta: { access: 'onboarding', step: 'review' },
         },
         {
           path: 'status',
           name: 'onboarding-status',
-          component: OnboardingStatusPage,
+          component: () => import('@/pages/onboarding').then((m) => m.OnboardingStatusPage),
           meta: { access: 'review' },
         },
       ],
@@ -143,7 +166,7 @@ export const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      component: AdminPage,
+      component: () => import('@/pages/admin').then((m) => m.AdminPage),
       meta: { access: 'admin' },
     },
     {

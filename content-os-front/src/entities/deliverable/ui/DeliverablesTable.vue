@@ -47,7 +47,7 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
         :class="[row, 'min-h-[100px] border-b border-subtle py-2 last:border-b-0']"
       >
         <div role="cell" class="flex min-w-0 items-center gap-3">
-          <!-- TODO(api): thumbnail of the deliverable's content once shoots upload it. -->
+          <!-- TODO(api): thumbnail of the deliverable's content — content uploads don't exist yet. -->
           <span
             class="flex h-15 w-12 shrink-0 items-center justify-center rounded-lg bg-subtle text-tertiary"
             aria-hidden="true"

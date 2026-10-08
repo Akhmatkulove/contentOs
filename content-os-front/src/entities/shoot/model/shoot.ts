@@ -2,9 +2,6 @@ import type { Schemas } from '@/shared/api'
 
 export type ShootStatus = Schemas['ShootStatus']
 
-// Query key of one shoot: the page and the edit form share the cache.
-export const shootKey = (id: string) => ['shoots', id] as const
-
 // How each status looks in VStatus (Figma "CMS / Products / Status").
 export const shootStatuses = {
   upcoming: { label: 'Upcoming', tone: 'accent' },

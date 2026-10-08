@@ -9,10 +9,14 @@ import { membersByIds } from './shoot-team'
 
 // The deliverable and its product are required; assignees, references, date
 // and status are not. Without picked references the deliverable gets all of
-// the shoot's.
-// TODO(api): match the rules to the shoots API once it exists.
+// the shoot's. Same rules as ShootDeliverableDraft on the backend.
 export const shootDeliverableSchema = v.object({
-  name: v.pipe(v.string(), v.trim(), v.nonEmpty('Enter the deliverable.')),
+  name: v.pipe(
+    v.string(),
+    v.trim(),
+    v.nonEmpty('Enter the deliverable.'),
+    v.maxLength(200, 'Keep the name under 200 characters.'),
+  ),
   productId: v.pipe(v.string('Select a product.'), v.nonEmpty('Select a product.')),
 })
 

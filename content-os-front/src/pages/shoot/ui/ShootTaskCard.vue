@@ -4,7 +4,7 @@ import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
-import { assigneesLabel, type ShootTask } from '../model/shoot'
+import { assigneesLabel, type ShootTask } from '../model/tasks-tab'
 
 // Figma "Task / …" card of the mobile Tasks tab, without the checkbox and "…".
 // TODO(api): Latest upload row — content uploads come later.
