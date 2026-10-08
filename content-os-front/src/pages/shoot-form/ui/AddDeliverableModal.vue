@@ -65,7 +65,7 @@ const referencesId = useId()
         :error="errors.name"
       />
 
-      <div class="grid gap-3.5 md:grid-cols-2 md:gap-5">
+      <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-5">
         <VSelect
           v-model="form.productId"
           :options="productOptions(context)"

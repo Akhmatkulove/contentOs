@@ -93,9 +93,9 @@ const emptyListClass =
     <p v-else-if="!loaded" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 
     <template v-else>
-      <div class="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_374px]">
+      <div class="grid grid-cols-1 gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_374px]">
         <VSectionCard id="details" title="Product details" class="scroll-mt-6">
-          <div class="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-4">
             <VInput
               v-model="form.name"
               label="Product name"

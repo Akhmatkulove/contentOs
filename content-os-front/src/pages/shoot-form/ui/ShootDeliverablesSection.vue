@@ -58,43 +58,37 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
       The deliverables you add will be displayed here
     </p>
 
-    <!-- Scrolls sideways if the card can't fit the columns. -->
-    <div v-else class="hidden overflow-x-auto md:block">
-      <table class="w-full min-w-[1000px] table-fixed border-collapse">
+    <!-- Columns take the width their content needs and nothing is cut off: if the
+         card is narrower than that, the table scrolls sideways. Long deliverable
+         names wrap at 320px instead of stretching the table. `relative` keeps the
+         sr-only header text (absolutely positioned) inside the scroll box;
+         otherwise it escapes the clip and widens the whole page. -->
+    <div v-else class="relative hidden overflow-x-auto md:block">
+      <table class="w-full min-w-max border-collapse">
         <caption class="sr-only">
           Deliverables for this shoot
         </caption>
-        <colgroup>
-          <col class="w-8" />
-          <col class="w-48" />
-          <col class="w-44" />
-          <col class="w-48" />
-          <col class="w-[162px]" />
-          <col class="w-[138px]" />
-          <col class="w-[136px]" />
-          <col />
-        </colgroup>
         <thead>
           <tr class="h-10">
-            <th scope="col" :class="headCell">#</th>
-            <th scope="col" :class="headCell">Deliverable</th>
-            <th scope="col" :class="headCell">Product</th>
-            <th scope="col" :class="headCell">Reference</th>
-            <th scope="col" :class="headCell">Assignee(s)</th>
-            <th scope="col" :class="headCell">Due date</th>
-            <th scope="col" :class="headCell">Status</th>
-            <th scope="col"><span class="sr-only">Actions</span></th>
+            <th scope="col" :class="[headCell, 'w-8']">#</th>
+            <th scope="col" :class="[headCell, 'min-w-48']">Deliverable</th>
+            <th scope="col" :class="[headCell, 'min-w-44']">Product</th>
+            <th scope="col" :class="[headCell, 'min-w-48']">Reference</th>
+            <th scope="col" :class="[headCell, 'min-w-[162px]']">Assignee(s)</th>
+            <th scope="col" :class="[headCell, 'min-w-[138px]']">Due date</th>
+            <th scope="col" :class="[headCell, 'min-w-[136px]']">Status</th>
+            <th scope="col" class="w-10"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="(item, index) in deliverables"
             :key="item.id"
-            class="h-[76px] border-b border-subtle last:border-b-0"
+            class="h-[76px] border-b border-subtle whitespace-nowrap last:border-b-0"
           >
             <td class="pr-3 text-p3 font-medium text-secondary">{{ index + 1 }}</td>
-            <th scope="row" class="truncate pr-3 text-left text-p2 font-medium text-primary">
-              {{ item.name }}
+            <th scope="row" class="py-2 pr-3 text-left text-p2 font-medium text-primary">
+              <div class="max-w-80 whitespace-normal break-words">{{ item.name }}</div>
             </th>
             <td class="pr-3">
               <div class="flex items-center gap-2">
@@ -103,9 +97,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"
                 />
-                <span class="truncate text-p3 font-medium text-primary">{{
-                  item.product.name
-                }}</span>
+                <span class="text-p3 font-medium text-primary">{{ item.product.name }}</span>
               </div>
             </td>
             <td class="pr-3">
@@ -115,7 +107,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"
                 />
-                <span class="truncate text-p3 font-medium text-secondary">
+                <span class="text-p3 font-medium text-secondary">
                   {{ firstAndMore(item.references.map((reference) => reference.title)) }}
                 </span>
               </div>
@@ -132,7 +124,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
                     class="ring-2 ring-card"
                   />
                 </span>
-                <span class="truncate text-p3 font-medium text-primary">
+                <span class="text-p3 font-medium text-primary">
                   {{ firstAndMore(item.assignees.map((member) => member.name || 'Unnamed')) }}
                 </span>
               </div>

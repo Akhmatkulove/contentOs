@@ -7,24 +7,32 @@ import { deliverableStatuses, formatDueDate, type Deliverable } from '../model/d
 
 // Figma "Card / Deliverables" table (desktop) without the Type and Reference
 // columns. The screen may add a last column of row actions through the slot.
-// Header and rows share one grid: headers line up with the cells and every gap
-// is the same; the first column takes what is left.
+// Header and rows share one grid (rows are subgrids): headers line up with the
+// cells and every gap is the same. Columns take the width their content needs
+// and nothing is cut off; the first column takes what is left. If the card is
+// narrower, the table scrolls sideways. Long names and briefs wrap at 360px.
 const { deliverables } = defineProps<{ deliverables: Deliverable[] }>()
 
 const slots = defineSlots<{ action?: (props: { deliverable: Deliverable }) => unknown }>()
 
-const row = computed(() =>
+const columns = computed(() =>
   slots.action
-    ? 'grid grid-cols-[minmax(200px,1fr)_150px_118px_96px_28px] items-center gap-x-5'
-    : 'grid grid-cols-[minmax(200px,1fr)_150px_118px_96px] items-center gap-x-5',
+    ? 'grid-cols-[minmax(200px,1fr)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)_28px]'
+    : 'grid-cols-[minmax(200px,1fr)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)]',
 )
+const row = 'col-span-full grid grid-cols-subgrid items-center'
 const headCell = 'text-left text-p3 font-medium text-secondary'
 </script>
 
 <template>
-  <!-- Scrolls sideways if the card can't fit the columns. -->
-  <div class="overflow-x-auto">
-    <div role="table" aria-label="Deliverables" class="min-w-[640px]">
+  <!-- `relative`: the sr-only header text is absolutely positioned and would
+       otherwise escape the scroll box and widen the page. -->
+  <div class="relative overflow-x-auto">
+    <div
+      role="table"
+      aria-label="Deliverables"
+      :class="['grid w-max min-w-full gap-x-5 whitespace-nowrap', columns]"
+    >
       <div role="row" :class="[row, 'h-10']">
         <span role="columnheader" :class="headCell">Deliverable</span>
         <span role="columnheader" :class="headCell">Assigned to</span>
@@ -36,7 +44,7 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
         v-for="item in deliverables"
         :key="item.id"
         role="row"
-        :class="[row, 'h-[100px] border-b border-subtle last:border-b-0']"
+        :class="[row, 'min-h-[100px] border-b border-subtle py-2 last:border-b-0']"
       >
         <div role="cell" class="flex min-w-0 items-center gap-3">
           <!-- TODO(api): thumbnail of the deliverable's content once shoots upload it. -->
@@ -46,9 +54,12 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
           >
             <VIcon name="image-01" :size="18" />
           </span>
-          <div class="flex min-w-0 flex-col gap-1.5">
-            <p class="truncate text-p2 font-semibold text-primary">{{ item.name }}</p>
-            <p v-if="item.brief" class="truncate text-p3 font-medium text-secondary">
+          <div class="flex max-w-90 min-w-0 flex-col gap-1.5 whitespace-normal">
+            <p class="text-p2 font-semibold break-words text-primary">{{ item.name }}</p>
+            <p
+              v-if="item.brief"
+              class="line-clamp-3 text-p3 font-medium break-words text-secondary"
+            >
               {{ item.brief }}
             </p>
           </div>
@@ -56,7 +67,7 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
         <div role="cell" class="min-w-0">
           <div v-if="item.assignee" class="flex items-center gap-2">
             <VAvatar :name="item.assignee.name" :src="item.assignee.photo_url" />
-            <span class="truncate text-p3 font-medium text-primary">
+            <span class="text-p3 font-medium text-primary">
               {{ item.assignee.name || 'Unnamed' }}
             </span>
           </div>

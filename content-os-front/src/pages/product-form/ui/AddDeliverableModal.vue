@@ -39,7 +39,7 @@ const formId = useId()
         :error="errors.name"
       />
 
-      <div class="grid gap-3.5 md:grid-cols-2 md:gap-5">
+      <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-5">
         <!-- Taken from the product, so not editable here. -->
         <VInput :model-value="context.product" label="Product" disabled />
         <VSelect

@@ -55,7 +55,7 @@ const boxClass =
 
 <template>
   <VSectionCard title="Team">
-    <div class="grid items-start gap-4 lg:grid-cols-[252fr_656fr_252fr]">
+    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[252fr_656fr_252fr]">
       <!-- The one creating the shoot: shown, not picked. -->
       <div role="group" :aria-labelledby="artDirectorLabelId" class="flex min-w-0 flex-col gap-2">
         <span :id="artDirectorLabelId" class="text-p3 font-medium text-secondary"

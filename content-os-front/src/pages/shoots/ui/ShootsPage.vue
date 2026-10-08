@@ -111,7 +111,7 @@ const { search, status, date, sort, tab, tabs, shoots, total, loading, page, can
       </RouterLink>
     </VButton>
 
-    <div class="grid gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_316px] xl:items-start">
+    <div class="grid grid-cols-1 gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_316px] xl:items-start">
       <div class="flex min-w-0 flex-col gap-3">
         <!-- Figma "Shoot status tabs" (desktop): one underline slides between them. -->
         <TabsRoot v-model="tab" activation-mode="automatic" class="hidden md:block">
@@ -138,7 +138,9 @@ const { search, status, date, sort, tab, tabs, shoots, total, loading, page, can
         >
           No shoots here yet.
         </p>
-        <ul v-else class="grid gap-4 md:grid-cols-2 md:gap-3 xl:grid-cols-1">
+        <!-- On xl each card is a row that scrolls sideways inside itself when the
+             column is too narrow for it (ShootCard). -->
+        <ul v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3 xl:grid-cols-1">
           <li v-for="shoot in shoots" :key="shoot.id">
             <ShootCard :shoot="shoot" />
           </li>
@@ -153,7 +155,10 @@ const { search, status, date, sort, tab, tabs, shoots, total, loading, page, can
         />
       </div>
 
-      <aside aria-label="Shoot summary" class="grid gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-1">
+      <aside
+        aria-label="Shoot summary"
+        class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-1"
+      >
         <NextShootCard />
         <ShootOverviewCard />
       </aside>

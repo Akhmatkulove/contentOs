@@ -23,7 +23,9 @@ const { errors } = defineProps<{
 <template>
   <VSectionCard title="Shoot details">
     <div class="flex flex-col gap-4">
-      <div class="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[464fr_324fr_372fr]">
+      <div
+        class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-[464fr_324fr_372fr]"
+      >
         <VInput
           v-model="name"
           label="Shoot name"
@@ -36,7 +38,7 @@ const { errors } = defineProps<{
         <VDatePicker v-model="date" label="Date" required :error="errors.date" />
         <LocationField v-model="location" label="Location" />
       </div>
-      <div class="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
         <VSelect
           v-model="startTime"
           :options="startTimeOptions"

@@ -50,7 +50,7 @@ const { shoot, loading } = useNextShoot()
           </p>
         </div>
       </div>
-      <VButton as-child class="h-9 w-full md:h-10">
+      <VButton as-child class="h-9 w-full md:h-10 mt-auto">
         <RouterLink :to="{ name: 'shoot', params: { id: shoot.id } }">
           Open shoot
           <VIcon name="arrow-right-02-sharp" />
