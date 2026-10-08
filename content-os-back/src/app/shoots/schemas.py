@@ -221,3 +221,62 @@ class ShootNoteResponse(BaseModel):
     created_at: dt.datetime
     # Edit, Pin и Delete: автору заметки и арт-директору съёмки.
     can_manage: bool
+
+
+class TaskShoot(BaseModel):
+    id: uuid.UUID
+    name: str
+    date: dt.date
+
+
+class TaskProduct(BaseModel):
+    id: uuid.UUID
+    name: str
+    sku: str | None
+    # Первое фото продукта, presigned URL.
+    photo: FileResponse | None
+
+
+class TaskItem(BaseModel):
+    """Строка My tasks: deliverable съёмки с её продуктом и референсами (docs/adr/0011)."""
+
+    id: uuid.UUID
+    name: str
+    status: DeliverableStatus
+    due_date: dt.date | None
+    shoot: TaskShoot
+    product: TaskProduct
+    assignees: list[TeamMember]
+    # Первые три референса deliverable по порядку; всего — references_total.
+    references: list[ReferenceResponse]
+    references_total: int
+
+
+class TaskCounts(BaseModel):
+    """Размеры вкладок по статусам под текущими поиском и фильтрами."""
+
+    all: int
+    to_shoot: int
+    in_progress: int
+    needs_review: int
+    needs_changes: int
+    approved: int
+
+
+class TaskList(BaseModel):
+    items: list[TaskItem]
+    total: int
+    counts: TaskCounts
+
+
+class TaskFilterOption(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class TaskFilters(BaseModel):
+    """Варианты фильтров My tasks: только то, что встречается в задачах пользователя."""
+
+    shoots: list[TaskFilterOption]
+    products: list[TaskFilterOption]
+    assignees: list[TeamMember]

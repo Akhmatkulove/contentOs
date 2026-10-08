@@ -477,7 +477,7 @@ export interface paths {
     post?: never
     /**
      * Delete Reference
-     * @description Удалить свой референс: только автор.
+     * @description Удалить свой референс вместе с файлами: только автор.
      */
     delete: operations['delete_reference_api_references__reference_id__delete']
     options?: never
@@ -577,6 +577,49 @@ export interface paths {
     head?: never
     /** Pin Note */
     patch: operations['pin_note_api_shoots__shoot_id__notes__note_id__patch']
+    trace?: never
+  }
+  '/api/tasks': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Tasks
+     * @description My tasks: deliverables съёмок арт-директора или те, где креатор исполнитель.
+     *
+     *     Поиск по deliverable, продукту, съёмке и исполнителю без учёта регистра.
+     *     `counts` — размеры вкладок по статусам под поиском и фильтрами (docs/adr/0011).
+     */
+    get: operations['list_tasks_api_tasks_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Filters
+     * @description Съёмки, продукты и исполнители задач пользователя: варианты фильтров.
+     */
+    get: operations['list_filters_api_tasks_filters_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
     trace?: never
   }
   '/api/team/art-directors': {
@@ -1438,6 +1481,111 @@ export interface components {
      * @enum {string}
      */
     Status: 'onboarding' | 'pending_review' | 'approved' | 'rejected'
+    /**
+     * TaskCounts
+     * @description Размеры вкладок по статусам под текущими поиском и фильтрами.
+     */
+    TaskCounts: {
+      /** All */
+      all: number
+      /** To Shoot */
+      to_shoot: number
+      /** In Progress */
+      in_progress: number
+      /** Needs Review */
+      needs_review: number
+      /** Needs Changes */
+      needs_changes: number
+      /** Approved */
+      approved: number
+    }
+    /** TaskFilterOption */
+    TaskFilterOption: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
+    /**
+     * TaskFilters
+     * @description Варианты фильтров My tasks: только то, что встречается в задачах пользователя.
+     */
+    TaskFilters: {
+      /** Shoots */
+      shoots: components['schemas']['TaskFilterOption'][]
+      /** Products */
+      products: components['schemas']['TaskFilterOption'][]
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+    }
+    /**
+     * TaskItem
+     * @description Строка My tasks: deliverable съёмки с её продуктом и референсами (docs/adr/0011).
+     */
+    TaskItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      status: components['schemas']['DeliverableStatus']
+      /** Due Date */
+      due_date: string | null
+      shoot: components['schemas']['TaskShoot']
+      product: components['schemas']['TaskProduct']
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /** References Total */
+      references_total: number
+    }
+    /** TaskList */
+    TaskList: {
+      /** Items */
+      items: components['schemas']['TaskItem'][]
+      /** Total */
+      total: number
+      counts: components['schemas']['TaskCounts']
+    }
+    /** TaskProduct */
+    TaskProduct: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Sku */
+      sku: string | null
+      photo: components['schemas']['FileResponse'] | null
+    }
+    /** TaskShoot */
+    TaskShoot: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+    }
+    /**
+     * TaskSort
+     * @enum {string}
+     */
+    TaskSort: 'priority' | 'due_date' | 'name_asc'
     /** TeamMember */
     TeamMember: {
       /**
@@ -2876,6 +3024,77 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ShootNoteResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_tasks_api_tasks_get: {
+    parameters: {
+      query?: {
+        search?: string
+        status?: components['schemas']['DeliverableStatus'] | null
+        shoot_id?: string | null
+        product_id?: string | null
+        assignee_id?: string | null
+        sort?: components['schemas']['TaskSort']
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_filters_api_tasks_filters_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskFilters']
         }
       }
       /** @description Validation Error */
