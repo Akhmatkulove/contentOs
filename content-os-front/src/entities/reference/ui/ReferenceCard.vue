@@ -4,14 +4,20 @@ import { VButton } from '@/shared/ui/button'
 import { type IconName, VIcon } from '@/shared/ui/icon'
 import { formatDuration, referenceKindLabels, type Reference } from '../model/reference'
 
-const { reference, favoriteToggle = true } = defineProps<{
+const {
+  reference,
+  favoriteToggle = true,
+  removable = false,
+} = defineProps<{
   reference: Reference
   // false: no favourite star (screens where the user can't star, like the product page).
   favoriteToggle?: boolean
+  // true: a delete button next to the star (the references page, for the author).
+  removable?: boolean
 }>()
 
-// The star asks the screen to flip the favourite; the screen owns the request.
-const emit = defineEmits<{ toggleFavorite: [] }>()
+// The buttons ask the screen to flip the favourite or delete; the screen owns the request.
+const emit = defineEmits<{ toggleFavorite: []; remove: [] }>()
 
 const duration = computed(() =>
   reference.durationSec === null ? null : formatDuration(reference.durationSec),
@@ -75,8 +81,18 @@ const badges = computed(() => {
         </div>
         <!-- Figma "CMS / Desktop / Favourite button" by default. A screen can put its
              own 26px action here instead (product create: remove). -->
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-1.5">
           <slot name="action">
+            <VButton
+              v-if="removable"
+              variant="surface"
+              size="icon-24"
+              :aria-label="`Delete ${reference.title}`"
+              class="size-6.5 text-neutral-800 hover:bg-red-100 hover:text-red-400 active:bg-red-100 active:text-red-400"
+              @click="emit('remove')"
+            >
+              <VIcon name="delete-03" :size="13" />
+            </VButton>
             <!-- Selected: the star fills (--icon-fill in the sprite's star). -->
             <VButton
               v-if="favoriteToggle"

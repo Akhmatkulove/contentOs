@@ -318,3 +318,27 @@ async def set_favorite(
                 ReferenceFavorite.reference_id == reference_id,
             )
         )
+
+
+async def delete_reference(db: AsyncSession, user: User, reference_id: uuid.UUID) -> list[str]:
+    """Удаляет референс из пула и из съёмок, где он выбран, вместе с его файлами.
+
+    Коммитит вызывающий; он же после commit удаляет файлы из хранилища по
+    возвращённым ключам. Удалить может только автор. Невидимый референс отвечает 404,
+    как несуществующий; видимый, но чужой — 403.
+    """
+    reference = await db.scalar(
+        select(Reference).where(Reference.id == reference_id, _visible(user))
+    )
+    if reference is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reference not found")
+    if reference.owner_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author can delete a reference")
+    files = select(ReferenceFile.file_id).where(ReferenceFile.reference_id == reference.id)
+    keys = list(
+        await db.scalars(
+            delete(StoredFile).where(StoredFile.id.in_(files)).returning(StoredFile.key)
+        )
+    )
+    await db.delete(reference)
+    return keys

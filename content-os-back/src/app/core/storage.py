@@ -1,5 +1,6 @@
 """Файлы в S3-совместимом хранилище (MinIO, AWS S3, R2, Yandex Object Storage…)."""
 
+import logging
 from typing import TYPE_CHECKING, Annotated, BinaryIO, Protocol
 
 import boto3
@@ -11,6 +12,7 @@ from app.core.config import Settings
 if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
+logger = logging.getLogger(__name__)
 
 # Приватные файлы (files/) читаются по presigned URL столько времени.
 PRESIGN_TTL_SECONDS = 60 * 60
@@ -30,6 +32,20 @@ class Storage(Protocol):
     def presigned_url(self, key: str) -> str:
         """Временная ссылка на приватный файл. Считается локально, без запроса в S3."""
         ...
+
+
+async def delete_quietly(storage: Storage, *keys: str | None) -> None:
+    """Удаляет файлы, на которые больше ничто не ссылается: после commit.
+
+    Если удалить не вышло, остаётся только мусор в хранилище — ошибка в лог, не клиенту.
+    """
+    for key in keys:
+        if key is None:
+            continue
+        try:
+            await storage.delete(key)
+        except Exception:
+            logger.exception("Could not delete %s", key)
 
 
 def public_url(settings: Settings, key: str | None) -> str | None:

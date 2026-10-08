@@ -1,4 +1,3 @@
-import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile, status
@@ -8,22 +7,10 @@ from app.auth.deps import CurrentUser
 from app.auth.schemas import MeResponse
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
-from app.core.storage import Storage, StorageDep
+from app.core.storage import StorageDep, delete_quietly
 from app.profile.images import MAX_UPLOAD_BYTES, InvalidImageError, make_avatar
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/me/photo", tags=["profile"])
-
-
-async def _delete_quietly(storage: Storage, key: str | None) -> None:
-    # Старый файл больше ни на что не ссылается; если удалить не вышло, это только мусор.
-    if key is None:
-        return
-    try:
-        await storage.delete(key)
-    except Exception:
-        logger.exception("Could not delete %s", key)
 
 
 @router.put("")
@@ -47,7 +34,7 @@ async def upload_photo(
     await storage.put(key, avatar, "image/webp", public=True)
     old_key, user.photo_key = user.photo_key, key
     await db.commit()
-    await _delete_quietly(storage, old_key)
+    await delete_quietly(storage, old_key)
     return MeResponse.of(user, settings)
 
 
@@ -57,5 +44,5 @@ async def delete_photo(
 ) -> MeResponse:
     old_key, user.photo_key = user.photo_key, None
     await db.commit()
-    await _delete_quietly(storage, old_key)
+    await delete_quietly(storage, old_key)
     return MeResponse.of(user, settings)

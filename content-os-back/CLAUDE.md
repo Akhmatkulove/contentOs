@@ -24,7 +24,7 @@ src/app/review/        проверка заявок: Telegram (webhook, кно�
 src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/; claim_files — передача файлов в продукт или референс
 src/app/products/      продукты: список, страница GET /api/products/{id}, создание POST и редактирование PUT вместе с фото, референсами и deliverables (docs/adr/0003, 0004, 0005)
 src/app/deliverables/  deliverables продукта (модели, схемы; создаются из продукта): назначенный арт-директор видит продукт
-src/app/references/    референсы общего пула: GET /api/references (свои + референсы назначенных продуктов, docs/adr/0004; креатору — пул его арт-директоров, 0006), POST /api/references (свой референс)
+src/app/references/    референсы общего пула: GET /api/references (свои + референсы назначенных продуктов, docs/adr/0004; креатору — пул его арт-директоров, 0006), POST /api/references (свой референс), DELETE /api/references/{id} (только автор)
 src/app/shoots/        съёмки арт-директора: POST /api/shoots (команда, продукты, референсы, deliverables с исполнителями), GET /api/shoots (свои или где креатор в команде; статус выводится, docs/adr/0007), страница GET и редактирование PUT /api/shoots/{id} (docs/adr/0008)
 src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора бренда), GET /api/team/creators (креаторы арт-директора)
 src/app/locations/     подсказки адресов в Узбекистане: GET /api/locations/suggest (прокси к Геосаджесту Яндекса, ключ YANDEX_GEOSUGGEST_API_KEY)

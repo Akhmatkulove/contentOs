@@ -9,6 +9,7 @@ import {
   filterOptions,
   filterParams,
 } from '@/entities/reference'
+import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
 import { useFavorites } from './favorites'
 import { openFiltersSheet } from './filters-sheet'
@@ -20,6 +21,7 @@ import {
   referenceQueryParams,
 } from './reference-filters'
 import { referenceTabs } from './reference-tabs'
+import { useRemoveReference } from './remove-reference'
 
 export const REFERENCES_PER_PAGE = 20
 
@@ -75,6 +77,21 @@ export function useReferencesList() {
     (data.value?.items ?? []).map((item) => favorites.withPending(toReference(item))),
   )
   const total = computed(() => data.value?.total ?? 0)
+
+  // Only the author may delete a reference (the backend checks it too).
+  const session = useSessionStore()
+  const ownIds = computed(
+    () =>
+      new Set(
+        (data.value?.items ?? [])
+          .filter((item) => item.author_id === session.me?.id)
+          .map((item) => item.id),
+      ),
+  )
+  // The last card of a later page deleted: step back instead of an empty page.
+  const { remove: removeReference } = useRemoveReference(() => {
+    if (filters.page > 1 && data.value?.items.length === 1) filters.page -= 1
+  })
   const tabs = computed(() => referenceTabs(data.value?.counts))
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && data.value === undefined)
@@ -117,5 +134,7 @@ export function useReferencesList() {
     activeFilters,
     clearFilters,
     toggleFavorite: favorites.toggle,
+    canRemove: (id: string) => ownIds.value.has(id),
+    removeReference,
   }
 }

@@ -7,7 +7,7 @@ from app.auth.deps import ApprovedUser, require_role
 from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
-from app.core.storage import StorageDep
+from app.core.storage import StorageDep, delete_quietly
 from app.references import service
 from app.references.models import ReferenceType
 from app.references.schemas import (
@@ -78,3 +78,13 @@ async def remove_favorite(reference_id: uuid.UUID, user: ApprovedUser, db: Sessi
     """Убрать из избранного; если его там нет, ничего не меняет."""
     await service.set_favorite(db, user, reference_id, favorite=False)
     await db.commit()
+
+
+@router.delete("/{reference_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_reference(
+    reference_id: uuid.UUID, user: ApprovedUser, db: SessionDep, storage: StorageDep
+) -> None:
+    """Удалить свой референс вместе с файлами: только автор."""
+    keys = await service.delete_reference(db, user, reference_id)
+    await db.commit()
+    await delete_quietly(storage, *keys)

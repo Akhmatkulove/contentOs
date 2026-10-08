@@ -30,9 +30,15 @@ from tests.test_team import add_creator
 
 
 @pytest.fixture
-async def client(settings: Settings, db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+def storage() -> FakeStorage:
+    return FakeStorage()
+
+
+@pytest.fixture
+async def client(
+    settings: Settings, db_session: AsyncSession, storage: FakeStorage
+) -> AsyncIterator[AsyncClient]:
     """Одобренный бренд «Acme» с хранилищем в памяти."""
-    storage = FakeStorage()
     app = create_app(settings)
     app.dependency_overrides[get_session] = lambda: db_session
     app.dependency_overrides[get_storage] = lambda: storage
@@ -540,3 +546,61 @@ async def test_own_reference_needs_own_unused_files_or_a_link(
 async def test_brand_cannot_add_references_to_the_pool(client: AsyncClient) -> None:
     response = await client.post("/api/references", json={"link": "https://example.com/"})
     assert response.status_code == 403
+
+
+# --- Удаление ---
+
+
+async def test_author_deletes_own_reference(client: AsyncClient, db_session: AsyncSession) -> None:
+    await art_director(client, db_session, "amina@example.com", "Amina")
+    await log_in(client, "amina@example.com")
+    created = await add_reference(client, title="Walk", link="https://example.com/")
+    assert await favorite(client, created["id"]) == 204
+
+    response = await client.delete(f"/api/references/{created['id']}")
+    assert response.status_code == 204
+    assert await listing(client) == EMPTY
+    assert (await client.delete(f"/api/references/{created['id']}")).status_code == 404
+
+
+async def test_deleting_a_reference_deletes_its_files(
+    client: AsyncClient, db_session: AsyncSession, storage: FakeStorage
+) -> None:
+    await art_director(client, db_session, "amina@example.com", "Amina")
+    await log_in(client, "amina@example.com")
+    kept = await upload(client, image_bytes())
+    files = [await upload(client, image_bytes()), await upload(client, MP4)]
+    created = await add_reference(client, file_ids=[f["id"] for f in files])
+    assert len(storage.files) == 3
+
+    assert (await client.delete(f"/api/references/{created['id']}")).status_code == 204
+    # Остался только файл, который в референс не входил; его можно использовать дальше.
+    assert len(storage.files) == 1
+    reused = await add_reference(client, file_ids=[kept["id"]])
+    assert [f["id"] for f in reused["files"]] == [kept["id"]]
+
+
+async def test_only_the_author_deletes_a_reference(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await art_director(client, db_session, "zara@example.com", "Zara")
+    await product_with_references(
+        client, "Abaya", [amina, odina], [{"title": "Brand", "link": "https://example.com/b"}]
+    )
+    await log_in(client, "amina@example.com")
+    abaya = (await product_options(client))["Abaya"]
+    own = await add_reference(client, title="Walk", link="https://example.com/", product_id=abaya)
+    brand = next(i for i in (await listing(client))["items"] if i["title"] == "Brand")
+
+    # Чужой видимый — 403, в том числе референс бренда в продукте.
+    assert (await client.delete(f"/api/references/{brand['id']}")).status_code == 403
+    await log_in(client, "odina@example.com")
+    assert (await client.delete(f"/api/references/{own['id']}")).status_code == 403
+    # Невидимый — 404, как несуществующий.
+    await log_in(client, "zara@example.com")
+    assert (await client.delete(f"/api/references/{own['id']}")).status_code == 404
+
+    await log_in(client, "amina@example.com")
+    assert {i["title"] for i in (await listing(client))["items"]} == {"Walk", "Brand"}

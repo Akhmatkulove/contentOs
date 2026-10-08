@@ -31,6 +31,15 @@ describe('ReferenceCard', () => {
     expect(star.classes()).toContain('[--icon-fill:currentColor]')
   })
 
+  it('shows the delete button only when removable and asks to delete', async () => {
+    expect(
+      mount(ReferenceCard, { props: { reference } }).find('[aria-label^="Delete"]').exists(),
+    ).toBe(false)
+    const wrapper = mount(ReferenceCard, { props: { reference, removable: true } })
+    await wrapper.get('[aria-label="Delete Linen texture details"]').trigger('click')
+    expect(wrapper.emitted('remove')).toHaveLength(1)
+  })
+
   it('shows how many files the reference holds, and the tags', () => {
     const wrapper = mount(ReferenceCard, {
       props: { reference: { ...reference, imageCount: 3, tags: ['Fabric', 'Texture'] } },

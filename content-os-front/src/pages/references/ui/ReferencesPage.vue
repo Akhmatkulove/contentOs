@@ -36,6 +36,8 @@ const {
   activeFilters,
   clearFilters,
   toggleFavorite,
+  canRemove,
+  removeReference,
 } = useReferencesList()
 const { addReference } = useAddReference()
 useActiveTabInView(useTemplateRef('tabList'), scope)
@@ -184,7 +186,12 @@ function setSort(value: string | undefined) {
         ]"
       >
         <li v-for="reference in references" :key="reference.id">
-          <ReferenceCard :reference="reference" @toggle-favorite="toggleFavorite(reference)" />
+          <ReferenceCard
+            :reference="reference"
+            :removable="canRemove(reference.id)"
+            @toggle-favorite="toggleFavorite(reference)"
+            @remove="removeReference(reference)"
+          />
         </li>
       </ul>
       <VPagination
