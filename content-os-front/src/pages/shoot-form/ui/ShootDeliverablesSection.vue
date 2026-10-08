@@ -1,41 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
-import { VCheckbox } from '@/shared/ui/checkbox'
 import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import { VStatus } from '@/shared/ui/status'
-import {
-  selectAllState,
-  shootDeliverableStatuses,
-  toggleSelection,
-  type ShootDeliverable,
-} from '../model/shoot-draft'
+import { firstAndMore, type ShootDeliverable } from '../model/shoot-draft'
 import MediaPreview from './MediaPreview.vue'
 import ShootDeliverableCard from './ShootDeliverableCard.vue'
 
 // Figma "Card / Deliverables for this shoot". Desktop: a table inside the card.
 // Mobile: the card holds only the title and "Add deliverable"; the rows follow
-// it as separate cards (Figma "Task card" header and "Task / …").
+// it as separate cards (Figma "Task / …"). Checkboxes of the Figma rows are left
+// out: a deliverable added to the shoot is in it until removed with ×.
 const { deliverables } = defineProps<{ deliverables: ShootDeliverable[] }>()
 
-const selected = defineModel<string[]>('selected', { required: true })
-
-const allSelected = computed(() => selectAllState(selected.value.length, deliverables.length))
-
-function setAll(value: boolean | 'indeterminate') {
-  selected.value = value === true ? deliverables.map((item) => item.id) : []
-}
-
-function isSelected(id: string) {
-  return selected.value.includes(id)
-}
-
-function setSelected(id: string, value: boolean | 'indeterminate') {
-  selected.value = toggleSelection(selected.value, id, value === true)
-}
+// "Add deliverable": the form opens the modal; × takes a deliverable out.
+const emit = defineEmits<{ add: []; remove: [id: string] }>()
 
 const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
 </script>
@@ -46,21 +27,26 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
     description="Select and assign deliverables for the selected products."
   >
     <template #action>
-      <!-- TODO(ui): add-deliverable modal for a shoot. -->
-      <VButton variant="secondary" class="h-11 w-full md:h-10 md:w-auto">
+      <VButton variant="secondary" class="h-11 w-full md:h-10 md:w-auto" @click="emit('add')">
         <VIcon name="plus-sign" />
         Add deliverable
       </VButton>
     </template>
 
+    <p
+      v-if="!deliverables.length"
+      class="flex h-[117px] items-center justify-center rounded-[20px] bg-subtle p-8 text-center text-p1 font-medium text-secondary"
+    >
+      The deliverables you add will be displayed here
+    </p>
+
     <!-- Scrolls sideways if the card can't fit the columns. -->
-    <div class="hidden overflow-x-auto md:block">
+    <div v-else class="hidden overflow-x-auto md:block">
       <table class="w-full min-w-[1000px] table-fixed border-collapse">
         <caption class="sr-only">
           Deliverables for this shoot
         </caption>
         <colgroup>
-          <col class="w-8" />
           <col class="w-8" />
           <col class="w-48" />
           <col class="w-44" />
@@ -72,14 +58,6 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
         </colgroup>
         <thead>
           <tr class="h-10">
-            <th scope="col" :class="headCell">
-              <VCheckbox
-                :model-value="allSelected"
-                aria-label="Select all deliverables"
-                class="align-middle"
-                @update:model-value="setAll"
-              />
-            </th>
             <th scope="col" :class="headCell">#</th>
             <th scope="col" :class="headCell">Deliverable</th>
             <th scope="col" :class="headCell">Product</th>
@@ -96,14 +74,6 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
             :key="item.id"
             class="h-[76px] border-b border-subtle last:border-b-0"
           >
-            <td class="pr-3">
-              <VCheckbox
-                :model-value="isSelected(item.id)"
-                :aria-label="`Select ${item.name}`"
-                class="align-middle"
-                @update:model-value="setSelected(item.id, $event)"
-              />
-            </td>
             <td class="pr-3 text-p3 font-medium text-secondary">{{ index + 1 }}</td>
             <th scope="row" class="truncate pr-3 text-left text-p2 font-medium text-primary">
               {{ item.name }}
@@ -121,22 +91,31 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
               </div>
             </td>
             <td class="pr-3">
-              <div class="flex items-center gap-2">
+              <div v-if="item.references[0]" class="flex items-center gap-2">
                 <MediaPreview
-                  :src="item.reference.previewUrl"
+                  :src="item.references[0].previewUrl"
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"
                 />
                 <span class="truncate text-p3 font-medium text-secondary">
-                  {{ item.reference.title }}
+                  {{ firstAndMore(item.references.map((reference) => reference.title)) }}
                 </span>
               </div>
+              <span v-else class="text-p3 font-medium text-secondary">—</span>
             </td>
             <td class="pr-3">
-              <div v-if="item.assignee" class="flex items-center gap-2">
-                <VAvatar :name="item.assignee.name" :src="item.assignee.photo_url" />
+              <div v-if="item.assignees.length" class="flex items-center gap-2">
+                <span class="flex shrink-0 -space-x-2">
+                  <VAvatar
+                    v-for="member in item.assignees.slice(0, 3)"
+                    :key="member.id"
+                    :name="member.name"
+                    :src="member.photo_url"
+                    class="ring-2 ring-card"
+                  />
+                </span>
                 <span class="truncate text-p3 font-medium text-primary">
-                  {{ item.assignee.name || 'Unnamed' }}
+                  {{ firstAndMore(item.assignees.map((member) => member.name || 'Unnamed')) }}
                 </span>
               </div>
               <span v-else class="text-p3 font-medium text-secondary">Unassigned</span>
@@ -148,19 +127,19 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
               </div>
             </td>
             <td class="pr-3">
-              <VStatus :tone="shootDeliverableStatuses[item.status].tone" class="w-[118px]">
-                {{ shootDeliverableStatuses[item.status].label }}
+              <VStatus :tone="deliverableStatuses[item.status].tone" class="w-[118px]">
+                {{ deliverableStatuses[item.status].label }}
               </VStatus>
             </td>
             <td class="text-right">
-              <!-- TODO(ui): the deliverable's actions menu. -->
               <VButton
                 variant="ghost"
                 size="icon-24"
-                :aria-label="`More actions for ${item.name}`"
-                class="size-7"
+                :aria-label="`Remove ${item.name}`"
+                class="size-7 text-secondary hover:text-primary"
+                @click="emit('remove', item.id)"
               >
-                <VIcon name="more-horizontal" :size="16" />
+                <VIcon name="multiplication-sign" :size="16" />
               </VButton>
             </td>
           </tr>
@@ -170,21 +149,13 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
   </VSectionCard>
 
   <!-- Mobile rows, outside the card as in Figma. -->
-  <div class="flex flex-col gap-4 md:hidden">
-    <!-- Figma "Task card": the select-all row. -->
-    <label class="flex h-10 items-center gap-3 rounded-[20px] bg-card px-3.5">
-      <VCheckbox :model-value="allSelected" @update:model-value="setAll" />
-      <span class="text-p3 font-medium text-secondary">Task</span>
-      <span class="sr-only">— select all deliverables</span>
-    </label>
-    <ul aria-label="Deliverables for this shoot" class="flex flex-col gap-4">
-      <li v-for="item in deliverables" :key="item.id">
-        <ShootDeliverableCard
-          :deliverable="item"
-          :selected="isSelected(item.id)"
-          @update:selected="setSelected(item.id, $event)"
-        />
-      </li>
-    </ul>
-  </div>
+  <ul
+    v-if="deliverables.length"
+    aria-label="Deliverables for this shoot"
+    class="flex flex-col gap-4 md:hidden"
+  >
+    <li v-for="item in deliverables" :key="item.id">
+      <ShootDeliverableCard :deliverable="item" @remove="emit('remove', item.id)" />
+    </li>
+  </ul>
 </template>

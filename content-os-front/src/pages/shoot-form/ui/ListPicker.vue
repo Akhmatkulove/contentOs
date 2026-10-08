@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends { id: string }">
 import { computed, ref, watch } from 'vue'
 import {
   ListboxContent,
@@ -12,31 +12,42 @@ import {
   PopoverTrigger,
   useFilter,
 } from 'reka-ui'
-import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { selectContentClass, selectItemClass } from '@/shared/ui/select'
-import type { TeamMember } from '../model/shoot-draft'
 
-// People picker of "Card / Team" (not in Figma yet: styled as the select
-// dropdowns). The trigger comes from the slot. `multiple` keeps the list open
-// and ticks people on and off (creators); otherwise one pick closes it
-// (mobilographer). The picker only reports what was clicked: the form decides.
+// Searchable picker styled as the select dropdowns (people in "Card / Team",
+// people and references in "Add deliverable"; not in Figma yet). The trigger
+// comes from the default slot, each row's content from the `item` slot.
+// `multiple` keeps the list open and ticks items on and off; otherwise one pick
+// closes it. The picker only reports what was clicked: the form decides.
 const {
-  members,
+  items,
   selected,
+  text,
   multiple = false,
   label,
-  loading = false,
+  searchPlaceholder = 'Search by name…',
+  emptyText,
 } = defineProps<{
-  members: TeamMember[]
+  items: T[]
   selected: string[]
+  // What the search matches against: a name, a title.
+  text: (item: T) => string
   multiple?: boolean
-  // Names the list for screen readers: "Creators", "Mobilographer".
+  // Names the list for screen readers: "Creators", "References".
   label: string
-  loading?: boolean
+  searchPlaceholder?: string
+  // Shown when there is nothing to pick at all; a search that finds nothing
+  // says "Nothing found".
+  emptyText: string
 }>()
 
 const emit = defineEmits<{ toggle: [id: string] }>()
+
+defineSlots<{
+  default(props: { open: boolean }): unknown
+  item(props: { item: T }): unknown
+}>()
 
 const open = ref(false)
 const query = ref('')
@@ -44,7 +55,7 @@ const query = ref('')
 const { contains } = useFilter({ sensitivity: 'base' })
 const filtered = computed(() => {
   const q = query.value.trim()
-  return q ? members.filter((member) => contains(member.name ?? '', q)) : members
+  return q ? items.filter((item) => contains(text(item), q)) : items
 })
 
 // A fresh search every time the list opens.
@@ -60,12 +71,6 @@ function onChange(value: unknown) {
   if (clicked) emit('toggle', clicked)
   if (!multiple) open.value = false
 }
-
-const emptyText = computed(() => {
-  if (loading) return 'Loading your team…'
-  if (members.length === 0) return 'No one left to add. An admin adds creators to your team.'
-  return 'No one found'
-})
 </script>
 
 <template>
@@ -81,7 +86,7 @@ const emptyText = computed(() => {
         :collision-padding="16"
         :class="[
           selectContentClass,
-          'w-72 [--available-height:var(--reka-popover-content-available-height)]',
+          'w-72 min-w-(--reka-popover-trigger-width) [--available-height:var(--reka-popover-content-available-height)]',
         ]"
       >
         <ListboxRoot
@@ -100,8 +105,8 @@ const emptyText = computed(() => {
             <ListboxFilter
               v-model="query"
               auto-focus
-              placeholder="Search by name…"
-              aria-label="Search by name"
+              :placeholder="searchPlaceholder"
+              :aria-label="searchPlaceholder.replace(/…$/, '')"
               class="h-full min-w-0 flex-1 bg-transparent text-p2 font-medium text-brand outline-none placeholder:text-secondary"
             />
           </label>
@@ -111,19 +116,18 @@ const emptyText = computed(() => {
             class="flex min-h-0 flex-col gap-0.5 overflow-y-auto overscroll-contain"
           >
             <ListboxItem
-              v-for="member in filtered"
-              :key="member.id"
-              :value="member.id"
+              v-for="item in filtered"
+              :key="item.id"
+              :value="item.id"
               :class="selectItemClass"
             >
-              <VAvatar :name="member.name" :src="member.photo_url" :size="24" />
-              <span class="min-w-0 flex-1 truncate">{{ member.name || 'Unnamed' }}</span>
+              <slot name="item" :item="item" />
               <ListboxItemIndicator><VIcon name="tick-01" :size="16" /></ListboxItemIndicator>
             </ListboxItem>
           </ListboxContent>
 
           <p v-else role="status" class="px-2 py-3 text-center text-p3 font-medium text-secondary">
-            {{ emptyText }}
+            {{ items.length ? 'Nothing found' : emptyText }}
           </p>
         </ListboxRoot>
       </PopoverContent>

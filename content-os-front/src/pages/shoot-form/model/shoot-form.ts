@@ -1,10 +1,10 @@
 import { useMutation } from '@pinia/colada'
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, toValue, type MaybeRefOrGetter } from 'vue'
+import { openAddDeliverable } from './add-deliverable'
 import { openBrowseProducts } from './browse-products'
-import { demoDeliverables } from './demo'
-import type { ShootProduct } from './shoot-draft'
+import type { ShootDeliverable, ShootProduct, TeamMember } from './shoot-draft'
 import { useShootReferences } from './shoot-references'
 
 // Shoot details: everything but the location is required.
@@ -27,7 +27,8 @@ export const shootSchema = v.object({
 // State of the create-shoot screen. Layout stage: the screen holds what the
 // user picks; saving, pickers and searches come next.
 // TODO(api): create the shoot, save a draft, load products and references.
-export function useShootForm() {
+// `team`: the shoot's creators and mobilographer, the assignees to pick from.
+export function useShootForm(team: MaybeRefOrGetter<TeamMember[]>) {
   const details = reactive({
     name: '',
     // ISO date, YYYY-MM-DD.
@@ -68,18 +69,37 @@ export function useShootForm() {
   }
 
   // New references take their product from the shoot's ticked products.
+  const tickedProducts = computed(() =>
+    products.value.filter((product) => selectedProducts.value.includes(product.id)),
+  )
+
   const {
     references,
     selected: selectedReferences,
     addReference,
     browse: browseReferences,
     saveDrafts,
-  } = useShootReferences(() =>
-    products.value.filter((product) => selectedProducts.value.includes(product.id)),
-  )
+  } = useShootReferences(tickedProducts)
 
-  const deliverables = ref(demoDeliverables)
-  const selectedDeliverables = ref(deliverables.value.map((item) => item.id))
+  // Deliverables added here: all of them go into the shoot.
+  const deliverables = ref<ShootDeliverable[]>([])
+
+  // Picked from what the shoot has now.
+  async function addDeliverable() {
+    const deliverable = await openAddDeliverable({
+      products: tickedProducts.value,
+      team: toValue(team),
+      references: references.value
+        .filter((reference) => selectedReferences.value.includes(reference.id))
+        .map(({ id, title, previewUrl }) => ({ id, title, previewUrl })),
+    })
+    if (!deliverable) return
+    deliverables.value = [...deliverables.value, deliverable]
+  }
+
+  function removeDeliverable(id: string) {
+    deliverables.value = deliverables.value.filter((item) => item.id !== id)
+  }
 
   // TODO(api): POST the shoot with `data` and the new references in one request
   // (as the product form does), then open it. Until then the references are
@@ -109,7 +129,8 @@ export function useShootForm() {
     addReference,
     browseReferences,
     deliverables,
-    selectedDeliverables,
+    addDeliverable,
+    removeDeliverable,
     submit,
     saving,
     saveDraft,

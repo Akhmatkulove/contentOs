@@ -14,6 +14,17 @@ import ShootTeamSection from './ShootTeamSection.vue'
 // Create new shoot (Figma "SCREEN:s_new Create new shoot" and its mobile
 // state): details, team, products, references, deliverables.
 const {
+  artDirector,
+  members,
+  loading: teamLoading,
+  creatorIds,
+  creators,
+  creatorOptions,
+  mobilographerId,
+  mobilographer,
+  mobilographerOptions,
+} = useShootTeam()
+const {
   details,
   errors,
   products,
@@ -25,21 +36,12 @@ const {
   addReference,
   browseReferences,
   deliverables,
-  selectedDeliverables,
+  addDeliverable,
+  removeDeliverable,
   submit,
   saving,
   saveDraft,
-} = useShootForm()
-const {
-  artDirector,
-  loading: teamLoading,
-  creatorIds,
-  creators,
-  creatorOptions,
-  mobilographerId,
-  mobilographer,
-  mobilographerOptions,
-} = useShootTeam()
+} = useShootForm(members)
 
 const formElement = useTemplateRef('formElement')
 
@@ -125,8 +127,9 @@ async function onSubmit() {
     />
 
     <ShootDeliverablesSection
-      v-model:selected="selectedDeliverables"
       :deliverables="deliverables"
+      @add="addDeliverable"
+      @remove="removeDeliverable"
     />
 
     <!-- Figma "Form footer": the header's actions again after the long form. -->

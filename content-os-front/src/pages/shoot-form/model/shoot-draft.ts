@@ -1,3 +1,4 @@
+import type { DeliverableStatus } from '@/entities/deliverable'
 import type { Schemas } from '@/shared/api'
 
 // What the create-shoot screen shows. Shaped for the screen, not the API:
@@ -12,33 +13,37 @@ export interface ShootProduct {
   photoUrl: string | null
 }
 
-export type ShootDeliverableStatus = 'planned'
+// A shoot reference as a deliverable shows it: a snapshot taken when the
+// deliverable was added.
+export interface DeliverableReference {
+  id: string
+  title: string
+  previewUrl: string | null
+}
 
 export interface ShootDeliverable {
   id: string
   name: string
-  product: { name: string; photoUrl: string | null }
-  reference: { title: string; previewUrl: string | null }
-  assignee: TeamMember | null
+  product: ShootProduct
+  // The shoot's references to follow; may be none.
+  references: DeliverableReference[]
+  // People of the shoot's team; may be none.
+  assignees: TeamMember[]
   // ISO date, YYYY-MM-DD; empty when not set.
   dueDate: string
-  status: ShootDeliverableStatus
+  status: DeliverableStatus
 }
 
-// How each status looks in VStatus.
-export const shootDeliverableStatuses = {
-  planned: { label: 'Planned', tone: 'info' },
-} as const satisfies Record<ShootDeliverableStatus, { label: string; tone: string }>
+// "Amina", "Amina +2": the first name in a list and how many more there are.
+export function firstAndMore(names: string[]): string {
+  const [first, ...rest] = names
+  if (first === undefined) return ''
+  return rest.length ? `${first} +${rest.length}` : first
+}
 
 // "4 selected / 4 products" next to the product search.
 export function selectionLabel(selected: number, total: number): string {
   return `${selected} selected / ${total} ${total === 1 ? 'product' : 'products'}`
-}
-
-// The select-all box: ticked when every row is picked, a bar when only some are.
-export function selectAllState(selected: number, total: number): boolean | 'indeterminate' {
-  if (total === 0 || selected === 0) return false
-  return selected === total ? true : 'indeterminate'
 }
 
 // The picked ids after a checkbox changes: added once when ticked, dropped when not.

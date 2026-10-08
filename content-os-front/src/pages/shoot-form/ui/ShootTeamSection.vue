@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { computed, useId } from 'vue'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VSectionCard } from '@/shared/ui/section-card'
 import type { TeamMember } from '../model/shoot-draft'
-import TeamPicker from './TeamPicker.vue'
+import ListPicker from './ListPicker.vue'
 
 // Figma "Card / Team": art director, creators, mobilographer side by side on
 // desktop, stacked on mobile. The art director is the one creating the shoot;
@@ -43,6 +43,11 @@ const artDirectorLabelId = useId()
 const creatorsLabelId = useId()
 const mobilographerLabelId = useId()
 const mobilographerValueId = useId()
+
+const memberName = (member: TeamMember) => member.name ?? ''
+const emptyText = computed(() =>
+  loading ? 'Loading your team…' : 'No one left to add. An admin adds creators to your team.',
+)
 
 const boxClass =
   'flex h-11 w-full items-center gap-2 rounded-full border border-default bg-card p-2'
@@ -92,19 +97,24 @@ const boxClass =
           </li>
           <!-- Mobile: its own full-width row under the chips. -->
           <li class="flex basis-full md:basis-auto">
-            <TeamPicker
-              :members="creatorOptions"
+            <ListPicker
+              :items="creatorOptions"
               :selected="creatorIds"
+              :text="memberName"
               multiple
               label="Creators"
-              :loading="loading"
+              :empty-text="emptyText"
               @toggle="toggleCreator"
             >
+              <template #item="{ item }">
+                <VAvatar :name="item.name" :src="item.photo_url" :size="24" />
+                <span class="min-w-0 flex-1 truncate">{{ item.name || 'Unnamed' }}</span>
+              </template>
               <VButton variant="soft" size="36" class="flex-1 md:h-8.5 md:px-5">
                 <VIcon name="plus-sign" />
                 Add creator
               </VButton>
-            </TeamPicker>
+            </ListPicker>
           </li>
         </ul>
       </div>
@@ -114,13 +124,18 @@ const boxClass =
           Mobilographer
         </span>
         <div class="relative">
-          <TeamPicker
-            :members="mobilographerOptions"
+          <ListPicker
+            :items="mobilographerOptions"
             :selected="mobilographerId ? [mobilographerId] : []"
+            :text="memberName"
             label="Mobilographer"
-            :loading="loading"
+            :empty-text="emptyText"
             @toggle="toggleMobilographer"
           >
+            <template #item="{ item }">
+              <VAvatar :name="item.name" :src="item.photo_url" :size="24" />
+              <span class="min-w-0 flex-1 truncate">{{ item.name || 'Unnamed' }}</span>
+            </template>
             <button
               type="button"
               :aria-labelledby="`${mobilographerLabelId} ${mobilographerValueId}`"
@@ -146,7 +161,7 @@ const boxClass =
                 </span>
               </template>
             </button>
-          </TeamPicker>
+          </ListPicker>
           <!-- Beside the field, not inside: a button can't hold another button. -->
           <VButton
             v-if="mobilographer"

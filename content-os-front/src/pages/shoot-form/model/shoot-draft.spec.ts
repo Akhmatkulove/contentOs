@@ -1,4 +1,4 @@
-import { selectAllState, selectionLabel, toggleSelection } from './shoot-draft'
+import { firstAndMore, selectionLabel, toggleSelection } from './shoot-draft'
 
 describe('selectionLabel', () => {
   it('counts the picked products out of all of them', () => {
@@ -7,22 +7,18 @@ describe('selectionLabel', () => {
   })
 })
 
-describe('selectAllState', () => {
-  it('is ticked only when every row is picked', () => {
-    expect(selectAllState(6, 6)).toBe(true)
-    expect(selectAllState(2, 6)).toBe('indeterminate')
-    expect(selectAllState(0, 6)).toBe(false)
-  })
-
-  it('stays empty with no rows', () => {
-    expect(selectAllState(0, 0)).toBe(false)
-  })
-})
-
 describe('toggleSelection', () => {
   it('adds a ticked id once and drops an unticked one', () => {
     expect(toggleSelection(['a'], 'b', true)).toEqual(['a', 'b'])
     expect(toggleSelection(['a', 'b'], 'b', true)).toEqual(['a', 'b'])
     expect(toggleSelection(['a', 'b'], 'a', false)).toEqual(['b'])
+  })
+})
+
+describe('firstAndMore', () => {
+  it('names the first and counts the rest', () => {
+    expect(firstAndMore([])).toBe('')
+    expect(firstAndMore(['Amina'])).toBe('Amina')
+    expect(firstAndMore(['Amina', 'Odina', 'Lana'])).toBe('Amina +2')
   })
 })

@@ -41,8 +41,14 @@ export function useShootTeam() {
   )
   const mobilographerOptions = computed(() => pickable(pool.value, creatorIds.value))
 
+  // Who can be assigned to the shoot's deliverables.
+  const members = computed(() =>
+    mobilographer.value ? [...creators.value, mobilographer.value] : creators.value,
+  )
+
   return {
     artDirector,
+    members,
     loading: isLoading,
     creatorIds,
     creators,

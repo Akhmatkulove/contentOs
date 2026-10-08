@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
-import { VCheckbox } from '@/shared/ui/checkbox'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
-import { shootDeliverableStatuses, type ShootDeliverable } from '../model/shoot-draft'
+import { firstAndMore, type ShootDeliverable } from '../model/shoot-draft'
 import MediaPreview from './MediaPreview.vue'
 
 // Figma "Task / …" (mobile) under "Card / Deliverables for this shoot": the
-// deliverable with its status, product and reference, assignee and due date.
+// deliverable with its status, product and references, assignees and due date.
 const { deliverable } = defineProps<{ deliverable: ShootDeliverable }>()
 
-const selected = defineModel<boolean>('selected', { required: true })
+// × takes the deliverable out of the shoot.
+const emit = defineEmits<{ remove: [] }>()
 
 const media = computed(() => [
   { label: 'Product', value: deliverable.product.name, src: deliverable.product.photoUrl },
-  { label: 'Reference', value: deliverable.reference.title, src: deliverable.reference.previewUrl },
+  {
+    label: 'Reference',
+    value: firstAndMore(deliverable.references.map((reference) => reference.title)) || '—',
+    src: deliverable.references[0]?.previewUrl ?? null,
+  },
 ])
 </script>
 
@@ -26,26 +30,20 @@ const media = computed(() => [
     class="flex flex-col gap-4 rounded-[20px] bg-card p-4 shadow-[0_8px_32px_4px_rgb(29_42_60/0.05)]"
   >
     <div class="flex items-start gap-3">
-      <VCheckbox
-        :model-value="selected"
-        :aria-label="`Select ${deliverable.name}`"
-        class="mt-px"
-        @update:model-value="selected = $event === true"
-      />
       <div class="flex min-w-0 flex-1 flex-col items-start gap-2">
         <h3 class="w-full truncate text-p1 font-semibold text-primary">{{ deliverable.name }}</h3>
-        <VStatus :tone="shootDeliverableStatuses[deliverable.status].tone" :size="24">
-          {{ shootDeliverableStatuses[deliverable.status].label }}
+        <VStatus :tone="deliverableStatuses[deliverable.status].tone" :size="24">
+          {{ deliverableStatuses[deliverable.status].label }}
         </VStatus>
       </div>
-      <!-- TODO(ui): the deliverable's actions menu. -->
       <VButton
         variant="ghost"
         size="icon-24"
-        :aria-label="`More actions for ${deliverable.name}`"
-        class="size-7"
+        :aria-label="`Remove ${deliverable.name}`"
+        class="size-7 text-secondary hover:text-primary"
+        @click="emit('remove')"
       >
-        <VIcon name="more-horizontal" :size="18" />
+        <VIcon name="multiplication-sign" :size="18" />
       </VButton>
     </div>
 
@@ -64,9 +62,19 @@ const media = computed(() => [
       <div class="flex min-w-0 flex-col gap-2">
         <dt class="text-p4 font-medium text-secondary">Assignee</dt>
         <dd class="flex h-7 items-center gap-2 text-table font-medium text-primary">
-          <template v-if="deliverable.assignee">
-            <VAvatar :name="deliverable.assignee.name" :src="deliverable.assignee.photo_url" />
-            <span class="truncate">{{ deliverable.assignee.name || 'Unnamed' }}</span>
+          <template v-if="deliverable.assignees.length">
+            <span class="flex shrink-0 -space-x-2">
+              <VAvatar
+                v-for="member in deliverable.assignees.slice(0, 3)"
+                :key="member.id"
+                :name="member.name"
+                :src="member.photo_url"
+                class="ring-2 ring-card"
+              />
+            </span>
+            <span class="truncate">{{
+              firstAndMore(deliverable.assignees.map((member) => member.name || 'Unnamed'))
+            }}</span>
           </template>
           <span v-else class="text-secondary">Unassigned</span>
         </dd>
