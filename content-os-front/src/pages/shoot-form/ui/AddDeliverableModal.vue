@@ -28,16 +28,8 @@ const { context } = defineProps<{ context: DeliverableContext }>()
 // Closes with the new deliverable; nothing when cancelled.
 const emit = defineEmits<{ close: [deliverable?: ShootDeliverable] }>()
 
-const {
-  form,
-  errors,
-  assignees,
-  references,
-  toggleAssignee,
-  toggleReference,
-  chooseStatus,
-  submit,
-} = useAddDeliverableForm(context)
+const { form, errors, assignees, references, toggleAssignee, toggleReference, submit } =
+  useAddDeliverableForm(context)
 
 async function onSubmit() {
   const deliverable = await submit()
@@ -120,11 +112,10 @@ const referencesId = useId()
 
         <VDatePicker v-model="form.dueDate" label="Due date" placeholder="Select due date" />
         <VSelect
-          :model-value="form.status"
+          v-model="form.status"
           :options="deliverableStatusOptions"
           label="Status"
           placeholder="Select status"
-          @update:model-value="chooseStatus"
         />
       </div>
 

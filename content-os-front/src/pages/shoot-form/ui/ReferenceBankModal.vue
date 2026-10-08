@@ -19,7 +19,6 @@ const {
   search,
   filters,
   options,
-  setFilter,
   references,
   picked,
   isPicked,
@@ -51,49 +50,44 @@ const statusClass = 'py-10 text-center text-p2 font-medium text-secondary'
           class="min-w-0 basis-full md:basis-60 md:flex-1"
         />
         <VSelect
-          :model-value="filters.type"
+          v-model="filters.type"
           :options="typeOptions"
           variant="filter"
           aria-label="Type"
           class="w-[118px]"
-          @update:model-value="setFilter('type', $event)"
         />
         <VSelect
-          :model-value="filters.productId"
+          v-model="filters.productId"
           :options="options.products"
           variant="filter"
           aria-label="Product"
           searchable
           class="w-[118px]"
-          @update:model-value="setFilter('productId', $event)"
         />
         <!-- TODO(api): All shoots filter — GET /references doesn't filter by shoot. -->
         <VSelect
-          :model-value="filters.authorId"
+          v-model="filters.authorId"
           :options="options.creators"
           variant="filter"
           aria-label="Creator"
           searchable
           class="w-[118px]"
-          @update:model-value="setFilter('authorId', $event)"
         />
         <VSelect
-          :model-value="filters.tag"
+          v-model="filters.tag"
           :options="options.tags"
           variant="filter"
           aria-label="Tag"
           searchable
           class="w-[118px]"
-          @update:model-value="setFilter('tag', $event)"
         />
         <VSelect
-          :model-value="filters.sort"
+          v-model="filters.sort"
           :options="sortOptions"
           variant="filter"
           icon="arrow-up-down-sharp"
           aria-label="Sort"
           class="w-[164px]"
-          @update:model-value="setFilter('sort', $event)"
         />
       </div>
 

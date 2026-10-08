@@ -1,9 +1,8 @@
 import { useInfiniteQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
-import { productKeys } from '@/entities/product'
-import { fetchProductsPage, toShootProduct } from '../api/products'
+import { fetchProducts, productKeys } from '@/entities/product'
 import { nextPage } from './paging'
-import type { ShootProduct } from './shoot-draft'
+import { toShootProduct, type ShootProduct } from './shoot-draft'
 
 export const PRODUCTS_PAGE_SIZE = 30
 
@@ -17,7 +16,13 @@ export function useProductPicker(initial: ShootProduct[]) {
 
   const { data, isLoading, error, hasNextPage, loadNextPage, asyncStatus } = useInfiniteQuery({
     key: () => productKeys.picker(search.value),
-    query: ({ pageParam }) => fetchProductsPage(search.value, pageParam, PRODUCTS_PAGE_SIZE),
+    query: ({ pageParam }) =>
+      fetchProducts({
+        search: search.value,
+        sort: 'newest',
+        page: pageParam,
+        perPage: PRODUCTS_PAGE_SIZE,
+      }),
     initialPageParam: 1,
     getNextPageParam: (last, _pages, page) => nextPage(last.total, page, PRODUCTS_PAGE_SIZE),
     // The modal says what went wrong itself.

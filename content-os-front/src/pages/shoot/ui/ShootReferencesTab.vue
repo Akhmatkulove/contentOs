@@ -30,9 +30,9 @@ const search = computed({
   set: (value: string) => (filters.value = { ...filters.value, search: value }),
 })
 
-// VSelect emits a plain string; each select only offers its own options.
-function set(key: 'productId' | 'type' | 'sort', value: string | undefined) {
-  if (value) filters.value = { ...filters.value, [key]: value }
+// The filters are the page's: a change replaces them rather than editing the prop.
+function set<K extends keyof ReferenceFilters>(key: K, value: ReferenceFilters[K]) {
+  filters.value = { ...filters.value, [key]: value }
 }
 
 const linked = computed(

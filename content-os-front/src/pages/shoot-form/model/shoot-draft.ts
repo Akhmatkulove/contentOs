@@ -1,16 +1,26 @@
 import type { DeliverableStatus } from '@/entities/deliverable'
-import type { Schemas } from '@/shared/api'
+import type { ProductListItem } from '@/entities/product'
+import type { TeamMember } from '../api/team'
 
 // What the shoot form shows. Shaped for the screen, not the API:
 // shoot-initial.ts maps a saved shoot in, shoot-request.ts maps the form out.
 
-export type TeamMember = Schemas['TeamMember']
+export type { TeamMember }
 
 export interface ShootProduct {
   id: string
   name: string
   collection: string
   photoUrl: string | null
+}
+
+export function toShootProduct(item: ProductListItem): ShootProduct {
+  return {
+    id: item.id,
+    name: item.name,
+    collection: item.collection ?? '',
+    photoUrl: item.photo?.url ?? null,
+  }
 }
 
 // A shoot reference as a deliverable shows it: a snapshot taken when the

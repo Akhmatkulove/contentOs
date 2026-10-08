@@ -60,16 +60,10 @@ export function useReferencePicker(initial: Reference[]) {
     picked.value = value ? [...rest, reference] : rest
   }
 
-  // VSelect emits a plain string; each select only offers its own values.
-  function setFilter(key: keyof ReferenceFilters, value: string | undefined) {
-    if (value) Object.assign(filters, { [key]: value })
-  }
-
   return {
     search,
     filters,
     options,
-    setFilter,
     references,
     picked,
     isPicked,

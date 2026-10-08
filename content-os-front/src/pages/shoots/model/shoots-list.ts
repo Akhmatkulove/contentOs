@@ -104,10 +104,5 @@ export function useShootOverview() {
     placeholderData: (previous) => previous,
   })
   const counts = computed(() => data.value?.counts)
-
-  // VSelect emits a plain string; it only offers dateFilterOptions.
-  function setPeriod(value: string | undefined) {
-    if (value) period.value = value as ShootPeriod
-  }
-  return { period, setPeriod, counts }
+  return { period, counts }
 }

@@ -50,14 +50,6 @@ export function useNoteForm(team: TeamMember[], note?: ShootNote) {
       : [...form.assigneeIds, id]
   }
 
-  // VSelect emits a plain string; each select only offers its own options.
-  function chooseType(value: string | undefined) {
-    if (value) form.type = value as NoteType
-  }
-  function chooseVisibility(value: string | undefined) {
-    if (value) form.visibility = value as NoteVisibility
-  }
-
   // The request, or null while the form is invalid.
   async function submit(): Promise<ShootNoteBody | null> {
     const { valid, data } = await r$.$validate()
@@ -72,5 +64,5 @@ export function useNoteForm(team: TeamMember[], note?: ShootNote) {
     }
   }
 
-  return { form, errors, assignees, toggleAssignee, chooseType, chooseVisibility, submit }
+  return { form, errors, assignees, toggleAssignee, submit }
 }

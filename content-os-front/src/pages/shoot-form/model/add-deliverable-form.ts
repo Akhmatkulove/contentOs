@@ -31,7 +31,7 @@ export function useAddDeliverableForm(context: DeliverableContext) {
     assigneeIds: [] as string[],
     referenceIds: [] as string[],
     dueDate: '',
-    status: 'to_shoot' as DeliverableStatus | undefined,
+    status: 'to_shoot' as DeliverableStatus,
   })
 
   // rewardEarly: a field turns valid as soon as it is fixed, but turns invalid only on submit.
@@ -54,11 +54,6 @@ export function useAddDeliverableForm(context: DeliverableContext) {
     form.referenceIds = toggleSelection(form.referenceIds, id, !form.referenceIds.includes(id))
   }
 
-  // VSelect emits a plain string; it only offers deliverableStatusOptions.
-  function chooseStatus(status: string | undefined) {
-    form.status = status as DeliverableStatus | undefined
-  }
-
   // The deliverable to hand to the shoot, or null while the form is invalid.
   async function submit(): Promise<ShootDeliverable | null> {
     const { valid, data } = await r$.$validate()
@@ -73,7 +68,7 @@ export function useAddDeliverableForm(context: DeliverableContext) {
       references: references.value.length ? references.value : context.references,
       assignees: assignees.value,
       dueDate: form.dueDate,
-      status: form.status ?? 'to_shoot',
+      status: form.status,
     }
   }
 
@@ -84,7 +79,6 @@ export function useAddDeliverableForm(context: DeliverableContext) {
     references,
     toggleAssignee,
     toggleReference,
-    chooseStatus,
     submit,
   }
 }

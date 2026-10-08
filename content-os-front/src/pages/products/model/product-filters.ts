@@ -1,7 +1,12 @@
-import { productStatusOptions, type ProductStatus } from '@/entities/product'
+import {
+  productStatusOptions,
+  type ProductSort,
+  type ProductStatus,
+  type ProductsQuery,
+} from '@/entities/product'
 import { queryParam, type QueryParams } from '@/shared/lib'
 import type { SelectOption } from '@/shared/ui/select'
-import type { ProductFilterOptions, ProductSort, ProductsQuery } from '../api/products'
+import type { ProductFilterOptions } from '../api/products'
 
 // Reka Select can't hold an empty value, so "All …" is this sentinel.
 export const ALL = 'all'
@@ -23,10 +28,10 @@ export const productQueryParams = {
   page: queryParam.page(),
 } satisfies QueryParams
 
-export const statusFilterOptions = [
+export const statusFilterOptions: SelectOption<ProductFilters['status']>[] = [
   { value: ALL, label: 'All statuses' },
   ...productStatusOptions,
-] satisfies SelectOption[]
+]
 
 export const sortOptions = [
   { value: 'newest', label: 'Newest first' },

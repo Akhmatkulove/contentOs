@@ -114,24 +114,30 @@ export function assigneesLabel(members: TeamMember[]): string {
   return rest.length ? `${name} +${rest.length}` : name
 }
 
+export interface TaskFilterOptions {
+  products: SelectOption[]
+  assignees: SelectOption[]
+  statuses: SelectOption<TaskFilters['status']>[]
+}
+
 // The selects of the Tasks, Needs review and Approved tabs: the shoot's
 // products, its assignees (the art director isn't one) and the statuses.
-export function taskFilterOptions(products: ShootProduct[], people: ShootPerson[]) {
+export function taskFilterOptions(
+  products: ShootProduct[],
+  people: ShootPerson[],
+): TaskFilterOptions {
   return {
     products: [
       { value: ALL, label: 'All products' },
       ...products.map((product) => ({ value: product.id, label: product.name })),
-    ] satisfies SelectOption[],
+    ],
     assignees: [
       { value: ALL, label: 'All assignees' },
       ...people
         .filter((person) => person.role !== 'Art Director')
         .map(({ member }) => ({ value: member.id, label: member.name || 'Unnamed' })),
-    ] satisfies SelectOption[],
-    statuses: [
-      { value: ALL, label: 'All statuses' },
-      ...deliverableStatusOptions,
-    ] satisfies SelectOption[],
+    ],
+    statuses: [{ value: ALL, label: 'All statuses' }, ...deliverableStatusOptions],
   }
 }
 

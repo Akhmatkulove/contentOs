@@ -1,9 +1,9 @@
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
-import { productKeys } from '@/entities/product'
+import { fetchProducts, productKeys, type ProductSort } from '@/entities/product'
 import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
-import { fetchProductFilters, fetchProducts, type ProductSort } from '../api/products'
+import { fetchProductFilters } from '../api/products'
 import { openFiltersSheet } from './filters-sheet'
 import { toProduct } from './product'
 import {
@@ -61,16 +61,9 @@ export function useProductsList() {
   })
   const collections = computed(() => collectionOptions(filterData.value))
 
-  function setCollection(value: string | undefined) {
-    if (value) update({ collection: value })
-  }
-  function setStatus(value: string | undefined) {
-    if (value) update({ status: value as ProductFilters['status'] })
-  }
-  // VSelect emits a plain string; the sort select only offers ProductSort values.
-  function setSort(value: string | undefined) {
-    if (value) update({ sort: value as ProductSort })
-  }
+  const setCollection = (collection: string) => update({ collection })
+  const setStatus = (status: ProductFilters['status']) => update({ status })
+  const setSort = (sort: ProductSort) => update({ sort })
 
   async function openFilters() {
     const applied = await openFiltersSheet({ ...filters.value }, collections.value)

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
 import { computed, useAttrs, useId, type HTMLAttributes } from 'vue'
 import { cn } from '@/shared/lib'
 import SelectPlain from './select-plain.vue'
@@ -10,8 +10,10 @@ defineOptions({ inheritAttrs: false })
 
 // Select of Figma "CMS / Shared / Field": label, trigger, error message.
 // `searchable` adds a search field inside the dropdown (Figma
-// "Dropdown / collection") — use it for long or growing lists.
+// "Dropdown / collection") — use it for long or growing lists. The value type
+// comes from `options`: with `as const` options it is their union, not string.
 const {
+  modelValue,
   options,
   label,
   placeholder = 'Select…',
@@ -26,7 +28,8 @@ const {
   prefix,
   class: className,
 } = defineProps<{
-  options: readonly SelectOption[]
+  modelValue?: T
+  options: readonly SelectOption<T>[]
   label?: string
   placeholder?: string
   // Marks the label with an asterisk. No aria-required: Reka sets it on the
@@ -52,7 +55,13 @@ const {
   class?: HTMLAttributes['class']
 }>()
 
-const model = defineModel<string>()
+// Only an option's value comes out: a select never clears itself.
+const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
+
+// The inner selects work with plain strings and only offer the options' values.
+function pick(value: string | undefined) {
+  if (value !== undefined) emit('update:modelValue', value as T)
+}
 
 const attrs = useAttrs()
 const fallbackId = useId()
@@ -75,7 +84,8 @@ const triggerAttrs = computed(() => ({
 
     <SelectSearchable
       v-if="searchable"
-      v-model="model"
+      :model-value="modelValue"
+      @update:model-value="pick"
       :options="options"
       :placeholder="placeholder"
       :disabled="disabled"
@@ -89,7 +99,8 @@ const triggerAttrs = computed(() => ({
     />
     <SelectPlain
       v-else
-      v-model="model"
+      :model-value="modelValue"
+      @update:model-value="pick"
       :options="options"
       :placeholder="placeholder"
       :disabled="disabled"

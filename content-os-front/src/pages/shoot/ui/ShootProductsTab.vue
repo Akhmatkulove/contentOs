@@ -19,11 +19,6 @@ const {
 
 const search = defineModel<string>('search', { required: true })
 const sort = defineModel<ProductSort>('sort', { required: true })
-
-// VSelect emits a plain string; it only offers productSortOptions.
-function setSort(value: string | undefined) {
-  if (value) sort.value = value as ProductSort
-}
 </script>
 
 <template>
@@ -39,12 +34,11 @@ function setSort(value: string | undefined) {
         class="min-w-0 flex-1"
       />
       <VSelect
-        :model-value="sort"
+        v-model="sort"
         :options="productSortOptions"
         variant="filter"
         aria-label="Sort"
         class="hidden w-[190px] md:block"
-        @update:model-value="setSort"
       />
     </section>
 

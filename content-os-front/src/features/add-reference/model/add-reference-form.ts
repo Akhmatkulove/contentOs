@@ -108,9 +108,8 @@ export function useAddReferenceForm() {
     if (!typeChosen) form.type = typeForFiles(list.map((item) => item.file))
   })
 
-  // VSelect emits a plain string; it only offers typeOptions.
-  function chooseType(type: string | undefined) {
-    form.type = type as ReferenceType | undefined
+  function chooseType(type: ReferenceType) {
+    form.type = type
     typeChosen = true
   }
 

@@ -22,7 +22,7 @@ export function useAddDeliverableForm() {
   const form = reactive({
     name: '',
     assigneeId: undefined as string | undefined,
-    status: 'to_shoot' as DeliverableStatus | undefined,
+    status: 'to_shoot' as DeliverableStatus,
     dueDate: '',
     brief: '',
   })
@@ -40,11 +40,6 @@ export function useAddDeliverableForm() {
   })
   const assignees = computed(() => assigneeOptions(artDirectors.value ?? []))
 
-  // VSelect emits a plain string; it only offers deliverableStatusOptions.
-  function chooseStatus(status: string | undefined) {
-    form.status = status as DeliverableStatus | undefined
-  }
-
   // The draft to hand to the page, or null while the form is invalid.
   async function submit(): Promise<DeliverableDraft | null> {
     const { valid, data } = await r$.$validate()
@@ -56,11 +51,11 @@ export function useAddDeliverableForm() {
       id: crypto.randomUUID(),
       name: data.name,
       assignee,
-      status: form.status ?? 'to_shoot',
+      status: form.status,
       dueDate: form.dueDate,
       brief: data.brief,
     }
   }
 
-  return { form, errors, assignees, assigneesLoading, chooseStatus, submit }
+  return { form, errors, assignees, assigneesLoading, submit }
 }

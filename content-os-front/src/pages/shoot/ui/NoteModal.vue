@@ -20,8 +20,7 @@ const { team, note } = defineProps<{ team: TeamMember[]; note?: ShootNote }>()
 
 const emit = defineEmits<{ close: [body?: ShootNoteBody] }>()
 
-const { form, errors, assignees, toggleAssignee, chooseType, chooseVisibility, submit } =
-  useNoteForm(team, note)
+const { form, errors, assignees, toggleAssignee, submit } = useNoteForm(team, note)
 
 async function onSubmit() {
   const body = await submit()
@@ -52,19 +51,9 @@ const assignId = useId()
       />
 
       <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-4">
-        <VSelect
-          :model-value="form.type"
-          :options="noteTypeOptions"
-          label="Type"
-          @update:model-value="chooseType"
-        />
+        <VSelect v-model="form.type" :options="noteTypeOptions" label="Type" />
         <div class="flex flex-col gap-1.5">
-          <VSelect
-            :model-value="form.visibility"
-            :options="noteVisibilityOptions"
-            label="Visibility"
-            @update:model-value="chooseVisibility"
-          />
+          <VSelect v-model="form.visibility" :options="noteVisibilityOptions" label="Visibility" />
           <p class="text-p4 font-medium text-secondary">{{ visibilityHints[form.visibility] }}</p>
         </div>
       </div>

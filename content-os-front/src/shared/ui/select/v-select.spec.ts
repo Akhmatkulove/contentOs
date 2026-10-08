@@ -9,7 +9,8 @@ const collections: SelectOption[] = [
   { value: 'summer-25', label: 'Summer 25', disabled: true },
 ]
 
-function mountSelect(props: Partial<InstanceType<typeof VSelect>['$props']> = {}) {
+// A generic component is a function of its props.
+function mountSelect(props: Partial<Parameters<typeof VSelect>[0]> = {}) {
   const wrapper = mount(VSelect, {
     attachTo: document.body,
     props: {

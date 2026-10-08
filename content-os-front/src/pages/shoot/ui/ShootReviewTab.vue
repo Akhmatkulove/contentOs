@@ -3,13 +3,14 @@ import { computed } from 'vue'
 import { deliverableStatuses } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VSearch } from '@/shared/ui/search'
-import { VSelect, type SelectOption } from '@/shared/ui/select'
+import { VSelect } from '@/shared/ui/select'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
 import {
   assigneesLabel,
   taskSortOptions,
   type ShootTask,
+  type TaskFilterOptions,
   type TaskFilters,
 } from '../model/tasks-tab'
 import ReviewButton from './ReviewButton.vue'
@@ -23,7 +24,7 @@ import ShootReviewCard from './ShootReviewCard.vue'
 // and Uploaded come with content uploads; until then a placeholder and "—".
 // TODO(ui): "All deliverables" filter and the mobile filters sheet.
 const { options, tasks, total, canReview } = defineProps<{
-  options: { products: SelectOption[]; assignees: SelectOption[] }
+  options: Omit<TaskFilterOptions, 'statuses'>
   tasks: ShootTask[]
   total: number
   canReview: boolean
@@ -36,9 +37,9 @@ const search = computed({
   set: (value: string) => (filters.value = { ...filters.value, search: value }),
 })
 
-// VSelect emits a plain string; each select only offers its own options.
-function set(key: 'productId' | 'assigneeId' | 'sort', value: string | undefined) {
-  if (value) filters.value = { ...filters.value, [key]: value }
+// The filters are the page's: a change replaces them rather than editing the prop.
+function set<K extends keyof TaskFilters>(key: K, value: TaskFilters[K]) {
+  filters.value = { ...filters.value, [key]: value }
 }
 
 const creators = computed(() =>

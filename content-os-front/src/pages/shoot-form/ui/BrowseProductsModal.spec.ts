@@ -2,13 +2,13 @@ import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { closeAllModals, VModalHost } from '@/shared/ui/modal'
-import { fetchProductsPage } from '../api/products'
+import { fetchProducts } from '@/entities/product'
 import { openBrowseProducts } from '../model/browse-products'
 import type { ShootProduct } from '../model/shoot-draft'
 
-vi.mock('../api/products', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../api/products')>()),
-  fetchProductsPage: vi.fn(),
+vi.mock('@/entities/product', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/entities/product')>()),
+  fetchProducts: vi.fn(),
 }))
 
 function item(id: string, name: string) {
@@ -59,19 +59,19 @@ afterEach(() => {
   host?.unmount()
   host = undefined
   document.body.innerHTML = ''
-  vi.mocked(fetchProductsPage).mockReset()
+  vi.mocked(fetchProducts).mockReset()
 })
 
 describe('BrowseProductsModal', () => {
   it('lists the products and ticks the ones the shoot has', async () => {
-    vi.mocked(fetchProductsPage).mockResolvedValue({
+    vi.mocked(fetchProducts).mockResolvedValue({
       items: [item('p1', 'Black Abaya 042'), item('p2', 'Cream Dress 011')],
       total: 2,
     })
 
     await open([{ id: 'p2', name: 'Cream Dress 011', collection: 'Autumn 26', photoUrl: null }])
 
-    expect(fetchProductsPage).toHaveBeenCalledWith('', 1, 30)
+    expect(fetchProducts).toHaveBeenCalledWith({ search: '', sort: 'newest', page: 1, perPage: 30 })
     expect(names()).toEqual(['Black Abaya 042', 'Cream Dress 011'])
     expect(box('Black Abaya 042').getAttribute('aria-checked')).toBe('false')
     expect(box('Cream Dress 011').getAttribute('aria-checked')).toBe('true')
@@ -80,7 +80,7 @@ describe('BrowseProductsModal', () => {
   })
 
   it('closes with the new pick on "Save"', async () => {
-    vi.mocked(fetchProductsPage).mockResolvedValue({
+    vi.mocked(fetchProducts).mockResolvedValue({
       items: [item('p1', 'Black Abaya 042'), item('p2', 'Cream Dress 011')],
       total: 2,
     })
@@ -97,7 +97,7 @@ describe('BrowseProductsModal', () => {
   })
 
   it('changes nothing when cancelled', async () => {
-    vi.mocked(fetchProductsPage).mockResolvedValue({ items: [item('p1', 'Abaya')], total: 1 })
+    vi.mocked(fetchProducts).mockResolvedValue({ items: [item('p1', 'Abaya')], total: 1 })
     const { result } = await open()
 
     box('Abaya').click()
@@ -107,7 +107,7 @@ describe('BrowseProductsModal', () => {
   })
 
   it('loads more products on request', async () => {
-    vi.mocked(fetchProductsPage)
+    vi.mocked(fetchProducts)
       .mockResolvedValueOnce({ items: [item('p1', 'First')], total: 31 })
       .mockResolvedValueOnce({ items: [item('p31', 'Last')], total: 31 })
     await open()
@@ -115,13 +115,18 @@ describe('BrowseProductsModal', () => {
     button('Load more').click()
     await flushPromises()
 
-    expect(fetchProductsPage).toHaveBeenLastCalledWith('', 2, 30)
+    expect(fetchProducts).toHaveBeenLastCalledWith({
+      search: '',
+      sort: 'newest',
+      page: 2,
+      perPage: 30,
+    })
     expect(names()).toEqual(['First', 'Last'])
     expect(button('Load more')).toBeUndefined()
   })
 
   it('says when nothing is assigned yet', async () => {
-    vi.mocked(fetchProductsPage).mockResolvedValue({ items: [], total: 0 })
+    vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 0 })
     await open()
 
     expect(document.querySelector('[role="status"]')?.textContent?.trim()).toBe(

@@ -16,7 +16,7 @@ const { context } = defineProps<{ context: DeliverableContext }>()
 // Closes with the new draft; nothing when cancelled.
 const emit = defineEmits<{ close: [draft?: DeliverableDraft] }>()
 
-const { form, errors, assignees, assigneesLoading, chooseStatus, submit } = useAddDeliverableForm()
+const { form, errors, assignees, assigneesLoading, submit } = useAddDeliverableForm()
 
 async function onSubmit() {
   const draft = await submit()
@@ -51,11 +51,10 @@ const formId = useId()
           :placeholder="assigneesLoading ? 'Loading…' : 'Select art director'"
         />
         <VSelect
-          :model-value="form.status"
+          v-model="form.status"
           :options="deliverableStatusOptions"
           label="Status"
           placeholder="Select status"
-          @update:model-value="chooseStatus"
         />
         <!-- TODO(ui): VDatePicker — Figma shows a select with a chevron; native date input until then. -->
         <VInput v-model="form.dueDate" label="Due date" type="date" />

@@ -4,13 +4,14 @@ import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VSearch } from '@/shared/ui/search'
-import { VSelect, type SelectOption } from '@/shared/ui/select'
+import { VSelect } from '@/shared/ui/select'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
 import {
   assigneesLabel,
   taskSortOptions,
   type ShootTask,
+  type TaskFilterOptions,
   type TaskFilters,
 } from '../model/tasks-tab'
 import ShootTaskCard from './ShootTaskCard.vue'
@@ -28,7 +29,7 @@ const {
   total,
   approved = false,
 } = defineProps<{
-  options: { products: SelectOption[]; assignees: SelectOption[]; statuses: SelectOption[] }
+  options: TaskFilterOptions
   tasks: ShootTask[]
   total: number
   // The Approved tab: every task here is approved.
@@ -42,9 +43,9 @@ const search = computed({
   set: (value: string) => (filters.value = { ...filters.value, search: value }),
 })
 
-// VSelect emits a plain string; each select only offers its own options.
-function set(key: 'productId' | 'assigneeId' | 'status' | 'sort', value: string | undefined) {
-  if (value) filters.value = { ...filters.value, [key]: value }
+// The filters are the page's: a change replaces them rather than editing the prop.
+function set<K extends keyof TaskFilters>(key: K, value: TaskFilters[K]) {
+  filters.value = { ...filters.value, [key]: value }
 }
 
 const headCell = 'pr-4 text-left text-p4 font-medium whitespace-nowrap text-secondary'

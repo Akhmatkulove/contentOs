@@ -6,7 +6,7 @@ import { dateFilterOptions } from '../model/shoot-filters'
 import { useShootOverview } from '../model/shoots-list'
 
 // Figma "Card / Shoot overview": shoots in the picked period, per status.
-const { period, setPeriod, counts } = useShootOverview()
+const { period, counts } = useShootOverview()
 
 const metrics = computed<{ label: string; value: number; icon: IconName }[]>(() => [
   { label: 'Total shoots', value: counts.value?.all ?? 0, icon: 'calendar-02' },
@@ -22,12 +22,7 @@ const metrics = computed<{ label: string; value: number; icon: IconName }[]>(() 
     class="flex flex-col gap-4 rounded-2xl bg-card px-4 py-5 shadow-[0_8px_16px_rgb(29_42_60/0.05)] md:p-5 md:shadow-none"
   >
     <h2 id="shoot-overview" class="text-h6 text-primary">Shoot overview</h2>
-    <VSelect
-      :model-value="period"
-      :options="dateFilterOptions"
-      aria-label="Period"
-      @update:model-value="setPeriod"
-    />
+    <VSelect v-model="period" :options="dateFilterOptions" aria-label="Period" />
     <dl class="flex flex-col gap-4">
       <div v-for="metric in metrics" :key="metric.label" class="flex items-center gap-3">
         <span
