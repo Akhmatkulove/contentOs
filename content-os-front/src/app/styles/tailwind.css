@@ -272,3 +272,14 @@
     display: none;
   }
 }
+
+/*
+ * Toasts sit 24px above the mobile tab bar; a page with its own fixed action
+ * bar above the tab bar (create/edit forms, [data-fixed-actions], 80px tall
+ * and hidden from md) lifts them over it.
+ */
+@media (width < 48rem) {
+  :root:has([data-fixed-actions]) {
+    --toast-lift: 80px;
+  }
+}

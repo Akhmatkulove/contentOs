@@ -153,6 +153,7 @@ async function onSubmit() {
 
     <!-- Figma "Fixed actions": on mobile the actions stay above the tab bar. -->
     <div
+      data-fixed-actions
       class="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] flex gap-2 bg-card px-4 pt-4 pb-6 md:hidden"
     >
       <VButton v-if="!editing" variant="secondary" class="flex-1" @click="saveDraft">

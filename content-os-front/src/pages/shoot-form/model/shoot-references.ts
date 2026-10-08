@@ -10,6 +10,7 @@ import {
   type ReferenceDraft,
 } from '@/features/add-reference'
 import type { SelectOption } from '@/shared/ui/select'
+import { toast } from '@/shared/ui/toast'
 import { openReferenceBank } from './browse-references'
 import type { ShootProduct } from './shoot-draft'
 
@@ -69,6 +70,7 @@ export function useShootReferences(
       { draft, previewUrl: preview ? URL.createObjectURL(preview) : null },
     ]
     selected.value = [...selected.value, draft.id]
+    toast.success('Reference added')
   }
 
   // The bank starts from the ticked saved references; its pick replaces them,

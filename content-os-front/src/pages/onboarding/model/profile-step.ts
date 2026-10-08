@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 import { errorStatus, type Schemas } from '@/shared/api'
 import { saveAnswers, uploadPhoto } from '../api/onboarding'
+import { toast } from '@/shared/ui/toast'
 
 // Same rules as Name in OnboardingUpdate on the backend.
 export const profileSchema = v.object({
@@ -40,6 +41,8 @@ export function useProfileStep() {
   // The photo is uploaded as soon as it is picked; the server crops and re-encodes it.
   const photo = useMutation({
     mutation: async (file: File) => session.set(await uploadPhoto(file)),
+    // Errors show under the photo; success gets a toast.
+    onSuccess: () => toast.success('Photo uploaded'),
     meta: { toast: false },
   })
 

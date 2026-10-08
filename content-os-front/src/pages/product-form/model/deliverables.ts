@@ -1,5 +1,6 @@
 import { computed, shallowRef } from 'vue'
 import type { Deliverable } from '@/entities/deliverable'
+import { toast } from '@/shared/ui/toast'
 import { openAddDeliverable } from './add-deliverable'
 import type { DeliverableDraft } from './deliverable-draft'
 
@@ -12,12 +13,15 @@ export function useDeliverables(productName: () => string) {
 
   async function addDeliverable() {
     const draft = await openAddDeliverable({ product: productName() || 'New product' })
-    if (draft) drafts.value = [...drafts.value, draft]
+    if (!draft) return
+    drafts.value = [...drafts.value, draft]
+    toast.success('Deliverable added')
   }
 
   function removeDeliverable(id: string) {
     saved.value = saved.value.filter((item) => item.id !== id)
     drafts.value = drafts.value.filter((item) => item.id !== id)
+    toast.success('Deliverable removed')
   }
 
   return {

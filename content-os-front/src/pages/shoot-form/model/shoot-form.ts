@@ -144,10 +144,12 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
     })
     if (!deliverable) return
     deliverables.value = [...deliverables.value, deliverable]
+    toast.success('Deliverable added')
   }
 
   function removeDeliverable(id: string) {
     deliverables.value = deliverables.value.filter((item) => item.id !== id)
+    toast.success('Deliverable removed')
   }
 
   const router = useRouter()

@@ -103,10 +103,12 @@ export function useProductForm(productId?: string) {
       ...drafts.value,
       { draft, previewUrl: preview ? URL.createObjectURL(preview) : null },
     ]
+    toast.success('Reference added')
   }
 
   function removeReference(id: string) {
     savedReferences.value = savedReferences.value.filter((reference) => reference.id !== id)
+    toast.success('Reference removed')
     const entry = drafts.value.find(({ draft }) => draft.id === id)
     if (!entry) return
     if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl)

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { confirmAction } from '@/shared/ui/confirm-modal'
 import { openModal } from '@/shared/ui/modal'
+import { toast } from '@/shared/ui/toast'
 import type { SegmentedOption } from '@/shared/ui/segmented'
 import { assignLink, fetchAdminUsers, unassignLink, type LinkRef } from '../api/admin'
 import {
@@ -22,6 +23,9 @@ import {
 const AssignModal = defineAsyncComponent(() => import('../ui/AssignModal.vue'))
 
 const USERS_KEY = ['admin', 'users']
+
+// "art director" → "Art director": the start of a toast.
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
 const TAB_LABEL: Record<DirectoryTab, string> = {
   brand: 'Brands',
@@ -58,10 +62,19 @@ export function useAdminDirectory() {
   // One request per pick: each is idempotent, so a retry after a partial
   // failure is safe, and the refreshed list shows what landed.
   const assign = useMutation({
-    mutation: (links: LinkRef[]) => Promise.all(links.map(assignLink)),
+    mutation: ({ links }: { links: LinkRef[]; noun: string }) => Promise.all(links.map(assignLink)),
+    onSuccess: (_data, { links, noun }) => {
+      toast.success(
+        links.length === 1 ? `${capitalize(noun)} assigned` : `${links.length} ${noun}s assigned`,
+      )
+    },
     onSettled: refresh,
   })
-  const unassign = useMutation({ mutation: unassignLink, onSettled: refresh })
+  const unassign = useMutation({
+    mutation: ({ link }: { link: LinkRef; noun: string }) => unassignLink(link),
+    onSuccess: (_data, { noun }) => toast.success(`${capitalize(noun)} removed`),
+    onSettled: refresh,
+  })
   const saving = computed(() => assign.isLoading.value || unassign.isLoading.value)
 
   async function openAssign(entry: DirectoryEntry, section: LinkSection) {
@@ -72,9 +85,14 @@ export function useAdminDirectory() {
       candidates: assignCandidates(directory.value, section),
     })
     if (!memberIds?.length) return
-    assign.mutate(
-      memberIds.map((memberId) => ({ kind: section.kind, ownerId: entry.user.id, memberId })),
-    )
+    assign.mutate({
+      links: memberIds.map((memberId) => ({
+        kind: section.kind,
+        ownerId: entry.user.id,
+        memberId,
+      })),
+      noun: MEMBER_NOUN[section.kind],
+    })
   }
 
   async function confirmRemove(entry: DirectoryEntry, section: LinkSection, partner: ManagedUser) {
@@ -83,7 +101,9 @@ export function useAdminDirectory() {
       description: removeLinkMessage(section, entry.user, partner),
       confirmLabel: 'Remove',
     })
-    if (confirmed) unassign.mutate(linkRef(section, entry.user, partner))
+    if (confirmed) {
+      unassign.mutate({ link: linkRef(section, entry.user, partner), noun: partnerNoun(section) })
+    }
   }
 
   return {

@@ -54,7 +54,10 @@ export function useShootNotes(
   })
   const { mutate: pin } = useMutation({
     mutation: (note: ShootNote) => pinNote(shootId(), note.id, !note.pinned),
-    onSuccess: refresh,
+    onSuccess: (saved) => {
+      toast.success(saved.pinned ? 'Note pinned' : 'Note unpinned')
+      return refresh()
+    },
   })
   const { mutate: deleteNow } = useMutation({
     mutation: (note: ShootNote) => deleteNote(shootId(), note.id),

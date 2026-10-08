@@ -11,6 +11,11 @@ export function rejectedPhotosMessage(count: number): string {
     : `${count} files are not JPEG, PNG or WebP images.`
 }
 
+// "Photo added", "3 photos added": saved with the product on Save.
+export function photosAddedMessage(count: number): string {
+  return count === 1 ? 'Photo added' : `${count} photos added`
+}
+
 // A photo in the form: saved with the product (`file` is null, the id is the
 // file id), or picked here and uploaded on save.
 export interface PhotoEntry {
@@ -43,7 +48,9 @@ export function useProductPhotos() {
   function addPhotos(files: File[]) {
     const large = files.filter(tooLarge)
     if (large.length) toast.error(tooLargeMessage(large.length))
-    add(files.filter((file) => !tooLarge(file)))
+    const fitting = files.filter((file) => !tooLarge(file))
+    add(fitting)
+    if (fitting.length) toast.success(photosAddedMessage(fitting.length))
   }
 
   function removePhoto(id: string) {
@@ -52,6 +59,7 @@ export function useProductPhotos() {
     } else {
       remove(id)
     }
+    toast.success('Photo removed')
   }
 
   function rejectPhotos(files: File[]) {
