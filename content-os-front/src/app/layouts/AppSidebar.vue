@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSessionStore } from '@/entities/session'
+import { roleLabels, useSessionStore } from '@/entities/session'
 import { VIcon } from '@/shared/ui/icon'
+import AccountMenu from './AccountMenu.vue'
 import logoMarkUrl from './assets/logo-mark-dark.svg'
 import logoTextUrl from './assets/logo-text-dark.svg'
-import { isNavItemActive, roleLabels, useNav, type NavItem } from './nav'
+import { isNavItemActive, useNav, type NavItem } from './nav'
 
 const session = useSessionStore()
 const nav = useNav()
@@ -52,29 +53,33 @@ const initial = computed(() => name.value.charAt(0).toUpperCase())
 
     <div class="flex shrink-0 flex-col gap-4 px-[15px] py-4">
       <div class="h-px bg-neutral-300" />
-      <div class="flex items-center gap-2.5 rounded-xl bg-neutral-100 py-2 pr-2.5 pl-2">
-        <img
-          v-if="session.me?.photo_url"
-          :src="session.me.photo_url"
-          alt=""
-          class="size-[34px] shrink-0 rounded-full object-cover"
-        />
-        <div
-          v-else
-          class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-violet-100 text-p3 font-semibold text-violet-400"
+      <!-- The whole block opens the account menu; the "…" only hints at it. -->
+      <AccountMenu :name="name" :role="role" :photo-url="session.me?.photo_url ?? null">
+        <button
+          type="button"
+          class="flex w-full items-center gap-2.5 rounded-xl bg-neutral-100 py-2 pr-2.5 pl-2 text-left transition-colors outline-none hover:bg-neutral-200 focus-visible:ring-2 focus-visible:ring-violet-300 data-[state=open]:bg-neutral-200"
         >
-          {{ initial }}
-        </div>
+          <img
+            v-if="session.me?.photo_url"
+            :src="session.me.photo_url"
+            alt=""
+            class="size-[34px] shrink-0 rounded-full object-cover"
+          />
+          <div
+            v-else
+            class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-violet-100 text-p3 font-semibold text-violet-400"
+          >
+            {{ initial }}
+          </div>
 
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p class="truncate text-p2 font-semibold text-neutral-800">{{ name }}</p>
-          <p class="truncate text-p3 font-medium text-neutral-600">{{ role }}</p>
-        </div>
+          <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p class="truncate text-p2 font-semibold text-neutral-800">{{ name }}</p>
+            <p class="truncate text-p3 font-medium text-neutral-600">{{ role }}</p>
+          </div>
 
-        <button type="button" aria-label="Profile menu" class="text-neutral-600">
-          <VIcon name="more-horizontal" :size="18" />
+          <VIcon name="more-horizontal" :size="18" class="text-neutral-600" />
         </button>
-      </div>
+      </AccountMenu>
     </div>
   </aside>
 </template>

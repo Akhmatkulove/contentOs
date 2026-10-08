@@ -9,3 +9,9 @@ export type Status = Schemas['Status']
 
 // Where to resume onboarding; null outside of it.
 export type OnboardingStep = NonNullable<Me['onboarding_step']>
+
+export const roleLabels: Record<Role, string> = {
+  brand: 'Brand',
+  art_director: 'Art Director',
+  creator: 'Creator',
+}

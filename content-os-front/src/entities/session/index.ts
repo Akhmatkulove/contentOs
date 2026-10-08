@@ -1,4 +1,5 @@
 export type { Me, OnboardingStep, Role, Status } from './model/me'
+export { roleLabels } from './model/me'
 export { useSessionStore } from './model/session.store'
 export { homeRoute } from './model/home'
 export { useEnterSession } from './model/enter'

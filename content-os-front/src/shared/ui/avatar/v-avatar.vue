@@ -12,13 +12,20 @@ const {
 } = defineProps<{
   name: string | null
   src: string | null
-  size?: 24 | 28 | 36 | 44
+  size?: 24 | 28 | 36 | 40 | 44 | 80
   class?: HTMLAttributes['class']
 }>()
 
 const initial = computed(() => (name || 'U').charAt(0).toUpperCase())
-// 44 (member cards) shows a larger initial, as in Figma.
-const sizeClasses = { 24: 'size-6', 28: 'size-7', 36: 'size-9', 44: 'size-11 text-h6' } as const
+// 44 (member cards) and up show a larger initial, as in Figma; 80 is the profile page.
+const sizeClasses = {
+  24: 'size-6',
+  28: 'size-7',
+  36: 'size-9',
+  40: 'size-10',
+  44: 'size-11 text-h6',
+  80: 'size-20 text-h3',
+} as const
 const sizeClass = computed(() => sizeClasses[size])
 </script>
 

@@ -3,6 +3,7 @@ import type { Role } from '@/entities/session'
 import { ActivityPage } from '@/pages/activity'
 import { AdminPage } from '@/pages/admin'
 import { ContentPage } from '@/pages/content'
+import { HelpArticlePage, HelpPage } from '@/pages/help'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
 import {
@@ -15,6 +16,7 @@ import {
 import { ProductPage } from '@/pages/product'
 import { ProductCreatePage, ProductEditPage } from '@/pages/product-form'
 import { ProductsPage } from '@/pages/products'
+import { ProfilePage } from '@/pages/profile'
 import { ReferencesPage } from '@/pages/references'
 import { ShootPage } from '@/pages/shoot'
 import { ShootCreatePage, ShootEditPage } from '@/pages/shoot-form'
@@ -92,6 +94,10 @@ export const router = createRouter({
           meta: { roles: team, title: 'References' },
         },
         { path: 'activity', name: 'activity', component: ActivityPage, meta: { roles: team } },
+        // From the account menu at the bottom of the sidebar; no nav section.
+        { path: 'profile', name: 'profile', component: ProfilePage },
+        { path: 'help', name: 'help', component: HelpPage },
+        { path: 'help/:slug', name: 'help-article', component: HelpArticlePage, props: true },
       ],
     },
     {

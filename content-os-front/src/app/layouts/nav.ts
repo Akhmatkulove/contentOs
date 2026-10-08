@@ -6,7 +6,7 @@ import {
   type RouteMeta,
   type Router,
 } from 'vue-router'
-import { useSessionStore, type Me, type Role } from '@/entities/session'
+import { useSessionStore, type Me } from '@/entities/session'
 import type { IconName } from '@/shared/ui/icon'
 import { canOpen } from '../router/access'
 
@@ -57,10 +57,4 @@ export function useNav() {
   const router = useRouter()
   const session = useSessionStore()
   return computed(() => navFor(router, session.me))
-}
-
-export const roleLabels: Record<Role, string> = {
-  brand: 'Brand',
-  art_director: 'Art Director',
-  creator: 'Creator',
 }

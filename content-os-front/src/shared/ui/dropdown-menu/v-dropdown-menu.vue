@@ -11,7 +11,13 @@ import { cn } from '@/shared/lib'
 // Figma "Dropdown / productActions / Open": a list of actions under a trigger.
 // The trigger goes in #trigger (a VButton); items are VDropdownMenuItem.
 // Reka gives focus handling, arrow keys, typeahead and Escape.
-const { align = 'start', contentClass } = defineProps<{
+const {
+  side = 'bottom',
+  align = 'start',
+  contentClass,
+} = defineProps<{
+  // Above the trigger when it sits at the bottom of the screen (the account menu).
+  side?: 'top' | 'bottom'
   align?: 'start' | 'center' | 'end'
   // Merged into the list: a narrower menu (a note's Edit / Pin / Delete).
   contentClass?: HTMLAttributes['class']
@@ -25,6 +31,7 @@ const { align = 'start', contentClass } = defineProps<{
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent
+        :side="side"
         :align="align"
         :side-offset="8"
         :collision-padding="16"
