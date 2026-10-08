@@ -21,8 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import BrandArtDirector
-from app.auth.models import Role, Status, User
+from app.auth.models import Role, User
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
@@ -45,6 +44,7 @@ from app.products.schemas import (
 from app.references import service as references
 from app.references.models import Reference, ReferenceFile
 from app.references.schemas import ReferenceDraft
+from app.team import service as team
 from app.team.schemas import TeamMember
 
 # Поля формы, которые копируются в продукт как есть.
@@ -62,22 +62,8 @@ def _not_found() -> HTTPException:
 
 async def _require_own_art_directors(db: AsyncSession, brand: User, ids: set[uuid.UUID]) -> None:
     """Исполнитель deliverable — одобренный арт-директор из связок бренда (docs/adr/0002)."""
-    if not ids:
-        return
-    linked = set(
-        await db.scalars(
-            select(User.id)
-            .join(BrandArtDirector, BrandArtDirector.art_director_id == User.id)
-            .where(
-                BrandArtDirector.brand_id == brand.id,
-                User.id.in_(ids),
-                User.role == Role.ART_DIRECTOR,
-                User.status == Status.APPROVED,
-            )
-        )
-    )
     # Чужой арт-директор отвечает так же, как несуществующий пользователь.
-    if linked != ids:
+    if not await team.all_in(db, team.art_director_ids(brand.id), ids):
         raise _unprocessable("Assignee is not the brand's art director")
 
 
@@ -186,8 +172,12 @@ async def patch_product(
 
 async def update_product(
     db: AsyncSession, brand: User, product_id: uuid.UUID, body: ProductUpdate
-) -> Product:
-    """Сохраняет форму редактирования целиком (docs/adr/0005). Только бренд-владелец."""
+) -> tuple[Product, list[str]]:
+    """Сохраняет форму редактирования целиком (docs/adr/0005). Только бренд-владелец.
+
+    Вместе с продуктом возвращает ключи файлов убранных фото и референсов: из
+    хранилища вызывающий удаляет их после commit.
+    """
     product = await _own_product(db, brand, product_id)
     await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
 
@@ -215,10 +205,16 @@ async def update_product(
         "deliverable",
     )
 
-    # Убранные референсы удаляются из пула: бренд пула не видит, а без продукта
-    # их не увидит и арт-директор. Их файлы остаются в files без привязки.
-    if removed := own_references - set(body.reference_ids):
-        await db.execute(delete(Reference).where(Reference.id.in_(removed)))
+    # Убранные фото и референсы удаляются вместе с файлами. Референсы — из пула
+    # тоже: бренд пула не видит, а без продукта их не увидит и арт-директор.
+    removed_keys = list(
+        await db.scalars(
+            delete(StoredFile)
+            .where(StoredFile.id.in_(photos - set(body.photo_ids)))
+            .returning(StoredFile.key)
+        )
+    )
+    removed_keys += await references.delete_with_files(db, own_references - set(body.reference_ids))
     # Без deliverable арт-директор теряет доступ к продукту (docs/adr/0004).
     if removed := deliverables - set(body.deliverable_ids):
         await db.execute(delete(Deliverable).where(Deliverable.id.in_(removed)))
@@ -238,7 +234,7 @@ async def update_product(
     await _add_references(db, brand, product, body.references, files)
     _add_deliverables(db, product, body.deliverables, start=len(body.deliverable_ids))
     await db.flush()
-    return product
+    return product, removed_keys
 
 
 async def get_product(

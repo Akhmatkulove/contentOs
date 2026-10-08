@@ -8,7 +8,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import ArtDirectorCreator
 from app.auth.models import Role
 from app.core.config import Settings
 from app.core.db import get_session
@@ -16,6 +15,7 @@ from app.core.storage import get_storage
 from app.deliverables.models import Deliverable
 from app.main import create_app
 from app.references.models import Reference
+from app.team.models import ArtDirectorCreator
 from tests.fakes import FakeStorage
 from tests.test_files import MP4, image_bytes, upload
 from tests.test_products import (

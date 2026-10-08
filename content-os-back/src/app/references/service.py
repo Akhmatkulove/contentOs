@@ -3,6 +3,7 @@
 import enum
 import uuid
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,7 +23,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import ArtDirectorCreator
 from app.auth.models import Role, User
 from app.core.config import Settings
 from app.core.storage import Storage
@@ -40,6 +40,7 @@ from app.references.schemas import (
     ReferenceList,
     ReferenceResponse,
 )
+from app.team import service as team
 from app.team.schemas import TeamMember
 
 
@@ -84,9 +85,7 @@ def _visible(user: User) -> ColumnElement[bool]:
     if user.role == Role.ART_DIRECTOR:
         return or_(Reference.owner_id == user.id, _assigned(user, Reference.product_id))
     if user.role == Role.CREATOR:
-        art_directors = select(ArtDirectorCreator.art_director_id).where(
-            ArtDirectorCreator.creator_id == user.id
-        )
+        art_directors = team.art_directors_of_creator(user.id)
         return or_(
             Reference.owner_id == user.id,
             Reference.owner_id.in_(art_directors),
@@ -334,11 +333,22 @@ async def delete_reference(db: AsyncSession, user: User, reference_id: uuid.UUID
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reference not found")
     if reference.owner_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author can delete a reference")
-    files = select(ReferenceFile.file_id).where(ReferenceFile.reference_id == reference.id)
+    return await delete_with_files(db, {reference.id})
+
+
+async def delete_with_files(db: AsyncSession, ids: Collection[uuid.UUID]) -> list[str]:
+    """Удаляет референсы вместе с их файлами; из съёмок они уходят каскадом.
+
+    Возвращает ключи файлов: из хранилища вызывающий удаляет их после commit.
+    Проверки доступа — на вызывающем.
+    """
+    if not ids:
+        return []
+    files = select(ReferenceFile.file_id).where(ReferenceFile.reference_id.in_(ids))
     keys = list(
         await db.scalars(
             delete(StoredFile).where(StoredFile.id.in_(files)).returning(StoredFile.key)
         )
     )
-    await db.delete(reference)
+    await db.execute(delete(Reference).where(Reference.id.in_(ids)))
     return keys

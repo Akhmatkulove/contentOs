@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
-from app.admin.models import ArtDirectorCreator, BrandArtDirector
 from app.auth.deps import require_role
-from app.auth.models import Role, Status, User
+from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
+from app.team import service
 from app.team.schemas import TeamMember
 
 router = APIRouter(prefix="/team", tags=["team"])
@@ -23,8 +23,7 @@ async def list_art_directors(
     """Арт-директора из связок бренда (docs/adr/0002): из них бренд выбирает исполнителей."""
     users = await db.scalars(
         select(User)
-        .join(BrandArtDirector, BrandArtDirector.art_director_id == User.id)
-        .where(BrandArtDirector.brand_id == brand.id, User.status == Status.APPROVED)
+        .where(User.id.in_(service.art_director_ids(brand.id)))
         .order_by(User.name, User.id)
     )
     return [TeamMember.of(user, settings) for user in users]
@@ -38,11 +37,7 @@ async def list_creators(
     креаторов и мобилографа (роль одна, «Creator / Mobilograph»)."""
     users = await db.scalars(
         select(User)
-        .join(ArtDirectorCreator, ArtDirectorCreator.creator_id == User.id)
-        .where(
-            ArtDirectorCreator.art_director_id == art_director.id,
-            User.status == Status.APPROVED,
-        )
+        .where(User.id.in_(service.creator_ids(art_director.id)))
         .order_by(User.name, User.id)
     )
     return [TeamMember.of(user, settings) for user in users]

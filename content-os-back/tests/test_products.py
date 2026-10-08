@@ -7,14 +7,15 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import BrandArtDirector
 from app.auth.models import Role, Status, User
 from app.core.config import Settings
 from app.core.db import get_session
 from app.core.storage import get_storage
+from app.files.models import StoredFile
 from app.main import create_app
 from app.products.models import Product
 from app.references.models import Reference
+from app.team.models import BrandArtDirector
 from tests.fakes import FakeStorage
 from tests.test_files import MP4, image_bytes, upload
 
@@ -550,7 +551,7 @@ async def edit(client: AsyncClient, product_id: str, body: dict[str, Any]) -> di
     return edited
 
 
-async def test_edits_fields_and_photos(client: AsyncClient) -> None:
+async def test_edits_fields_and_photos(client: AsyncClient, storage: FakeStorage) -> None:
     first, second = [await upload(client, image_bytes()) for _ in range(2)]
     current = await create(client, product([first["id"], second["id"]]))
     added = await upload(client, image_bytes())
@@ -576,18 +577,25 @@ async def test_edits_fields_and_photos(client: AsyncClient) -> None:
     )
     assert [photo["id"] for photo in body["photos"]] == [added["id"], second["id"]]
     assert await detail(client, current["id"]) == body
-    # Убранное фото больше ничьё: его можно снова использовать.
-    other = await create(client, product([first["id"]], name="Other"))
-    assert [photo["id"] for photo in other["photos"]] == [first["id"]]
+    # Убранное фото удалено вместе с файлом.
+    assert len(storage.files) == 2
+    response = await client.post("/api/products", json=product([first["id"]], name="Other"))
+    assert (response.status_code, response.json()["detail"]) == (422, "Unknown file")
 
 
-async def test_edits_references(client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_edits_references(
+    client: AsyncClient, db_session: AsyncSession, storage: FakeStorage
+) -> None:
+    removed_file = await upload(client, image_bytes())
     current = await create(
         client,
         product(
             [(await upload(client, image_bytes()))["id"]],
             collection="Summer 26",
-            references=[{"link": "https://example.com/a"}, {"link": "https://example.com/b"}],
+            references=[
+                {"link": "https://example.com/a"},
+                {"title": "Removed", "file_ids": [removed_file["id"]]},
+            ],
         ),
     )
     kept = next(r for r in current["references"] if r["link"] == "https://example.com/a")
@@ -605,8 +613,11 @@ async def test_edits_references(client: AsyncClient, db_session: AsyncSession) -
 
     assert {r["link"] or r["title"] for r in body["references"]} == {"https://example.com/a", "New"}
     assert all(r["collection"] == "Summer 26" for r in body["references"])
-    # Убранный референс удалён, а не отвязан: без продукта его никто бы не увидел.
+    # Убранный референс удалён вместе с файлами, а не отвязан: без продукта его никто
+    # бы не увидел.
     assert await db_session.scalar(select(func.count()).select_from(Reference)) == 2
+    assert await db_session.scalar(select(func.count()).select_from(StoredFile)) == 2
+    assert len(storage.files) == 2
 
 
 async def test_brand_cannot_remove_art_directors_references(

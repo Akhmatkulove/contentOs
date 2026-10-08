@@ -6,11 +6,11 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import ArtDirectorCreator, BrandArtDirector
 from app.auth.models import Role, Status, User
 from app.core.config import Settings
 from app.core.db import get_session
 from app.main import create_app
+from app.team.models import ArtDirectorCreator, BrandArtDirector
 from tests.test_products import sign_up
 
 

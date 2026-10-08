@@ -9,6 +9,7 @@ Python 3.13, FastAPI, SQLAlchemy 2 (async, asyncpg), Alembic, PostgreSQL 18, pyd
 - `uv run alembic upgrade head` · `uv run uvicorn app.main:create_app --factory --reload`: api на `:8000`, фронт проксирует туда `/api`
 - `docker compose up --build`: весь стек в контейнерах (db → migrate → api); `docker compose watch` пересобирает при изменениях
 - `uv run pytest` · `uv run ruff check` · `uv run ruff format` · `uv run mypy`
+- `uv run python -m app.cleanup`: уборка раз в сутки (cron) — неиспользованные загрузки старше суток, просроченные сессии, старые счётчики rate limit
 - После изменений прогоняй `pytest`, `ruff check`, `ruff format --check` и `mypy`. Pre-push hook (`content-os-front/.husky`) запускает то же самое и требует запущенный Docker, pre-commit проверяет ruff'ом staged-файлы. CI: `.github/workflows/backend.yml`.
 
 ## Структура
@@ -21,14 +22,14 @@ src/app/auth/          пользователи, сессии, signup/login/logo
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
 src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
-src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/; claim_files — передача файлов в продукт или референс
+src/app/files/         загрузка файлов POST /api/uploads: проверка по содержимому, WebP, приватные ключи files/; claim_files — передача файлов в продукт или референс; delete_unused — уборка ничьих файлов
 src/app/products/      продукты: список, страница GET /api/products/{id}, создание POST и редактирование PUT вместе с фото, референсами и deliverables (docs/adr/0003, 0004, 0005)
 src/app/deliverables/  deliverables продукта (модели, схемы; создаются из продукта): назначенный арт-директор видит продукт
 src/app/references/    референсы общего пула: GET /api/references (свои + референсы назначенных продуктов, docs/adr/0004; креатору — пул его арт-директоров, 0006), POST /api/references (свой референс), DELETE /api/references/{id} (только автор)
 src/app/shoots/        съёмки арт-директора: POST /api/shoots (команда, продукты, референсы, deliverables с исполнителями), GET /api/shoots (свои или где креатор в команде; статус выводится, docs/adr/0007), страница GET и редактирование PUT /api/shoots/{id} (docs/adr/0008); My tasks GET /api/tasks — deliverables съёмок как задачи (docs/adr/0011)
-src/app/team/          команда пользователя: GET /api/team/art-directors (арт-директора бренда), GET /api/team/creators (креаторы арт-директора)
+src/app/team/          команда пользователя: связки бренд ↔ арт-директор ↔ креатор (models), кто чей (service: и списки, и проверки при сохранении), GET /api/team/art-directors, GET /api/team/creators
 src/app/locations/     подсказки адресов в Узбекистане: GET /api/locations/suggest (прокси к Геосаджесту Яндекса, ключ YANDEX_GEOSUGGEST_API_KEY)
-src/app/admin/         админка: пользователи, связки бренд ↔ арт-директор ↔ креатор, журнал, CLI create_admin
+src/app/admin/         админка: пользователи, назначение и снятие связок (модели связок — в team), журнал, CLI create_admin
 src/app/<feature>/     код фичи: router.py, schemas.py, models.py, service.py
 migrations/            Alembic
 tests/                 pytest, по файлу на фичу: tests/test_<feature>.py
@@ -49,6 +50,7 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 ## Безопасность
 
 - Размер тела ограничивает `BodyLimitMiddleware` (1 МБ, `/api/me/photo` — 6 МБ): FastAPI читает тело до проверки сессии. Новому эндпоинту с файлами добавь лимит в `PATH_LIMITS`.
+- Файл занят, пока на него ссылается ForeignKey на `files.id` (ищутся по метаданным моделей); ничей файл старше суток удаляет `app.cleanup`. Убирая файл из продукта или референса, удаляй его сразу: строку до commit, объект в хранилище после (`delete_quietly`).
 - Файлы контента (`files/…`) приватные: наружу только `storage.presigned_url(key)` (живёт час), не `public_url`. Публичный только префикс `avatars/` (`put(..., public=True)`). Тип файла определяй по содержимому (`app.files.media`), не по имени или `Content-Type`.
 - Дорогие или шумные действия (argon2, сообщения в Telegram) закрывай `rate_limit.check(...)` до самой работы.
 - `rate_limit.client_ip` берёт адрес из `request.client`. За reverse proxy запускай uvicorn с `--proxy-headers --forwarded-allow-ips=<адрес прокси>`, иначе у всех клиентов будет один IP и общий лимит.

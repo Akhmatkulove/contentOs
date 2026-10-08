@@ -25,8 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin.models import ArtDirectorCreator
-from app.auth.models import Role, Status, User
+from app.auth.models import Role, User
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
@@ -58,6 +57,7 @@ from app.shoots.schemas import (
     ShootResponse,
     ShootStatus,
 )
+from app.team import service as team
 from app.team.schemas import TeamMember
 
 # Съёмки проходят в Узбекистане (адреса — из подсказок по Узбекистану): «уже
@@ -71,21 +71,8 @@ def _unprocessable(detail: str) -> HTTPException:
 
 async def _require_own_creators(db: AsyncSession, art_director: User, ids: set[uuid.UUID]) -> None:
     """Команда съёмки — одобренные креаторы арт-директора (docs/adr/0002)."""
-    if not ids:
-        return
-    linked = set(
-        await db.scalars(
-            select(User.id)
-            .join(ArtDirectorCreator, ArtDirectorCreator.creator_id == User.id)
-            .where(
-                ArtDirectorCreator.art_director_id == art_director.id,
-                User.id.in_(ids),
-                User.status == Status.APPROVED,
-            )
-        )
-    )
     # Чужой креатор отвечает так же, как несуществующий пользователь.
-    if linked != ids:
+    if not await team.all_in(db, team.creator_ids(art_director.id), ids):
         raise _unprocessable("Not your creator")
 
 

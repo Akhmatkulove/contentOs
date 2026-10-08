@@ -9,11 +9,12 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.admin.models import AdminAction, AdminActionType, ArtDirectorCreator, BrandArtDirector
+from app.admin.models import AdminAction, AdminActionType
 from app.auth.models import Role, Status, User, UserSession
 from app.auth.service import hash_password
 from app.deliverables.models import Deliverable
 from app.products.models import Product
+from app.team.models import ArtDirectorCreator, BrandArtDirector
 
 
 @dataclass

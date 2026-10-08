@@ -7,7 +7,7 @@ from app.auth.deps import ApprovedUser, require_role
 from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
-from app.core.storage import StorageDep
+from app.core.storage import StorageDep, delete_quietly
 from app.products import service
 from app.products.models import ProductStatus
 from app.products.schemas import (
@@ -90,8 +90,9 @@ async def update_product(
     settings: SettingsDep,
 ) -> ProductResponse:
     """Форма редактирования целиком: поля, фото, референсы и deliverables (docs/adr/0005)."""
-    product = await service.update_product(db, brand, product_id, body)
+    product, removed_keys = await service.update_product(db, brand, product_id, body)
     await db.commit()
+    await delete_quietly(storage, *removed_keys)
     return await service.product_response(db, brand, storage, settings, product)
 
 

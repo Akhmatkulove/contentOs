@@ -92,6 +92,14 @@ async def delete_session(db: AsyncSession, token: str) -> None:
     await db.execute(delete(UserSession).where(UserSession.id == _session_id(token)))
 
 
+async def delete_expired_sessions(db: AsyncSession, now: datetime) -> int:
+    """Просроченные сессии, с которыми больше не приходили. Коммитит вызывающий."""
+    deleted = await db.scalars(
+        delete(UserSession).where(UserSession.expires_at <= now).returning(UserSession.id)
+    )
+    return len(deleted.all())
+
+
 async def sign_in_with_google(db: AsyncSession, profile: GoogleProfile) -> User:
     """Находит, привязывает или создаёт пользователя по профилю Google. Коммитит вызывающий."""
     user = await db.scalar(select(User).where(User.google_sub == profile.sub))

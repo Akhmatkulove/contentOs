@@ -7,12 +7,16 @@ from datetime import UTC, datetime, timedelta
 from math import ceil
 
 from fastapi import HTTPException, Request, status
-from sqlalchemy import DateTime, Integer, String, case, literal, select
+from sqlalchemy import DateTime, Integer, String, case, delete, literal, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
+
+# Окна дольше этого никто не задаёт (сейчас самое длинное — час): счётчик старше
+# точно никому не нужен.
+MAX_WINDOW = timedelta(days=1)
 
 
 class RateLimitCounter(Base):
@@ -87,3 +91,13 @@ async def ensure_below(db: AsyncSession, key: str, limit: int, window: timedelta
     now = datetime.now(UTC)
     if row is not None and row.window_start > now - window and row.hits >= limit:
         raise _too_many(row.window_start, window, now)
+
+
+async def delete_stale(db: AsyncSession, now: datetime) -> int:
+    """Счётчики, чьё окно давно закончилось. Коммитит вызывающий."""
+    deleted = await db.scalars(
+        delete(RateLimitCounter)
+        .where(RateLimitCounter.window_start < now - MAX_WINDOW)
+        .returning(RateLimitCounter.key)
+    )
+    return len(deleted.all())
