@@ -62,3 +62,32 @@ export function formatDueDate(iso: string): string {
 export function deliverablesLabel(count: number): string {
   return `${count} ${count === 1 ? 'deliverable' : 'deliverables'}`
 }
+
+export interface DueHint {
+  // "Today", "Tomorrow", "In 4 days", "2 days overdue".
+  label: string
+  // Today or overdue: Figma paints it red.
+  urgent: boolean
+}
+
+const DAY = 24 * 60 * 60 * 1000
+
+// Whole days from `today` to the ISO date, both read as local dates.
+function daysUntil(iso: string, today: Date): number | null {
+  const [year, month, day] = iso.split('-').map(Number)
+  if (!year || !month || !day) return null
+  const due = Date.UTC(year, month - 1, day)
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  return Math.round((due - now) / DAY)
+}
+
+// The line under the due date (Figma "Today", "Tomorrow", "In 4 days").
+export function dueHint(iso: string, today: Date): DueHint | null {
+  const days = daysUntil(iso, today)
+  if (days === null) return null
+  if (days === 0) return { label: 'Today', urgent: true }
+  if (days === 1) return { label: 'Tomorrow', urgent: false }
+  if (days > 1) return { label: `In ${days} days`, urgent: false }
+  const late = -days
+  return { label: `${late} ${late === 1 ? 'day' : 'days'} overdue`, urgent: true }
+}

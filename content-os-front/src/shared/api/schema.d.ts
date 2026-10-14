@@ -272,10 +272,37 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Upload File
-     * @description Загружает один файл. Дальше его id передают в продукт или референс (docs/adr/0003).
+     * Start Upload
+     * @description Ссылка, по которой браузер кладёт файл прямо в хранилище (docs/adr/0013).
+     *
+     *     Тип и размер здесь со слов клиента: только чтобы не гонять заведомо лишнее.
+     *     Настоящая проверка — в POST /api/uploads/{id}/complete.
      */
-    post: operations['upload_file_api_uploads_post']
+    post: operations['start_upload_api_uploads_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/uploads/{file_id}/complete': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Complete Upload
+     * @description Проверяет файл в хранилище по содержимому. Дальше его id передают в продукт,
+     *     референс или задачу (docs/adr/0003).
+     *
+     *     Фото перекодируется в WebP без EXIF, видео копируется на постоянный ключ. Не прошедший
+     *     проверку файл удаляется. Повтор для уже проверенного файла отдаёт его же.
+     */
+    post: operations['complete_upload_api_uploads__file_id__complete_post']
     delete?: never
     options?: never
     head?: never
@@ -622,6 +649,108 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/tasks/{task_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Task
+     * @description Страница задачи с версиями готового контента; кому задача не видна в My tasks — 404.
+     */
+    get: operations['get_task_api_tasks__task_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/{task_id}/draft/files': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Add Draft Files
+     * @description Файлы из POST /api/uploads в черновик следующей версии; только исполнитель.
+     *
+     *     Первые файлы создают черновик V1, после отправки — V2 и т. д. (docs/adr/0012).
+     */
+    post: operations['add_draft_files_api_tasks__task_id__draft_files_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/{task_id}/draft': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /**
+     * Save Draft
+     * @description Save draft: название черновика без отправки на проверку; без черновика 409.
+     */
+    patch: operations['save_draft_api_tasks__task_id__draft_patch']
+    trace?: never
+  }
+  '/api/tasks/{task_id}/draft/submit': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Submit Draft
+     * @description Submit for review: черновик становится версией, задача — needs review.
+     */
+    post: operations['submit_draft_api_tasks__task_id__draft_submit_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/{task_id}/draft/files/{file_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Remove Draft File
+     * @description Убирает файл из черновика; черновик без файлов удаляется.
+     */
+    delete: operations['remove_draft_file_api_tasks__task_id__draft_files__file_id__delete']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -696,11 +825,6 @@ export interface components {
        * Format: date-time
        */
       assigned_at: string
-    }
-    /** Body_upload_file_api_uploads_post */
-    Body_upload_file_api_uploads_post: {
-      /** File */
-      file: string
     }
     /** Body_upload_photo_api_me_photo_put */
     Body_upload_photo_api_me_photo_put: {
@@ -1499,6 +1623,42 @@ export interface components {
       /** Approved */
       approved: number
     }
+    /**
+     * TaskDraftFiles
+     * @description Файлы из POST /api/uploads в черновик версии (docs/adr/0012).
+     */
+    TaskDraftFiles: {
+      /** File Ids */
+      file_ids: string[]
+    }
+    /**
+     * TaskDraftTitle
+     * @description Название черновика: Save draft сохраняет его, Submit for review — тоже.
+     */
+    TaskDraftTitle: {
+      /**
+       * Title
+       * @default
+       */
+      title: string
+    }
+    /** TaskFile */
+    TaskFile: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      kind: components['schemas']['FileKind']
+      /** Content Type */
+      content_type: string
+      /** Url */
+      url: string
+      /** Name */
+      name: string | null
+      /** Size */
+      size: number
+    }
     /** TaskFilterOption */
     TaskFilterOption: {
       /**
@@ -1566,6 +1726,35 @@ export interface components {
       sku: string | null
       photo: components['schemas']['FileResponse'] | null
     }
+    /**
+     * TaskResponse
+     * @description Страница задачи: строка My tasks и версии готового контента (docs/adr/0012).
+     */
+    TaskResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      status: components['schemas']['DeliverableStatus']
+      /** Due Date */
+      due_date: string | null
+      shoot: components['schemas']['TaskShoot']
+      product: components['schemas']['TaskProduct']
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /** References Total */
+      references_total: number
+      /** Versions */
+      versions: components['schemas']['TaskVersionResponse'][]
+      draft: components['schemas']['TaskVersionResponse'] | null
+      /** Can Upload */
+      can_upload: boolean
+    }
     /** TaskShoot */
     TaskShoot: {
       /**
@@ -1586,6 +1775,28 @@ export interface components {
      * @enum {string}
      */
     TaskSort: 'priority' | 'due_date' | 'name_asc'
+    /** TaskVersionResponse */
+    TaskVersionResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Number */
+      number: number
+      /** Title */
+      title: string | null
+      author: components['schemas']['TeamMember']
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Submitted At */
+      submitted_at: string | null
+      /** Files */
+      files: components['schemas']['TaskFile'][]
+    }
     /** TeamMember */
     TeamMember: {
       /**
@@ -1628,6 +1839,32 @@ export interface components {
     TelegramUser: {
       /** Id */
       id: number
+    }
+    /**
+     * UploadStart
+     * @description Что браузер собирается загрузить; проверяется ещё раз по самому файлу.
+     */
+    UploadStart: {
+      /** Name */
+      name: string
+      /** Size */
+      size: number
+      /** Content Type */
+      content_type: string
+    }
+    /** UploadTicket */
+    UploadTicket: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Url */
+      url: string
+      /** Headers */
+      headers: {
+        [key: string]: string
+      }
     }
     /** ValidationError */
     ValidationError: {
@@ -2206,7 +2443,7 @@ export interface operations {
       }
     }
   }
-  upload_file_api_uploads_post: {
+  start_upload_api_uploads_post: {
     parameters: {
       query?: never
       header?: never
@@ -2217,12 +2454,45 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'multipart/form-data': components['schemas']['Body_upload_file_api_uploads_post']
+        'application/json': components['schemas']['UploadStart']
       }
     }
     responses: {
       /** @description Successful Response */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UploadTicket']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  complete_upload_api_uploads__file_id__complete_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        file_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
         headers: {
           [name: string]: unknown
         }
@@ -3095,6 +3365,184 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['TaskFilters']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_task_api_tasks__task_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  add_draft_files_api_tasks__task_id__draft_files_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TaskDraftFiles']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  save_draft_api_tasks__task_id__draft_patch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TaskDraftTitle']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  submit_draft_api_tasks__task_id__draft_submit_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TaskDraftTitle']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  remove_draft_file_api_tasks__task_id__draft_files__file_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+        file_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
         }
       }
       /** @description Validation Error */

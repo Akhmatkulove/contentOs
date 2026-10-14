@@ -25,6 +25,8 @@ from app.shoots.models import (  # noqa: F401
     ShootNoteAssignee,
     ShootProduct,
     ShootReference,
+    TaskVersion,
+    TaskVersionFile,
 )
 from app.team.models import ArtDirectorCreator, BrandArtDirector  # noqa: F401
 

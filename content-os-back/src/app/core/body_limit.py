@@ -10,8 +10,6 @@ DEFAULT_LIMIT = 1024 * 1024
 PATH_LIMITS = {
     # Фото до 5 МБ плюс накладные расходы multipart.
     "/api/me/photo": 6 * 1024 * 1024,
-    # Видео до 100 МБ (app.files.media) плюс накладные расходы.
-    "/api/uploads": 101 * 1024 * 1024,
 }
 
 

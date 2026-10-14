@@ -280,3 +280,53 @@ class TaskFilters(BaseModel):
     shoots: list[TaskFilterOption]
     products: list[TaskFilterOption]
     assignees: list[TeamMember]
+
+
+VersionTitle = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+
+
+class TaskDraftFiles(BaseModel):
+    """Файлы из POST /api/uploads в черновик версии (docs/adr/0012)."""
+
+    file_ids: list[uuid.UUID] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def ids_unique(self) -> Self:
+        if not _unique(self.file_ids):
+            raise ValueError("Ids repeat")
+        return self
+
+
+class TaskDraftTitle(BaseModel):
+    """Название черновика: Save draft сохраняет его, Submit for review — тоже."""
+
+    # Пусто — версия показывается номером («V2»).
+    title: VersionTitle = ""
+
+
+class TaskFile(FileResponse):
+    # Имя файла у пользователя; у старых загрузок его нет.
+    name: str | None
+    size: int
+
+
+class TaskVersionResponse(BaseModel):
+    id: uuid.UUID
+    number: int
+    title: str | None
+    author: TeamMember
+    created_at: dt.datetime
+    # None — черновик.
+    submitted_at: dt.datetime | None
+    files: list[TaskFile]
+
+
+class TaskResponse(TaskItem):
+    """Страница задачи: строка My tasks и версии готового контента (docs/adr/0012)."""
+
+    # Отправленные на проверку, новые первыми.
+    versions: list[TaskVersionResponse]
+    # Неотправленная версия; видят только исполнители.
+    draft: TaskVersionResponse | None
+    # Загружает исполнитель задачи; арт-директор только смотрит.
+    can_upload: bool

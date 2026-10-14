@@ -25,6 +25,13 @@ export const router = createRouter({
           meta: { roles: team },
         },
         {
+          path: 'tasks/:id',
+          name: 'task',
+          component: () => import('@/pages/task').then((m) => m.TaskPage),
+          props: true,
+          meta: { section: 'tasks', roles: team },
+        },
+        {
           path: 'shoots',
           name: 'shoots',
           component: () => import('@/pages/shoots').then((m) => m.ShootsPage),

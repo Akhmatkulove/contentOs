@@ -1,4 +1,5 @@
-"""Загруженные файлы: передача в продукт или референс и уборка неиспользованных.
+"""Загруженные файлы: проверка после прямой загрузки, передача в продукт или референс
+и уборка неиспользованных.
 
 Коммитит вызывающий.
 """
@@ -10,10 +11,64 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy import Column, delete, exists, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.models import User
 from app.core.db import Base
-from app.files.models import StoredFile
+from app.core.storage import Storage
+from app.files.media import (
+    ALLOWED_MESSAGE,
+    MAX_IMAGE_BYTES,
+    MAX_VIDEO_BYTES,
+    InvalidFileError,
+    is_image,
+    prepare_image,
+    sniff_video,
+)
+from app.files.models import FileKind, StoredFile
+
+
+class RejectedUploadError(HTTPException):
+    """Файл не прошёл проверку: вызывающий удаляет и строку, и загруженное."""
+
+
+async def finish_upload(stored: StoredFile, storage: Storage) -> None:
+    """Проверяет то, что браузер положил по presigned URL, и переносит на постоянный ключ.
+
+    Тип — по первым байтам, размер — по хранилищу, а не по словам клиента. Фото
+    перекодируется в WebP без EXIF, видео копируется внутри хранилища. Временный ключ
+    вызывающий удаляет после commit.
+    """
+    size = await storage.size(stored.key)
+    if size is None:
+        # Строку не трогаем: браузер мог ещё не дослать файл и повторит.
+        raise HTTPException(status.HTTP_409_CONFLICT, "The file has not been uploaded")
+    head = await storage.read(stored.key, 64)
+    video = sniff_video(head)
+    if is_image(head):
+        if size > MAX_IMAGE_BYTES:
+            raise RejectedUploadError(
+                status.HTTP_413_CONTENT_TOO_LARGE, "Image must be at most 15 MB"
+            )
+        try:
+            prepared = await run_in_threadpool(prepare_image, await storage.read(stored.key))
+        except InvalidFileError as exc:
+            raise RejectedUploadError(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        key = f"files/{uuid.uuid4()}.webp"
+        await storage.put(key, prepared, "image/webp")
+        stored.kind, stored.content_type, stored.size = FileKind.IMAGE, "image/webp", len(prepared)
+    elif video is not None:
+        if size > MAX_VIDEO_BYTES:
+            raise RejectedUploadError(
+                status.HTTP_413_CONTENT_TOO_LARGE, "Video must be at most 100 MB"
+            )
+        key = f"files/{uuid.uuid4()}.{video.extension}"
+        await storage.copy(stored.key, key, video.content_type)
+        stored.kind, stored.content_type, stored.size = FileKind.VIDEO, video.content_type, size
+    else:
+        raise RejectedUploadError(status.HTTP_422_UNPROCESSABLE_CONTENT, ALLOWED_MESSAGE)
+    stored.key = key
+    stored.pending = False
 
 
 def _links() -> list[Column[Any]]:
@@ -38,7 +93,12 @@ async def claim_files(
     files = {
         file.id: file
         for file in await db.scalars(
-            select(StoredFile).where(StoredFile.id.in_(ids), StoredFile.owner_id == owner.id)
+            select(StoredFile).where(
+                StoredFile.id.in_(ids),
+                StoredFile.owner_id == owner.id,
+                # Не проверенный после загрузки файл ещё не файл.
+                StoredFile.pending.is_(False),
+            )
         )
     }
     # Чужой файл отвечает так же, как несуществующий: не подтверждаем, что он есть.
@@ -53,7 +113,8 @@ async def claim_files(
 
 
 async def delete_unused(db: AsyncSession, uploaded_before: datetime) -> list[str]:
-    """Удаляет файлы, загруженные до uploaded_before и нигде не использованные.
+    """Удаляет файлы, загруженные до uploaded_before и нигде не использованные, в том числе
+    так и не проверенные (браузер не дослал файл или не позвал complete).
 
     Возвращает их ключи: файлы из хранилища вызывающий удаляет после commit.
     """

@@ -23,19 +23,19 @@ export function tooLargeMessage(count: number): string {
 }
 
 // Uploads with at most `limit` requests at a time; results keep the input order.
-export async function uploadAll<T>(
-  files: File[],
-  upload: (file: File) => Promise<T>,
+export async function uploadAll<I, T>(
+  items: I[],
+  upload: (item: I) => Promise<T>,
   limit = 3,
 ): Promise<T[]> {
-  const results: T[] = new Array(files.length)
+  const results: T[] = new Array(items.length)
   let next = 0
   async function worker() {
-    while (next < files.length) {
+    while (next < items.length) {
       const index = next++
-      results[index] = await upload(files[index]!)
+      results[index] = await upload(items[index]!)
     }
   }
-  await Promise.all(Array.from({ length: Math.min(limit, files.length) }, worker))
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
   return results
 }

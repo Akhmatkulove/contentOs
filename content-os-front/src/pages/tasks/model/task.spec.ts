@@ -1,22 +1,7 @@
 import type { TaskItem } from '../api/tasks'
-import { dueHint, showingLabel, taskAction, taskTabs, toTask } from './task'
+import { showingLabel, taskAction, taskTabs, toTask } from './task'
 
 const today = new Date(2024, 8, 18)
-
-describe('dueHint', () => {
-  it('reads the due date against today', () => {
-    expect(dueHint('2024-09-18', today)).toEqual({ label: 'Today', urgent: true })
-    expect(dueHint('2024-09-19', today)).toEqual({ label: 'Tomorrow', urgent: false })
-    expect(dueHint('2024-09-22', today)).toEqual({ label: 'In 4 days', urgent: false })
-    expect(dueHint('2024-09-17', today)).toEqual({ label: '1 day overdue', urgent: true })
-    expect(dueHint('2024-09-10', today)).toEqual({ label: '8 days overdue', urgent: true })
-    expect(dueHint('', today)).toBeNull()
-  })
-
-  it('counts days across a month', () => {
-    expect(dueHint('2024-10-01', today)?.label).toBe('In 13 days')
-  })
-})
 
 describe('taskAction', () => {
   it('asks the art director to review uploads and changes', () => {

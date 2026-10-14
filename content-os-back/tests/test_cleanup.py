@@ -14,8 +14,8 @@ from app.core.rate_limit import RateLimitCounter
 from app.core.storage import get_storage
 from app.files.models import StoredFile
 from app.main import create_app
-from tests.fakes import FakeStorage
-from tests.test_files import image_bytes, upload
+from tests.fakes import FakeStorage, put_presigned
+from tests.test_files import image_bytes, start, upload
 
 
 @pytest.fixture
@@ -69,6 +69,20 @@ async def test_deletes_only_old_unused_files(
     assert unused["id"] not in remaining
     assert remaining == {photo["id"], reference_file["id"]}
     assert len(storage.files) == 2
+
+
+async def test_deletes_abandoned_direct_uploads(
+    client: AsyncClient, db_session: AsyncSession, storage: FakeStorage
+) -> None:
+    # The browser sent the file but never asked to check it.
+    ticket = await start(client, image_bytes(), "photo.jpg")
+    put_presigned(ticket["url"], image_bytes())
+
+    report = await cleanup(db_session, storage, datetime.now(UTC) + timedelta(days=2))
+
+    assert report.files == 1
+    assert await file_ids(db_session) == set()
+    assert storage.files == {}
 
 
 async def test_keeps_files_without_storage(

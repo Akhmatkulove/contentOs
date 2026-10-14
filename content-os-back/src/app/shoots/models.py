@@ -2,7 +2,7 @@ import datetime as dt
 import enum
 import uuid
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Time, func
+from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Time, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, string_enum
@@ -178,5 +178,42 @@ class ShootNoteAssignee(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    position: Mapped[int]
+
+
+class TaskVersion(Base):
+    """Версия готового контента задачи (docs/adr/0012).
+
+    Пока не отправлена, это черновик: исполнители добавляют и убирают файлы, арт-директор
+    его не видит. Черновик у задачи один. Номер растёт с 1 внутри deliverable.
+    """
+
+    __tablename__ = "task_versions"
+    __table_args__ = (UniqueConstraint("deliverable_id", "number"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    deliverable_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shoot_deliverables.id", ondelete="CASCADE"), index=True
+    )
+    number: Mapped[int]
+    # Своё название версии («V1.01»); без него показывается номер.
+    title: Mapped[str | None] = mapped_column(String(100))
+    author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.clock_timestamp()
+    )
+    # Submit for review; до него версия — черновик.
+    submitted_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TaskVersionFile(Base):
+    __tablename__ = "task_version_files"
+
+    version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("task_versions.id", ondelete="CASCADE"), primary_key=True
+    )
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("files.id", ondelete="CASCADE"), primary_key=True, unique=True
     )
     position: Mapped[int]

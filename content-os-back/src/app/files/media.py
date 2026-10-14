@@ -24,6 +24,12 @@ class VideoType:
     extension: str
 
 
+# Что клиент может заявить при старте загрузки; проверяется потом по содержимому.
+DECLARED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+DECLARED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
+ALLOWED_MESSAGE = "Only JPEG, PNG, WebP images and MP4, MOV, WebM videos are allowed"
+
+
 def sniff_video(head: bytes) -> VideoType | None:
     """Тип видео по первым байтам файла: MP4, MOV или WebM."""
     if head[4:8] == b"ftyp":

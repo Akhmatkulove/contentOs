@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.models import Role
 from app.deliverables.models import DeliverableStatus
 from app.shoots.models import ShootDeliverable
+from tests.test_files import MP4, image_bytes, upload
 from tests.test_products import log_in, sign_up
 from tests.test_references import add_reference
 from tests.test_shoots import client, creators, post, products, shoot
@@ -191,3 +192,133 @@ async def test_shows_the_first_references_and_how_many(client: AsyncClient) -> N
     item = (await tasks(client))["items"][0]
     assert [ref["title"] for ref in item["references"]] == ["Ref 4", "Ref 3", "Ref 2"]
     assert item["references_total"] == 5
+
+
+async def task_page(client: AsyncClient, task_id: str, status: int = 200) -> dict[str, Any]:
+    response = await client.get(f"/api/tasks/{task_id}")
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def add_files(
+    client: AsyncClient, task_id: str, file_ids: list[str], status: int = 200
+) -> dict[str, Any]:
+    response = await client.post(f"/api/tasks/{task_id}/draft/files", json={"file_ids": file_ids})
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def submit(
+    client: AsyncClient, task_id: str, title: str = "", status: int = 200
+) -> dict[str, Any]:
+    response = await client.post(f"/api/tasks/{task_id}/draft/submit", json={"title": title})
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def remove(client: AsyncClient, task_id: str, file_id: str) -> int:
+    response = await client.delete(f"/api/tasks/{task_id}/draft/files/{file_id}")
+    return response.status_code
+
+
+async def walking(client: AsyncClient) -> str:
+    """Задача Walking (исполнитель Lana) на Shoot 04; клиент входит как Lana."""
+    await two_shoots(client)
+    task_id: str = (await tasks(client, search="walking"))["items"][0]["id"]
+    await log_in(client, "lana@example.com")
+    return task_id
+
+
+async def test_draft_collects_files_until_submitted(client: AsyncClient) -> None:
+    task_id = await walking(client)
+    page = await task_page(client, task_id)
+    assert (page["name"], page["shoot"]["name"], page["product"]["name"]) == (
+        "Walking",
+        "Shoot 04",
+        "Abaya",
+    )
+    assert (page["versions"], page["draft"], page["can_upload"]) == ([], None, True)
+
+    video = await upload(client, MP4, "walking_take_1.mp4")
+    page = await add_files(client, task_id, [video["id"]])
+    photo = await upload(client, image_bytes(), "dress.jpg")
+    page = await add_files(client, task_id, [photo["id"]])
+    # Still a draft: nothing went to review yet.
+    assert (page["status"], page["versions"]) == ("to_shoot", [])
+    draft = page["draft"]
+    assert (draft["number"], draft["submitted_at"], draft["author"]["name"]) == (1, None, "Lana")
+    assert [(file["name"], file["kind"]) for file in draft["files"]] == [
+        ("walking_take_1.mp4", "video"),
+        ("dress.jpg", "image"),
+    ]
+    assert draft["files"][0]["url"]
+    assert draft["files"][0]["size"] == len(MP4)
+
+    page = await submit(client, task_id)
+    assert (page["status"], page["draft"]) == ("needs_review", None)
+    [first] = page["versions"]
+    assert (first["number"], first["title"], len(first["files"])) == (1, None, 2)
+    assert first["submitted_at"]
+    await submit(client, task_id, status=409)
+
+    # The next files start V2, which may get its own name, saved before submitting.
+    response = await client.patch(f"/api/tasks/{task_id}/draft", json={"title": "V2"})
+    assert response.status_code == 409
+    again = await upload(client, image_bytes())
+    assert (await add_files(client, task_id, [again["id"]]))["draft"]["number"] == 2
+    response = await client.patch(f"/api/tasks/{task_id}/draft", json={"title": " Draft "})
+    assert response.status_code == 200, response.text
+    page = response.json()
+    assert (page["draft"]["title"], page["status"], page["versions"][0]["number"]) == (
+        "Draft",
+        "needs_review",
+        1,
+    )
+    page = await submit(client, task_id, title="  V1.01 ")
+    assert [(v["number"], v["title"]) for v in page["versions"]] == [(2, "V1.01"), (1, None)]
+
+    # A file goes into one version only.
+    await add_files(client, task_id, [photo["id"]], status=422)
+
+
+async def test_art_director_sees_submitted_versions_only(client: AsyncClient) -> None:
+    task_id = await walking(client)
+    first = await upload(client, image_bytes())
+    await add_files(client, task_id, [first["id"]])
+    await submit(client, task_id)
+    second = await upload(client, image_bytes())
+    await add_files(client, task_id, [second["id"]])
+
+    await log_in(client, "amina@example.com")
+    page = await task_page(client, task_id)
+    assert (len(page["versions"]), page["draft"], page["can_upload"]) == (1, None, False)
+    own = await upload(client, image_bytes())
+    await add_files(client, task_id, [own["id"]], status=403)
+    await submit(client, task_id, status=403)
+
+    # Not the assignee: the task isn't there.
+    await log_in(client, "odina@example.com")
+    await task_page(client, task_id, status=404)
+    await add_files(client, task_id, [own["id"]], status=404)
+
+
+async def test_removes_files_from_the_draft_only(client: AsyncClient) -> None:
+    task_id = await walking(client)
+    sent = await upload(client, image_bytes())
+    await add_files(client, task_id, [sent["id"]])
+    await submit(client, task_id)
+    assert await remove(client, task_id, sent["id"]) == 404
+
+    first = await upload(client, image_bytes())
+    second = await upload(client, image_bytes())
+    await add_files(client, task_id, [first["id"], second["id"]])
+    assert await remove(client, task_id, first["id"]) == 200
+    page = await task_page(client, task_id)
+    assert [file["id"] for file in page["draft"]["files"]] == [second["id"]]
+
+    # The last file takes the draft with it.
+    assert await remove(client, task_id, second["id"]) == 200
+    assert (await task_page(client, task_id))["draft"] is None

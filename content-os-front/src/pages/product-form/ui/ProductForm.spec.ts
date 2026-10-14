@@ -3,13 +3,23 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { useSessionStore, type Me } from '@/entities/session'
-import { http } from '@/shared/api'
+import { http, uploadFile, type UploadedFile } from '@/shared/api'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { openAddDeliverable } from '../model/add-deliverable'
 import ProductCreatePage from './ProductCreatePage.vue'
 import ProductEditPage from './ProductEditPage.vue'
 
 vi.mock('../model/add-deliverable', () => ({ openAddDeliverable: vi.fn() }))
+// How a file reaches the storage is uploadFile's business (shared/api/uploads.spec.ts).
+vi.mock('@/shared/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/api')>()),
+  uploadFile: vi.fn(),
+}))
+
+function uploadsAs(...ids: string[]) {
+  let next = 0
+  vi.mocked(uploadFile).mockImplementation(async () => ({ id: ids[next++] }) as UploadedFile)
+}
 
 async function mountPage(path = '/products/new') {
   const router = createRouter({
@@ -41,7 +51,10 @@ describe('ProductCreatePage', () => {
     URL.createObjectURL = vi.fn(() => 'blob:photo')
     URL.revokeObjectURL = vi.fn()
   })
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+  })
 
   it('asks for a name, an about and a photo on submit, and drops each error once fixed', async () => {
     const { wrapper } = await mountPage()
@@ -59,11 +72,8 @@ describe('ProductCreatePage', () => {
   })
 
   it('uploads the photos, creates the product with their ids and opens it', async () => {
-    let uploaded = 0
-    const post = vi.spyOn(http, 'post').mockImplementation(async (url: string) => {
-      if (url === '/uploads') return { data: { id: `file-${++uploaded}` } }
-      return { data: { id: 'product-1' } }
-    })
+    uploadsAs('file-1', 'file-2')
+    const post = vi.spyOn(http, 'post').mockResolvedValue({ data: { id: 'product-1' } })
     const { wrapper, router } = await mountPage()
 
     await wrapper.get('input[placeholder="Enter product name"]').setValue(' Serum ')
@@ -74,7 +84,7 @@ describe('ProductCreatePage', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(post.mock.calls.filter(([url]) => url === '/uploads')).toHaveLength(2)
+    expect(uploadFile).toHaveBeenCalledTimes(2)
     const [, body] = post.mock.calls.find(([url]) => url === '/products')!
     expect(body).toMatchObject({
       name: 'Serum',
@@ -97,9 +107,8 @@ describe('ProductCreatePage', () => {
       dueDate: '2024-09-18',
       brief: '',
     })
-    const post = vi.spyOn(http, 'post').mockImplementation(async (url: string) => ({
-      data: { id: url === '/uploads' ? 'file-1' : 'product-1' },
-    }))
+    uploadsAs('file-1')
+    const post = vi.spyOn(http, 'post').mockResolvedValue({ data: { id: 'product-1' } })
     const { wrapper } = await mountPage()
 
     await wrapper.get('input[placeholder="Enter product name"]').setValue('Abaya')
@@ -153,7 +162,7 @@ describe('ProductCreatePage', () => {
       can_edit: true,
     }
     vi.spyOn(http, 'get').mockResolvedValue({ data: saved })
-    vi.spyOn(http, 'post').mockResolvedValue({ data: { id: 'file-new' } })
+    uploadsAs('file-new')
     const put = vi.spyOn(http, 'put').mockResolvedValue({ data: saved })
     const { wrapper, router } = await mountPage('/products/p1/edit')
     await flushPromises()

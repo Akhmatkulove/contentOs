@@ -4,4 +4,6 @@ export const taskKeys = {
   all: ['tasks'] as const,
   list: (role: string, query: object) => ['tasks', 'list', role, query] as const,
   filters: ['tasks', 'filters'] as const,
+  // The task page: the row plus its content versions (docs/adr/0012).
+  detail: (id: string) => ['tasks', 'detail', id] as const,
 }

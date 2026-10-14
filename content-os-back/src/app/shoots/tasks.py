@@ -109,7 +109,7 @@ def _assigned(user_id: uuid.UUID) -> ColumnElement[bool]:
     )
 
 
-def _tasks(user: User) -> Select[ShootDeliverable, Shoot, Product]:
+def visible_tasks(user: User) -> Select[ShootDeliverable, Shoot, Product]:
     return (
         select(ShootDeliverable, Shoot, Product)
         .join(Shoot, Shoot.id == ShootDeliverable.shoot_id)
@@ -120,7 +120,7 @@ def _tasks(user: User) -> Select[ShootDeliverable, Shoot, Product]:
 
 def _filtered(user: User, params: TaskQuery) -> Select[ShootDeliverable, Shoot, Product]:
     """Под поиском и фильтрами, без статуса: по ним считаются вкладки."""
-    query = _tasks(user)
+    query = visible_tasks(user)
     if params.search:
         pattern = f"%{escape_like(params.search)}%"
         query = query.where(
@@ -194,11 +194,11 @@ async def list_tasks(
         )
     ).all()
     return TaskList(
-        items=await _to_items(db, user, storage, settings, rows), total=total, counts=counts
+        items=await to_items(db, user, storage, settings, rows), total=total, counts=counts
     )
 
 
-async def _to_items(
+async def to_items(
     db: AsyncSession,
     user: User,
     storage: Storage,
@@ -295,7 +295,7 @@ async def _to_items(
 async def list_filters(db: AsyncSession, user: User, settings: Settings) -> TaskFilters:
     """Съёмки, продукты и исполнители задач пользователя: варианты фильтров."""
     tasks = (
-        _tasks(user)
+        visible_tasks(user)
         .with_only_columns(
             ShootDeliverable.id, ShootDeliverable.shoot_id, ShootDeliverable.product_id
         )
