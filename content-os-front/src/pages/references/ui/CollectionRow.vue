@@ -24,28 +24,21 @@ const { arrivedState, measure } = useScroll(track)
 const MIN_CARD = 200
 const GAP = 20
 const cardWidth = shallowRef<number>()
-// The ends move when the width or the cards change, not only on scroll.
+// The end moves when the width or the cards change, not only on scroll.
 useResizeObserver(track, ([entry]) => {
   measure()
   const width = entry!.contentRect.width
   const columns = Math.max(1, Math.floor((width + GAP) / (MIN_CARD + GAP)))
   cardWidth.value = (width - (columns - 1) * GAP) / columns
 })
-const overflows = computed(() => !(arrivedState.left && arrivedState.right))
 const more = computed(() => total - references.length)
-
-// About a screen of cards per click; snapping lines up the first one.
-// Smoothness comes from CSS, which reduced motion turns off.
-function scroll(direction: 1 | -1) {
-  const strip = track.value
-  if (strip) strip.scrollBy({ left: direction * strip.clientWidth * 0.8 })
-}
 </script>
 
 <!--
   One collection on the Collections tab: its name, how many references match, and
-  a sideways row of the first of them. The row bleeds to the screen edges on
-  mobile and gets arrows on desktop; "View all" opens the whole collection.
+  a sideways row of the first of them. When some didn't fit in the row, "View all"
+  and a "+N more" tile at its end open the whole collection. The row bleeds to
+  the screen edges on mobile.
 -->
 <template>
   <!-- Same header height and gap to the cards as an opened collection on the
@@ -58,41 +51,23 @@ function scroll(direction: 1 | -1) {
           {{ total }}<span class="sr-only"> {{ total === 1 ? 'reference' : 'references' }}</span>
         </span>
       </h2>
-      <div class="ml-auto flex shrink-0 items-center gap-2">
-        <div v-if="overflows" class="hidden items-center gap-1.5 md:flex">
-          <VButton
-            variant="secondary"
-            size="icon-32"
-            aria-label="Scroll back"
-            :disabled="arrivedState.left"
-            @click="scroll(-1)"
-          >
-            <VIcon name="arrow-left-01-sharp" :size="16" />
-          </VButton>
-          <VButton
-            variant="secondary"
-            size="icon-32"
-            aria-label="Scroll forward"
-            :disabled="arrivedState.right"
-            @click="scroll(1)"
-          >
-            <VIcon name="arrow-right-01-sharp" :size="16" />
-          </VButton>
-        </div>
-        <VButton variant="soft" size="34" @click="emit('open')">
-          View all<span class="sr-only"> in {{ name }}</span>
-          <VIcon name="arrow-right-01-sharp" />
-        </VButton>
-      </div>
+      <VButton v-if="more > 0" variant="soft" size="34" class="ml-auto" @click="emit('open')">
+        View all<span class="sr-only"> in {{ name }}</span>
+        <VIcon name="arrow-right-01-sharp" />
+      </VButton>
     </header>
 
-    <!-- Mobile: two cards and a peek of the third, so the row reads as scrollable. -->
+    <!-- Mobile: two cards and a peek of the third, so the row reads as scrollable.
+         relative: absolute bits of the cards (sr-only text) are clipped by the row
+         instead of widening the page. -->
     <ul
       ref="track"
       :style="cardWidth ? { '--card-width': `${cardWidth}px` } : undefined"
       :class="[
-        'scrollbar-none -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto scroll-smooth px-4 motion-reduce:scroll-auto md:mx-0 md:scroll-px-0 md:gap-5 md:px-0',
-        !arrivedState.right && 'md:mask-r-from-[calc(100%-4rem)]',
+        'scrollbar-none relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 md:mx-0 md:scroll-px-0 md:gap-5 md:px-0',
+        // More to the right: the last cards fade softly instead of being cut off.
+        !arrivedState.right &&
+          'md:[mask-image:linear-gradient(to_right,#000_calc(100%-10rem),rgb(0_0_0/0.9)_calc(100%-7rem),rgb(0_0_0/0.7)_calc(100%-4rem),rgb(0_0_0/0.45))]',
       ]"
     >
       <li
@@ -107,14 +82,15 @@ function scroll(direction: 1 | -1) {
           @remove="emit('remove', reference)"
         />
       </li>
-      <!-- The rest of the collection: a tile as tall as the cards. -->
+      <!-- The rest of the collection. Shaped like a card's 9:16 preview: on mobile
+           the same border and padding as the card surround it. -->
       <li
         v-if="more > 0"
-        class="w-[calc((100%-0.75rem)/2.25)] shrink-0 snap-start md:w-(--card-width,200px)"
+        class="w-[calc((100%-0.75rem)/2.25)] shrink-0 snap-start border border-transparent p-2.5 md:w-(--card-width,200px) md:border-0 md:p-0"
       >
         <VButton
           variant="secondary"
-          class="size-full flex-col gap-2 rounded-xl border-dashed md:rounded-2xl"
+          class="aspect-[9/16] h-auto w-full flex-col gap-2 rounded-lg border-dashed md:rounded-2xl"
           @click="emit('open')"
         >
           <span class="text-h5">+{{ more }}</span>
