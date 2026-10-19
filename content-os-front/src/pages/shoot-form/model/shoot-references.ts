@@ -1,5 +1,6 @@
 import { useQueryCache } from '@pinia/colada'
 import { computed, onScopeDispose, ref, shallowRef, toValue, type MaybeRefOrGetter } from 'vue'
+import { collectionKeys } from '@/entities/collection'
 import { referenceKeys, toReference, type Reference } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import {
@@ -102,8 +103,13 @@ export function useShootReferences(
         selected.value = selected.value.map((id) => (id === entry.draft.id ? reference.id : id))
       }
     } finally {
-      // The pool, its tab counts and filter options may show the new references.
-      if (ticked.length) await queryCache.invalidateQueries({ key: referenceKeys.all })
+      // The pool, its tab counts and filter options may show the new references;
+      // their collections may be new.
+      if (ticked.length)
+        await Promise.all([
+          queryCache.invalidateQueries({ key: referenceKeys.all }),
+          queryCache.invalidateQueries({ key: collectionKeys.all }),
+        ])
     }
   }
 

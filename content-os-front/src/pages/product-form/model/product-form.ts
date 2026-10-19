@@ -3,6 +3,7 @@ import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, nextTick, onScopeDispose, reactive, shallowRef, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { collectionKeys, useCollectionNames } from '@/entities/collection'
 import { taskKeys, toDeliverable } from '@/entities/deliverable'
 import {
   productKeys,
@@ -66,6 +67,8 @@ export function useProductForm(productId?: string) {
   // References made here are the brand's: its name is their Creator.
   const brandName = computed(() => session.me?.name ?? '')
   const editing = productId !== undefined
+  // Suggestions for Collection; a new name is created on save (docs/adr/0014).
+  const collections = useCollectionNames()
 
   const form = reactive({
     name: '',
@@ -216,9 +219,10 @@ export function useProductForm(productId?: string) {
       // The product page opens with what the server saved, without a refetch.
       queryCache.setQueryData(productKeys.detail(saved.id), saved)
       // Lists, filter options and the pool may all show the product or its references;
-      // shoots and tasks show its name, collection and photo.
+      // shoots and tasks show its name, collection and photo. The collection may be new.
       await Promise.all([
         queryCache.invalidateQueries({ key: productKeys.lists }),
+        queryCache.invalidateQueries({ key: collectionKeys.all }),
         queryCache.invalidateQueries({ key: referenceKeys.all }),
         queryCache.invalidateQueries({ key: shootKeys.all }),
         queryCache.invalidateQueries({ key: taskKeys.all }),
@@ -241,6 +245,7 @@ export function useProductForm(productId?: string) {
     loadError,
     form,
     errors,
+    collections,
     photos,
     addPhotos,
     removePhoto,

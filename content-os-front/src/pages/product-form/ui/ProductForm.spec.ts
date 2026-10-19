@@ -21,6 +21,13 @@ function uploadsAs(...ids: string[]) {
   vi.mocked(uploadFile).mockImplementation(async () => ({ id: ids[next++] }) as UploadedFile)
 }
 
+// The product for GET /products/…; the Collection field's suggestions are empty.
+function getReturns(product: object) {
+  vi.spyOn(http, 'get').mockImplementation(async (url) => ({
+    data: url === '/collections' ? [] : product,
+  }))
+}
+
 async function mountPage(path = '/products/new') {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -73,12 +80,13 @@ describe('ProductCreatePage', () => {
 
   it('uploads the photos, creates the product with their ids and opens it', async () => {
     uploadsAs('file-1', 'file-2')
+    getReturns({})
     const post = vi.spyOn(http, 'post').mockResolvedValue({ data: { id: 'product-1' } })
     const { wrapper, router } = await mountPage()
 
     await wrapper.get('input[placeholder="Enter product name"]').setValue(' Serum ')
     await wrapper.get('textarea[placeholder="About"]').setValue('Daily serum')
-    await wrapper.get('input[placeholder="Enter collection"]').setValue('Summer 26')
+    await wrapper.get('input[placeholder="Select or create collection"]').setValue('Summer 26')
     wrapper.getComponent(VDropzone).vm.$emit('select', [jpeg('a.jpg'), jpeg('b.jpg')])
     await flushPromises()
     await wrapper.get('form').trigger('submit')
@@ -179,7 +187,7 @@ describe('ProductCreatePage', () => {
       created_at: '2026-10-07T10:00:00Z',
       can_edit: true,
     }
-    vi.spyOn(http, 'get').mockResolvedValue({ data: saved })
+    getReturns(saved)
     uploadsAs('file-new')
     const put = vi.spyOn(http, 'put').mockResolvedValue({ data: saved })
     const { wrapper, router } = await mountPage('/products/p1/edit')
@@ -217,9 +225,7 @@ describe('ProductCreatePage', () => {
   })
 
   it('sends someone else to the product page', async () => {
-    vi.spyOn(http, 'get').mockResolvedValue({
-      data: { id: 'p1', can_edit: false, photos: [], references: [], deliverables: [] },
-    })
+    getReturns({ id: 'p1', can_edit: false, photos: [], references: [], deliverables: [] })
     const { router } = await mountPage('/products/p1/edit')
     await flushPromises()
 

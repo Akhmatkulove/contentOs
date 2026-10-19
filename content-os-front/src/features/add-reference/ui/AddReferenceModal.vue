@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useMutation } from '@pinia/colada'
 import { computed, toValue, useId, useTemplateRef } from 'vue'
+import { useCollectionNames } from '@/entities/collection'
 import { VButton } from '@/shared/ui/button'
+import { VCombobox } from '@/shared/ui/combobox'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
@@ -26,7 +28,7 @@ import LinkPreview from './LinkPreview.vue'
 
 // Figma "Modal / Add reference" (desktop) and "Sheet / Add reference" (mobile).
 // From a product being created, product and collection come from it; in the
-// pool the product is picked, the collection typed, and the reference saved here.
+// pool the product is picked, the collection picked or typed, and the reference saved here.
 const { options } = defineProps<{ options: AddReferenceOptions }>()
 
 // Closes with the new draft (already saved when `options.save` is given);
@@ -50,6 +52,8 @@ const {
 } = useAddReferenceForm()
 
 const products = computed(() => productOptions(toValue(options.products) ?? []))
+// Suggestions for Collection; a new name is created on save (docs/adr/0014).
+const collections = useCollectionNames()
 
 // A failed save keeps the modal open with everything filled in; the global
 // handler shows the error toast.
@@ -195,11 +199,12 @@ const dropzone = useTemplateRef('dropzone')
           disabled
           class="col-span-2 md:col-span-1"
         />
-        <VInput
+        <VCombobox
           v-else
           v-model="form.collection"
+          :options="collections"
           label="Collection"
-          placeholder="Enter collection"
+          placeholder="Select or create collection"
           :maxlength="COLLECTION_MAX"
           class="col-span-2 md:col-span-1"
         />

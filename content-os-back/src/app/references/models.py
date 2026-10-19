@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ARRAY, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ARRAY, DateTime, ForeignKey, String, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column
 
+from app.collections.models import Collection
 from app.core.db import Base, string_enum
 
 
@@ -31,8 +32,16 @@ class Reference(Base):
     title: Mapped[str | None] = mapped_column(String(200))
     type: Mapped[ReferenceType | None] = mapped_column(string_enum(ReferenceType, "reference_type"))
     link: Mapped[str | None] = mapped_column(String(2048))
-    # Копия коллекции продукта на момент создания; у референса из пула может быть своя.
-    collection: Mapped[str | None] = mapped_column(String(100))
+    # Коллекция продукта на момент создания; у референса из пула может быть своя.
+    collection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("collections.id", ondelete="SET NULL"), index=True
+    )
+    # Имя коллекции, только чтение. Flush его не сбрасывает (иначе async упадёт на
+    # ленивой загрузке): после смены collection_id — db.refresh(…, ["collection"]).
+    collection: Mapped[str | None] = column_property(
+        select(Collection.name).where(Collection.id == collection_id).scalar_subquery(),
+        expire_on_flush=False,
+    )
     notes: Mapped[str | None] = mapped_column(Text)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list)
     # clock_timestamp(), а не now(): now() — время начала транзакции, и референсы,

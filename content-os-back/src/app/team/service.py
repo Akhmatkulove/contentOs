@@ -46,6 +46,15 @@ def art_directors_of_creator(creator_id: uuid.UUID) -> Select[uuid.UUID]:
     )
 
 
+def brands_of_art_directors(
+    art_director_ids: Select[uuid.UUID] | list[uuid.UUID],
+) -> Select[uuid.UUID]:
+    """Бренды, с которыми работают эти арт-директора: их коллекции видит команда."""
+    return select(BrandArtDirector.brand_id).where(
+        BrandArtDirector.art_director_id.in_(art_director_ids)
+    )
+
+
 async def all_in(db: AsyncSession, team: Select[uuid.UUID], ids: set[uuid.UUID]) -> bool:
     """Все ли ids из team (art_director_ids, creator_ids)."""
     if not ids:

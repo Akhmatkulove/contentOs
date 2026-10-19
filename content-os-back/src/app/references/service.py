@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
+from app.collections import service as collections
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
@@ -252,7 +253,7 @@ async def create_reference(
         title=body.title,
         type=body.type,
         link=str(body.link) if body.link else None,
-        collection=body.collection,
+        collection_id=await collections.resolve(db, user, body.collection),
         notes=body.notes,
         tags=body.tags,
     )
@@ -266,6 +267,7 @@ async def create_reference(
     if body.favorite:
         db.add(ReferenceFavorite(user_id=user.id, reference_id=reference.id))
     await db.flush()
+    await db.refresh(reference, ["collection"])
     return ReferenceResponse.of(
         reference, user.name, reference_files, storage, favorite=body.favorite
     )

@@ -262,6 +262,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/collections': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Collections
+     * @description Коллекции, которые видит пользователь (docs/adr/0014): варианты поля Collection.
+     */
+    get: operations['list_collections_api_collections_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/uploads': {
     parameters: {
       query?: never
@@ -848,6 +868,19 @@ export interface components {
        * Format: date-time
        */
       assigned_at: string
+    }
+    /**
+     * CollectionOption
+     * @description Коллекция в списке поля Collection.
+     */
+    CollectionOption: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
     }
     /**
      * DeliverableCounts
@@ -2440,6 +2473,37 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_collections_api_collections_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CollectionOption'][]
+        }
       }
       /** @description Validation Error */
       422: {

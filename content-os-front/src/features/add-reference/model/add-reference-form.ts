@@ -37,7 +37,7 @@ export function productOptions(products: readonly SelectOption[]): SelectOption[
   return [{ value: NO_PRODUCT, label: 'No product' }, ...products]
 }
 
-// Same limit as the backend (references.collection).
+// Same limit as the backend (collections.name).
 export const COLLECTION_MAX = 100
 
 // The type the uploaded files suggest: only videos make a video, only images

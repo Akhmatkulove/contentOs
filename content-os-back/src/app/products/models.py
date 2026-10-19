@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ARRAY, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ARRAY, DateTime, ForeignKey, String, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column
 
+from app.collections.models import Collection
 from app.core.db import Base, string_enum
 
 
@@ -23,7 +24,16 @@ class Product(Base):
     name: Mapped[str] = mapped_column(String(200))
     about: Mapped[str] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
-    collection: Mapped[str | None] = mapped_column(String(100))
+    # Коллекцию удалили — продукт остаётся без неё (docs/adr/0014).
+    collection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("collections.id", ondelete="SET NULL"), index=True
+    )
+    # Имя коллекции, только чтение. Flush его не сбрасывает (иначе async упадёт на
+    # ленивой загрузке): после смены collection_id — db.refresh(…, ["collection"]).
+    collection: Mapped[str | None] = column_property(
+        select(Collection.name).where(Collection.id == collection_id).scalar_subquery(),
+        expire_on_flush=False,
+    )
     category: Mapped[str | None] = mapped_column(String(100))
     sku: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[ProductStatus] = mapped_column(

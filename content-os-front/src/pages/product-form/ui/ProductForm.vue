@@ -3,6 +3,7 @@ import { computed, useTemplateRef } from 'vue'
 import { productStatusOptions } from '@/entities/product'
 import { ReferenceCard } from '@/entities/reference'
 import { VButton } from '@/shared/ui/button'
+import { VCombobox } from '@/shared/ui/combobox'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
@@ -27,6 +28,7 @@ const {
   loadError,
   form,
   errors,
+  collections,
   photos,
   addPhotos,
   removePhoto,
@@ -104,7 +106,13 @@ const emptyListClass =
               :error="errors.name"
             />
             <VTagsInput v-model="form.tags" label="Tags" placeholder="Add tags" />
-            <VInput v-model="form.collection" label="Collection" placeholder="Enter collection" />
+            <VCombobox
+              v-model="form.collection"
+              :options="collections"
+              label="Collection"
+              placeholder="Select or create collection"
+              :maxlength="100"
+            />
             <VInput v-model="form.category" label="Category" placeholder="Enter category" />
             <VInput v-model="form.sku" label="SKU" placeholder="SKU" />
             <VSelect

@@ -25,6 +25,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
+from app.collections.models import Collection
 from app.core.config import get_settings
 from app.core.db import create_engine, create_sessionmaker
 from app.core.storage import Storage, build_storage
@@ -279,14 +280,27 @@ async def clear(db: AsyncSession, storage: Storage) -> None:
     await db.execute(delete(Shoot).where(Shoot.id.in_([demo_id(s[0]) for s in SHOOTS])))
     await db.execute(delete(Reference).where(Reference.id.in_([demo_id(r[0]) for r in REFERENCES])))
     await db.execute(delete(Product).where(Product.id.in_([demo_id(p[0]) for p in PRODUCTS])))
+    await db.execute(delete(Collection).where(Collection.id.in_(_collection_ids())))
     await delete_files(db, storage, StoredFile.key.like("files/demo/%"))
 
 
 async def wipe(db: AsyncSession, storage: Storage) -> None:
     """Все продукты, референсы, съёмки и загруженные файлы, не только демо."""
-    for model in (Shoot, Reference, Product):
+    for model in (Shoot, Reference, Product, Collection):
         await db.execute(delete(model))
     await delete_files(db, storage)
+
+
+# The art director's references take the brand's collection: they see it.
+REFERENCE_COLLECTION = "Autumn Drop"
+
+
+def _collection_id(name: str) -> uuid.UUID:
+    return demo_id(f"collection:{name}")
+
+
+def _collection_ids() -> list[uuid.UUID]:
+    return [_collection_id(name) for name in {p[1] for p in PRODUCTS}]
 
 
 async def seed(db: AsyncSession, storage: Storage) -> None:
@@ -295,6 +309,13 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
     creators = [await user(db, email) for email in CREATORS]
     today = date.today()
 
+    # The brand's collections are seen by its art director and their creators.
+    db.add_all(
+        Collection(id=_collection_id(name), owner_id=brand.id, name=name)
+        for name in dict.fromkeys(p[1] for p in PRODUCTS)
+    )
+    await db.flush()
+
     products: list[Product] = []
     for index, (name, collection, category, colour) in enumerate(PRODUCTS):
         product = Product(
@@ -302,7 +323,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
             brand_id=brand.id,
             name=name,
             about=f"{name}: demo product for the {collection} collection.",
-            collection=collection,
+            collection_id=_collection_id(collection),
             category=category,
             sku=f"DEMO-{index + 1:03}",
             tags=[TAG, category.lower()],
@@ -337,7 +358,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
             product_id=products[product_index].id if product_index is not None else None,
             title=title,
             type=kind,
-            collection="Autumn Drop",
+            collection_id=_collection_id(REFERENCE_COLLECTION),
             notes="Demo reference.",
             tags=[TAG, kind.value],
         )

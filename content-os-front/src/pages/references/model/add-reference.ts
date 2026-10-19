@@ -1,5 +1,6 @@
 import { useQuery, useQueryCache } from '@pinia/colada'
 import { computed, ref } from 'vue'
+import { collectionKeys } from '@/entities/collection'
 import { productKeys } from '@/entities/product'
 import { referenceKeys } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
@@ -25,8 +26,12 @@ export function useAddReference() {
 
   async function save(draft: ReferenceDraft) {
     await saveReference(draft)
-    // The list, its tab counts and the filter options all may change.
-    await queryCache.invalidateQueries({ key: referenceKeys.all })
+    // The list, its tab counts and the filter options all may change; the
+    // collection may be new.
+    await Promise.all([
+      queryCache.invalidateQueries({ key: referenceKeys.all }),
+      queryCache.invalidateQueries({ key: collectionKeys.all }),
+    ])
   }
 
   async function addReference() {

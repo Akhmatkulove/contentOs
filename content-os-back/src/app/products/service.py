@@ -22,6 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
+from app.collections import service as collections
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
@@ -47,8 +48,9 @@ from app.references.schemas import ReferenceDraft
 from app.team import service as team
 from app.team.schemas import TeamMember
 
-# Поля формы, которые копируются в продукт как есть.
-_FIELDS = ("name", "about", "notes", "collection", "category", "sku", "status", "tags")
+# Поля формы, которые копируются в продукт как есть. Коллекция приходит именем
+# и выбирается или создаётся (docs/adr/0014).
+_FIELDS = ("name", "about", "notes", "category", "sku", "status", "tags")
 
 
 def _unprocessable(detail: str) -> HTTPException:
@@ -100,7 +102,7 @@ async def _add_references(
             type=draft.type,
             link=str(draft.link) if draft.link else None,
             # Референс из продукта получает его коллекцию (docs/adr/0003).
-            collection=product.collection,
+            collection_id=product.collection_id,
             notes=draft.notes,
             tags=draft.tags,
         )
@@ -126,13 +128,18 @@ async def create_product(db: AsyncSession, brand: User, body: ProductCreate) -> 
     await _require_own_art_directors(db, brand, {d.assignee_id for d in body.deliverables})
     files = await _claim(db, brand, body, kept_photos=set())
 
-    product = Product(brand_id=brand.id, **body.model_dump(include=set(_FIELDS)))
+    product = Product(
+        brand_id=brand.id,
+        collection_id=await collections.resolve(db, brand, body.collection),
+        **body.model_dump(include=set(_FIELDS)),
+    )
     db.add(product)
     await db.flush()
     _add_photos(db, product, body.photo_ids)
     await _add_references(db, brand, product, body.references, files)
     _add_deliverables(db, product, body.deliverables)
     await db.flush()
+    await db.refresh(product, ["collection"])
     return product
 
 
@@ -230,10 +237,12 @@ async def update_product(
     await db.execute(delete(ProductPhoto).where(ProductPhoto.product_id == product.id))
     for field in _FIELDS:
         setattr(product, field, getattr(body, field))
+    product.collection_id = await collections.resolve(db, brand, body.collection)
     _add_photos(db, product, body.photo_ids)
     await _add_references(db, brand, product, body.references, files)
     _add_deliverables(db, product, body.deliverables, start=len(body.deliverable_ids))
     await db.flush()
+    await db.refresh(product, ["collection"])
     return product, removed_keys
 
 
