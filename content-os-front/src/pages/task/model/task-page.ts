@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, reactive, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import { deliverableStatuses, dueHint, formatDueDate, taskKeys } from '@/entities/deliverable'
+import {
+  deliverableStatuses,
+  dueHint,
+  fileSizeLabel,
+  formatDueDate,
+  taskKeys,
+  toContentFile,
+} from '@/entities/deliverable'
 import { useSessionStore } from '@/entities/session'
 import { shootKeys } from '@/entities/shoot'
 import { toApiError, uploadFile } from '@/shared/api'
@@ -25,8 +32,6 @@ import {
 } from '../api/task'
 import {
   failedUploadsMessage,
-  fileSizeLabel,
-  toFile,
   toVersions,
   uploadFailure,
   uploadPercent,
@@ -70,13 +75,11 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
   const canUpload = computed(() => task.value?.can_upload === true)
   // Only an art director sees the task of their own shoot; they edit it there.
   const canEdit = computed(() => session.me?.role === 'art_director')
-  const versions = computed(() =>
-    task.value ? toVersions(task.value.versions, task.value.status) : [],
-  )
+  const versions = computed(() => (task.value ? toVersions(task.value.versions) : []))
   // Files of the next version, not yet submitted.
-  const draftFiles = computed(() => task.value?.draft?.files.map(toFile) ?? [])
+  const draftFiles = computed(() => task.value?.draft?.files.map(toContentFile) ?? [])
 
-  // A version changes the task's status: My tasks and the shoot show it too.
+  // A version changes the task's status: My tasks, the review and the shoot show it too.
   function saved(next: TaskDetails) {
     queryCache.setQueryData(taskKeys.detail(next.id), next)
     queryCache.invalidateQueries({ key: taskKeys.all })

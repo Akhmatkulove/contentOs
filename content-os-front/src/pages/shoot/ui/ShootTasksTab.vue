@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
@@ -18,7 +19,8 @@ import ShootTaskCard from './ShootTaskCard.vue'
 
 // Figma "Shoot / Tasks": the shoot's deliverables as tasks. Desktop: a table
 // that scrolls sideways when the card is narrower than its columns; mobile:
-// cards. No checkboxes (no bulk actions yet).
+// cards. No checkboxes (no bulk actions yet). A row opens its task (`link`):
+// the name is the link and covers the whole row.
 // TODO(api): Latest upload column and the row "…" menu — content uploads come later.
 // The Approved tab (Figma "Shoot / Approved") is the same table of approved
 // deliverables only: no Status filter, and its own count under the table.
@@ -28,12 +30,15 @@ const {
   tasks,
   total,
   approved = false,
+  link,
 } = defineProps<{
   options: TaskFilterOptions
   tasks: ShootTask[]
   total: number
   // The Approved tab: every task here is approved.
   approved?: boolean
+  // Where a task opens; null when the viewer has no page for it.
+  link: (task: ShootTask) => RouteLocationRaw | null
 }>()
 
 const filters = defineModel<TaskFilters>('filters', { required: true })
@@ -129,11 +134,24 @@ const empty = computed(() => {
             <tr
               v-for="task in tasks"
               :key="task.id"
-              class="h-25 border-b border-subtle whitespace-nowrap last:border-b-0"
+              :class="[
+                'relative h-25 border-b border-subtle whitespace-nowrap last:border-b-0',
+                link(task) && 'transition-colors hover:bg-subtle',
+              ]"
             >
               <td class="pr-4 text-p3 font-medium text-secondary">{{ task.number }}</td>
               <th scope="row" class="py-2 pr-4 text-left text-p2 font-medium text-primary">
-                <div class="max-w-80 whitespace-normal break-words">{{ task.name }}</div>
+                <div class="max-w-80 whitespace-normal break-words">
+                  <!-- after: stretches the link over the row. -->
+                  <RouterLink
+                    v-if="link(task)"
+                    :to="link(task)!"
+                    class="rounded-sm outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-violet-300"
+                  >
+                    {{ task.name }}
+                  </RouterLink>
+                  <template v-else>{{ task.name }}</template>
+                </div>
               </th>
               <td class="pr-4 text-p3 font-medium text-secondary">
                 {{ deliverableTypes[task.type] }}
@@ -214,7 +232,7 @@ const empty = computed(() => {
       </p>
       <ul v-if="tasks.length" class="flex flex-col gap-4">
         <li v-for="task in tasks" :key="task.id">
-          <ShootTaskCard :task="task" />
+          <ShootTaskCard :task="task" :to="link(task)" />
         </li>
       </ul>
       <p v-else class="rounded-2xl bg-card p-8 text-center text-p2 font-medium text-secondary">

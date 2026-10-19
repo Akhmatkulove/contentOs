@@ -31,6 +31,7 @@ const {
   tabs,
   canEdit,
   canReview,
+  taskLink,
   status,
   facts,
   products,
@@ -193,7 +194,6 @@ const {
 
         <TabsContent value="overview" class="outline-none">
           <ShootOverview
-            :shoot="shoot"
             :products="products"
             :people="people"
             :counts="counts"
@@ -218,6 +218,7 @@ const {
             :options="taskOptions"
             :tasks="foundTasks"
             :total="tasks.length"
+            :link="taskLink"
           />
         </TabsContent>
 
@@ -237,6 +238,7 @@ const {
             :options="taskOptions"
             :tasks="foundApprovedTasks"
             :total="approvedTasks.length"
+            :link="taskLink"
             approved
           />
         </TabsContent>

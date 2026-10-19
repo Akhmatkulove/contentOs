@@ -1,8 +1,8 @@
-import type { TaskVersionResponse } from '../api/task'
+import type { ContentVersionResponse } from '@/entities/deliverable'
 import { ApiError } from '@/shared/api'
-import { durationLabel, fileSizeLabel, toVersions, uploadFailure, uploadPercent } from './task'
+import { toVersions, uploadFailure, uploadPercent } from './task'
 
-function version(number: number, overrides: Partial<TaskVersionResponse> = {}) {
+function version(number: number, overrides: Partial<ContentVersionResponse> = {}) {
   return {
     id: `v${number}`,
     number,
@@ -10,6 +10,9 @@ function version(number: number, overrides: Partial<TaskVersionResponse> = {}) {
     author: { id: 'lana', name: 'Lana', photo_url: null },
     created_at: '2024-09-18T14:00:00Z',
     submitted_at: '2024-09-18T14:22:00Z',
+    review: null,
+    reviewed_at: null,
+    feedback: null,
     files: [
       {
         id: `f${number}`,
@@ -21,16 +24,8 @@ function version(number: number, overrides: Partial<TaskVersionResponse> = {}) {
       },
     ],
     ...overrides,
-  } satisfies TaskVersionResponse
+  } satisfies ContentVersionResponse
 }
-
-describe('fileSizeLabel', () => {
-  it('shows megabytes with one decimal and small files in kilobytes', () => {
-    expect(fileSizeLabel(13_002_342)).toBe('12.4 MB')
-    expect(fileSizeLabel(300_000)).toBe('293 KB')
-    expect(fileSizeLabel(10)).toBe('1 KB')
-  })
-})
 
 describe('uploadPercent', () => {
   it('holds at 99 until the server answers', () => {
@@ -58,27 +53,44 @@ describe('uploadFailure', () => {
   })
 })
 
-describe('durationLabel', () => {
-  it('writes seconds as minutes and seconds', () => {
-    expect(durationLabel(15.2)).toBe('0:15')
-    expect(durationLabel(65)).toBe('1:05')
-  })
-})
-
 describe('toVersions', () => {
   const versions = [version(2, { title: 'V1.01' }), version(1)]
 
   it('names versions by their title or number', () => {
-    const [latest, first] = toVersions(versions, 'needs_review')
+    const [latest, first] = toVersions(versions)
     expect([latest!.label, first!.label]).toEqual(['V1.01', 'V1'])
     expect(latest!.files[0]).toMatchObject({ name: 'walking_take_1.mp4', size: '12.4 MB' })
     expect(latest!.files[0]!.video).toBe(true)
   })
 
-  it('puts the review state on the latest version only', () => {
-    const [latest, first] = toVersions(versions, 'needs_review')
+  it('shows each version’s decision; only the latest waits on review', () => {
+    const [latest, first] = toVersions(versions)
     expect(latest!.status).toEqual({ label: 'On review', tone: 'warning' })
     expect(first!.status).toBeNull()
-    expect(toVersions(versions, 'in_progress')[0]!.status).toBeNull()
+
+    const reviewed = toVersions([
+      version(2),
+      version(1, { review: 'changes_requested', feedback: 'Start closer' }),
+    ])
+    expect(reviewed[1]).toMatchObject({
+      status: { label: 'Needs changes', tone: 'danger' },
+      feedback: 'Start closer',
+    })
+  })
+
+  it('names the authors and keeps each one’s latest on review', () => {
+    const odina = { id: 'odina', name: 'Odina', photo_url: null }
+    const [first, second, third] = toVersions([
+      version(1, { id: 'o1', author: odina }),
+      version(2),
+      version(1),
+    ])
+    expect([first!.author, second!.author]).toEqual(['Odina', 'Lana'])
+    expect([first!.status?.label, second!.status?.label, third!.status]).toEqual([
+      'On review',
+      'On review',
+      null,
+    ])
+    expect(toVersions([version(1)])[0]!.author).toBeNull()
   })
 })

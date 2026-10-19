@@ -1,8 +1,6 @@
 import { http, type Schemas } from '@/shared/api'
 
 export type TaskDetails = Schemas['TaskResponse']
-export type TaskVersionResponse = Schemas['TaskVersionResponse']
-export type TaskFileResponse = Schemas['TaskFile']
 
 // The task with its submitted versions, newest first, and the assignees' draft;
 // 404 when it isn't the user's task (docs/adr/0012).

@@ -107,7 +107,11 @@ class ShootDeliverable(Base):
 
 
 class ShootDeliverableAssignee(Base):
-    """Исполнитель deliverable съёмки: из него строится страница My tasks."""
+    """Исполнитель deliverable съёмки: из него строится страница My tasks.
+
+    У каждого исполнителя своя работа над deliverable: свои версии и свой статус
+    проверки (docs/adr/0015). Статус deliverable собирается из статусов исполнителей.
+    """
 
     __tablename__ = "shoot_deliverable_assignees"
 
@@ -119,6 +123,11 @@ class ShootDeliverableAssignee(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     position: Mapped[int]
+    # to_shoot → in_progress (черновик) → needs_review (отправил) → needs_changes | approved.
+    status: Mapped[DeliverableStatus] = mapped_column(
+        string_enum(DeliverableStatus, "shoot_deliverable_assignee_status"),
+        default=DeliverableStatus.TO_SHOOT,
+    )
 
 
 class ShootDeliverableReference(Base):
@@ -185,19 +194,25 @@ class ShootNoteAssignee(Base):
     position: Mapped[int]
 
 
-class TaskVersion(Base):
-    """Версия готового контента задачи (docs/adr/0012).
+class VersionReview(enum.StrEnum):
+    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
 
-    Пока не отправлена, это черновик: исполнители добавляют и убирают файлы, арт-директор
-    его не видит. Черновик у задачи один. Номер растёт с 1 внутри deliverable.
+
+class TaskVersion(Base):
+    """Версия готового контента исполнителя задачи (docs/adr/0012, 0015).
+
+    Пока не отправлена, это черновик: автор добавляет и убирает файлы, арт-директор
+    его не видит. У каждого исполнителя свой черновик и своя нумерация с 1.
     """
 
     __tablename__ = "task_versions"
-    __table_args__ = (UniqueConstraint("deliverable_id", "number"),)
+    __table_args__ = (UniqueConstraint("deliverable_id", "author_id", "number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # Индекс не нужен: deliverable_id — начало уникального ключа.
     deliverable_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("shoot_deliverables.id", ondelete="CASCADE"), index=True
+        ForeignKey("shoot_deliverables.id", ondelete="CASCADE")
     )
     number: Mapped[int]
     # Своё название версии («V1.01»); без него показывается номер.
@@ -208,6 +223,13 @@ class TaskVersion(Base):
     )
     # Submit for review; до него версия — черновик.
     submitted_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    # Решение арт-директора по отправленной версии; None — ещё не проверена.
+    review: Mapped[VersionReview | None] = mapped_column(
+        string_enum(VersionReview, "version_review")
+    )
+    reviewed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    # Feedback for creator: что поправить (или комментарий к одобрению).
+    feedback: Mapped[str | None] = mapped_column(Text)
 
 
 class TaskVersionFile(Base):

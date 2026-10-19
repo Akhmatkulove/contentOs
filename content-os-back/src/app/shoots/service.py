@@ -57,6 +57,7 @@ from app.shoots.schemas import (
     ShootResponse,
     ShootStatus,
 )
+from app.shoots.statuses import combined_status, work_statuses
 from app.team import service as team
 from app.team.schemas import TeamMember
 
@@ -155,23 +156,41 @@ async def _write_deliverables(
     shoot: Shoot,
     drafts: list[ShootDeliverableDraft],
     existing: dict[uuid.UUID, ShootDeliverable],
+    progress: dict[tuple[uuid.UUID, uuid.UUID], DeliverableStatus],
 ) -> None:
-    """Deliverables по порядку: с `id` — обновляются (из `existing`), без — создаются."""
+    """Deliverables по порядку: с `id` — обновляются (из `existing`), без — создаются.
+
+    `progress` — статусы работы авторов по их версиям: она не сбрасывается.
+    Статус из формы — только у нового. У сохранённого, где кто-то работал, он
+    собирается из статусов оставшихся исполнителей; отправленный бренду остаётся
+    отправленным (docs/adr/0015).
+    """
     for index, draft in enumerate(drafts):
         deliverable = existing[draft.id] if draft.id is not None else None
         if deliverable is None:
-            deliverable = ShootDeliverable(shoot_id=shoot.id)
+            deliverable = ShootDeliverable(
+                shoot_id=shoot.id, status=draft.status or DeliverableStatus.TO_SHOOT
+            )
             db.add(deliverable)
         deliverable.position = index
         deliverable.product_id = draft.product_id
         deliverable.name = draft.name
         deliverable.type = draft.type
-        deliverable.status = draft.status
         deliverable.due_date = draft.due_date
         await db.flush()
+        statuses = [
+            progress.get((deliverable.id, user_id), DeliverableStatus.TO_SHOOT)
+            for user_id in draft.assignee_ids
+        ]
+        # Работал хоть кто-то, в том числе снятый сейчас с deliverable.
+        worked = any(key[0] == deliverable.id for key in progress)
+        if worked and deliverable.status != DeliverableStatus.APPROVED:
+            deliverable.status = combined_status(statuses)
         db.add_all(
-            ShootDeliverableAssignee(deliverable_id=deliverable.id, user_id=user_id, position=i)
-            for i, user_id in enumerate(draft.assignee_ids)
+            ShootDeliverableAssignee(
+                deliverable_id=deliverable.id, user_id=user_id, position=i, status=status
+            )
+            for i, (user_id, status) in enumerate(zip(draft.assignee_ids, statuses, strict=True))
         )
         db.add_all(
             ShootDeliverableReference(
@@ -191,7 +210,7 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
     db.add(shoot)
     await db.flush()
     _add_links(db, shoot, body)
-    await _write_deliverables(db, shoot, body.deliverables, {})
+    await _write_deliverables(db, shoot, body.deliverables, {}, {})
     await db.flush()
     return shoot
 
@@ -213,10 +232,14 @@ async def update_shoot(
     if shoot is None:
         raise _not_found()
     await _check(db, art_director, body, shoot)
+    # Исполнители меняют версии и статусы под блокировкой deliverable: ждём их.
     existing = {
         deliverable.id: deliverable
         for deliverable in await db.scalars(
-            select(ShootDeliverable).where(ShootDeliverable.shoot_id == shoot.id)
+            select(ShootDeliverable)
+            .where(ShootDeliverable.shoot_id == shoot.id)
+            .order_by(ShootDeliverable.id)
+            .with_for_update()
         )
     }
     kept = {draft.id for draft in body.deliverables if draft.id is not None}
@@ -227,12 +250,14 @@ async def update_shoot(
         await db.execute(delete(model).where(model.shoot_id == shoot.id))
     if removed := set(existing) - kept:
         await db.execute(delete(ShootDeliverable).where(ShootDeliverable.id.in_(removed)))
+    # По версиям, а не по строкам исполнителей: вновь назначенный получает свою работу назад.
+    progress = await work_statuses(db, kept) if kept else {}
     if kept:
         for link in (ShootDeliverableAssignee, ShootDeliverableReference):
             await db.execute(delete(link).where(link.deliverable_id.in_(kept)))
     _set_fields(shoot, body)
     _add_links(db, shoot, body)
-    await _write_deliverables(db, shoot, body.deliverables, existing)
+    await _write_deliverables(db, shoot, body.deliverables, existing, progress)
     await db.flush()
     return shoot
 

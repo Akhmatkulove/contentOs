@@ -151,7 +151,7 @@ const empty = computed(() =>
                 </VStatus>
               </td>
               <td v-if="canReview" class="pr-4">
-                <ReviewButton :name="task.name" />
+                <ReviewButton :id="task.id" :name="task.name" />
               </td>
             </tr>
           </tbody>

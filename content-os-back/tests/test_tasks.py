@@ -2,12 +2,12 @@ from datetime import date, timedelta
 from typing import Any
 
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role
 from app.deliverables.models import DeliverableStatus
-from app.shoots.models import ShootDeliverable
+from app.shoots.models import ShootDeliverable, ShootDeliverableAssignee
 from tests.test_files import MP4, image_bytes, upload
 from tests.test_products import log_in, sign_up
 from tests.test_references import add_reference
@@ -111,14 +111,35 @@ async def test_art_director_sees_deliverables_of_own_shoots(
     assert (await tasks(client))["total"] == 0
 
 
-async def test_creator_sees_only_own_deliverables(client: AsyncClient) -> None:
-    await two_shoots(client)
+async def test_creator_sees_only_own_deliverables(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    ids = await two_shoots(client)
+    await db_session.execute(
+        update(ShootDeliverableAssignee)
+        .where(
+            ShootDeliverableAssignee.user_id == ids["Odina"],
+            ShootDeliverableAssignee.deliverable_id.in_(
+                select(ShootDeliverable.id).where(ShootDeliverable.name == "Portrait")
+            ),
+        )
+        .values(status=DeliverableStatus.NEEDS_CHANGES)
+    )
 
-    # A creator's priority: needs changes, then to shoot; their review waits last.
+    # A creator's task has their own status, not the deliverable's (docs/adr/0015):
+    # Close-up waits for review as a deliverable, but Lana hasn't uploaded yet.
     await log_in(client, "lana@example.com")
-    assert names(await tasks(client)) == ["Walking", "Close-up"]
+    listing = await tasks(client)
+    assert names(listing) == ["Close-up", "Walking"]
+    assert [item["status"] for item in listing["items"]] == ["to_shoot", "to_shoot"]
+    assert (listing["counts"]["to_shoot"], listing["counts"]["needs_review"]) == (2, 0)
+    assert (await tasks(client, status="needs_review"))["total"] == 0
+    # A creator's priority: needs changes, then to shoot; their review waits last.
     await log_in(client, "odina@example.com")
     assert names(await tasks(client)) == ["Portrait", "Close-up"]
+    assert names(await tasks(client, status="needs_changes")) == ["Portrait"]
+    # Searching by assignee doesn't mix with the creator's own row.
+    assert names(await tasks(client, search="lana")) == ["Close-up"]
 
     await log_in(client, "brand@example.com")
     assert (await client.get("/api/tasks")).status_code == 403
@@ -255,8 +276,8 @@ async def test_draft_collects_files_until_submitted(client: AsyncClient) -> None
     page = await add_files(client, task_id, [video["id"]])
     photo = await upload(client, image_bytes(), "dress.jpg")
     page = await add_files(client, task_id, [photo["id"]])
-    # Still a draft: nothing went to review yet.
-    assert (page["status"], page["versions"]) == ("to_shoot", [])
+    # Still a draft: nothing went to review yet, the work is in progress.
+    assert (page["status"], page["versions"]) == ("in_progress", [])
     draft = page["draft"]
     assert (draft["number"], draft["submitted_at"], draft["author"]["name"]) == (1, None, "Lana")
     assert [(file["name"], file["kind"]) for file in draft["files"]] == [
@@ -331,3 +352,249 @@ async def test_removes_files_from_the_draft_only(client: AsyncClient) -> None:
     # The last file takes the draft with it.
     assert await remove(client, task_id, second["id"]) == 200
     assert (await task_page(client, task_id))["draft"] is None
+
+
+async def review_page(client: AsyncClient, task_id: str, status: int = 200) -> dict[str, Any]:
+    response = await client.get(f"/api/tasks/{task_id}/review")
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def decide(
+    client: AsyncClient,
+    task_id: str,
+    version_id: str,
+    decision: str,
+    feedback: str = "",
+    status: int = 200,
+) -> dict[str, Any]:
+    response = await client.post(
+        f"/api/tasks/{task_id}/versions/{version_id}/review",
+        json={"decision": decision, "feedback": feedback},
+    )
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def send(client: AsyncClient, task_id: str, status: int = 200) -> dict[str, Any]:
+    response = await client.post(f"/api/tasks/{task_id}/send")
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def submit_version(client: AsyncClient, task_id: str, email: str) -> dict[str, Any]:
+    """Исполнитель загружает файл и отправляет версию на проверку."""
+    await log_in(client, email)
+    file = await upload(client, image_bytes())
+    await add_files(client, task_id, [file["id"]])
+    return await submit(client, task_id)
+
+
+async def close_up(client: AsyncClient) -> str:
+    """Задача Close-up (исполнители Lana и Odina) на Shoot 04; клиент — арт-директор."""
+    await two_shoots(client)
+    task_id: str = (await tasks(client, search="close"))["items"][0]["id"]
+    return task_id
+
+
+def by_name(review: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {creator["member"]["name"]: creator for creator in review["creators"]}
+
+
+async def test_each_assignee_works_on_own_versions(client: AsyncClient) -> None:
+    task_id = await close_up(client)
+
+    lana = await submit_version(client, task_id, "lana@example.com")
+    assert (lana["status"], [v["number"] for v in lana["versions"]]) == ("needs_review", [1])
+    # Odina doesn't see Lana's work and starts her own V1.
+    await log_in(client, "odina@example.com")
+    page = await task_page(client, task_id)
+    assert (page["status"], page["versions"], page["draft"]) == ("to_shoot", [], None)
+    file = await upload(client, image_bytes())
+    assert (await add_files(client, task_id, [file["id"]]))["draft"]["number"] == 1
+    assert (await submit(client, task_id))["versions"][0]["author"]["name"] == "Odina"
+
+    # The art director sees everyone's submitted versions.
+    await log_in(client, "amina@example.com")
+    page = await task_page(client, task_id)
+    assert sorted(v["author"]["name"] for v in page["versions"]) == ["Lana", "Odina"]
+    assert page["status"] == "needs_review"
+
+
+async def test_art_director_reviews_each_creator_then_sends(client: AsyncClient) -> None:
+    task_id = await close_up(client)
+    await submit_version(client, task_id, "lana@example.com")
+    await log_in(client, "amina@example.com")
+
+    # Odina hasn't uploaded: the deliverable waits for her.
+    review = await review_page(client, task_id)
+    assert [c["member"]["name"] for c in review["creators"]] == ["Lana", "Odina"]
+    assert [c["role"] for c in review["creators"]] == ["creator", "creator"]
+    lana, odina = by_name(review)["Lana"], by_name(review)["Odina"]
+    assert (lana["status"], odina["status"], odina["versions"]) == ("needs_review", "to_shoot", [])
+    assert review["can_send"] is False
+    await send(client, task_id, status=409)
+
+    lana_v1 = lana["versions"][0]["id"]
+    await decide(client, task_id, lana_v1, "changes_requested", status=422)
+    await decide(client, task_id, lana_v1, "changes_requested", " x " * 400, status=422)
+    review = await decide(client, task_id, lana_v1, "approved")
+    assert (by_name(review)["Lana"]["status"], review["status"]) == ("approved", "in_progress")
+    assert by_name(review)["Lana"]["versions"][0]["review"] == "approved"
+    assert review["can_send"] is False
+
+    # Lana's work is done; Odina gets feedback on hers.
+    await log_in(client, "lana@example.com")
+    page = await task_page(client, task_id)
+    assert (page["status"], page["can_upload"]) == ("approved", False)
+    file = await upload(client, image_bytes())
+    await add_files(client, task_id, [file["id"]], status=409)
+
+    odina_v1 = (await submit_version(client, task_id, "odina@example.com"))["versions"][0]["id"]
+    await log_in(client, "amina@example.com")
+    assert (await review_page(client, task_id))["status"] == "needs_review"
+    review = await decide(
+        client, task_id, odina_v1, "changes_requested", "  Start slightly closer  "
+    )
+    assert (by_name(review)["Odina"]["status"], review["status"]) == (
+        "needs_changes",
+        "needs_changes",
+    )
+    await log_in(client, "odina@example.com")
+    page = await task_page(client, task_id)
+    assert page["status"] == "needs_changes"
+    assert (page["versions"][0]["review"], page["versions"][0]["feedback"]) == (
+        "changes_requested",
+        "Start slightly closer",
+    )
+
+    # V2 goes to review; V1 is history now.
+    odina_v2 = (await submit_version(client, task_id, "odina@example.com"))["versions"][0]["id"]
+    await log_in(client, "amina@example.com")
+    await decide(client, task_id, odina_v1, "approved", status=409)
+    review = await decide(client, task_id, odina_v2, "approved")
+    assert [v["number"] for v in by_name(review)["Odina"]["versions"]] == [2, 1]
+    # Everyone approved: it still waits for the art director to send it.
+    assert (review["status"], review["can_send"]) == ("needs_review", True)
+
+    review = await send(client, task_id)
+    assert (review["status"], review["can_send"]) == ("approved", False)
+    await send(client, task_id, status=409)
+    await decide(client, task_id, odina_v2, "changes_requested", "More", status=409)
+    assert names(await tasks(client, status="approved")) == ["Close-up"]
+
+
+async def test_review_is_the_shoots_art_directors_only(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    task_id = await close_up(client)
+    version = (await submit_version(client, task_id, "lana@example.com"))["versions"][0]["id"]
+
+    # The assignee can't review their own work.
+    await review_page(client, task_id, status=404)
+    await decide(client, task_id, version, "approved", status=404)
+    await send(client, task_id, status=404)
+
+    await sign_up(client, db_session, "ad2@example.com", Role.ART_DIRECTOR, "Risolat")
+    await review_page(client, task_id, status=404)
+    await decide(client, task_id, version, "approved", status=404)
+
+    await log_in(client, "brand@example.com")
+    await review_page(client, task_id, status=403)
+
+    # A version of another task isn't found here.
+    await log_in(client, "amina@example.com")
+    other = (await tasks(client, search="walking"))["items"][0]["id"]
+    await decide(client, other, version, "approved", status=404)
+
+
+async def edit_close_up(
+    client: AsyncClient, task_id: str, expect: int = 200, **changes: Any
+) -> None:
+    """Сохраняет форму съёмки Close-up как есть, с изменениями этого deliverable."""
+    shoot_id = (await review_page(client, task_id))["shoot"]["id"]
+    page = (await client.get(f"/api/shoots/{shoot_id}")).json()
+    response = await client.put(
+        f"/api/shoots/{shoot_id}",
+        json={
+            "name": page["name"],
+            "date": page["date"],
+            "start_time": page["start_time"],
+            "duration_minutes": page["duration_minutes"],
+            "creator_ids": [member["id"] for member in page["creators"]],
+            "product_ids": [product["id"] for product in page["products"]],
+            "deliverables": [
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "type": item["type"],
+                    "product_id": item["product_id"],
+                    "assignee_ids": [a["id"] for a in item["assignees"]],
+                    "due_date": item["due_date"],
+                    **(changes if item["id"] == task_id else {}),
+                }
+                for item in page["deliverables"]
+            ],
+        },
+    )
+    assert response.status_code == expect, response.text
+
+
+async def test_editing_the_shoot_keeps_assignees_work(client: AsyncClient) -> None:
+    task_id = await close_up(client)
+    version = (await submit_version(client, task_id, "lana@example.com"))["versions"][0]["id"]
+    await log_in(client, "amina@example.com")
+    await decide(client, task_id, version, "approved")
+    people = by_name(await review_page(client, task_id))
+    lana, odina = people["Lana"]["member"]["id"], people["Odina"]["member"]["id"]
+
+    # Odina leaves Close-up: only Lana's approved work is left.
+    await edit_close_up(client, task_id, assignee_ids=[lana])
+    review = await review_page(client, task_id)
+    assert [(c["member"]["name"], c["status"]) for c in review["creators"]] == [
+        ("Lana", "approved")
+    ]
+    assert (review["status"], review["can_send"]) == ("needs_review", True)
+
+    # Lana leaves and comes back: her work comes back with her.
+    await edit_close_up(client, task_id, assignee_ids=[odina])
+    await edit_close_up(client, task_id, assignee_ids=[lana, odina])
+    review = await review_page(client, task_id)
+    assert [c["status"] for c in review["creators"]] == ["approved", "to_shoot"]
+    assert review["status"] == "in_progress"
+
+
+async def test_the_form_sets_the_status_of_new_deliverables_only(client: AsyncClient) -> None:
+    task_id = await close_up(client)
+    # A saved deliverable's status comes from its work and review, not the form.
+    await edit_close_up(client, task_id, 422, status="to_shoot")
+    # Approved means sent to the brand: only the review sends.
+    response = await client.post(
+        "/api/shoots",
+        json=await shoot(
+            client,
+            deliverables=[
+                {
+                    "name": "Walking",
+                    "type": "video",
+                    "product_id": (await products(client))["Abaya"],
+                    "status": "approved",
+                }
+            ],
+        ),
+    )
+    assert response.status_code == 422, response.text
+
+    version = (await submit_version(client, task_id, "lana@example.com"))["versions"][0]["id"]
+    await log_in(client, "amina@example.com")
+    await decide(client, task_id, version, "approved")
+    lana = by_name(await review_page(client, task_id))["Lana"]["member"]["id"]
+    await edit_close_up(client, task_id, assignee_ids=[lana])
+    await send(client, task_id)
+
+    # Sent stays sent when the shoot is saved again.
+    await edit_close_up(client, task_id)
+    assert (await review_page(client, task_id))["status"] == "approved"

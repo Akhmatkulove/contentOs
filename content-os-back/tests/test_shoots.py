@@ -315,7 +315,6 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
                     "type": "image",
                     "product_id": walk["product_id"],
                     "assignee_ids": [team["Odina"]],
-                    "status": "approved",
                 },
             ],
         },
@@ -327,7 +326,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
     assert edited["mobilographer"] is None
     assert [d["name"] for d in edited["deliverables"]] == ["Close-up", "Walk, renamed"]
     kept = edited["deliverables"][1]
-    assert (kept["id"], kept["type"], kept["status"]) == (walk["id"], "image", "approved")
+    assert (kept["id"], kept["type"], kept["status"]) == (walk["id"], "image", "to_shoot")
     assert [a["name"] for a in kept["assignees"]] == ["Odina"]
 
     # Dropping a deliverable from the list deletes it.

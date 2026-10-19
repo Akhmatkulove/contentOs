@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 import {
   deliverableStatusOptions,
   type DeliverableStatus,
@@ -31,6 +32,24 @@ export interface ShootTask {
   // ISO date, YYYY-MM-DD; empty when not set.
   dueDate: string
   status: DeliverableStatus
+}
+
+// Who opens the shoot's tasks: whether they review them (the shoot's art
+// director) and their user id.
+export interface TaskViewer {
+  reviews: boolean
+  id: string | null
+}
+
+// Where a task of the shoot opens: the art director goes to its review
+// (docs/adr/0015), an assignee to their task (0012). Anyone else on the team has
+// no page for it.
+export function taskRoute(task: ShootTask, viewer: TaskViewer): RouteLocationRaw | null {
+  if (viewer.reviews) return { name: 'task-review', params: { id: task.id } }
+  if (task.assignees.some((member) => member.id === viewer.id)) {
+    return { name: 'task', params: { id: task.id } }
+  }
+  return null
 }
 
 export function toTasks(shoot: ShootDetails): ShootTask[] {

@@ -75,13 +75,22 @@ const {
             {{ status.label }}
           </VStatus>
         </div>
-        <!-- The art director changes the task in the shoot's form. -->
-        <VButton v-if="canEdit" as-child variant="secondary" class="shrink-0 md:px-5">
-          <RouterLink :to="{ name: 'shoot-edit', params: { id: task.shoot.id } }">
-            <VIcon name="edit-02" />
-            Edit task
-          </RouterLink>
-        </VButton>
+        <!-- The art director reviews each assignee's work and changes the task
+             in the shoot's form. -->
+        <div v-if="canEdit" class="flex shrink-0 flex-wrap gap-2.5">
+          <VButton as-child variant="secondary" class="md:px-5">
+            <RouterLink :to="{ name: 'shoot-edit', params: { id: task.shoot.id } }">
+              <VIcon name="edit-02" />
+              Edit task
+            </RouterLink>
+          </VButton>
+          <VButton as-child class="md:px-5">
+            <RouterLink :to="{ name: 'task-review', params: { id: task.id } }">
+              <VIcon name="file-view" />
+              Review
+            </RouterLink>
+          </VButton>
+        </div>
       </header>
 
       <div class="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">

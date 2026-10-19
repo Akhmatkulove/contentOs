@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
-import { durationLabel, type ContentFile } from '../model/task'
+import { durationLabel } from '@/entities/deliverable'
+import type { ContentFile } from '../model/task'
 
 // Figma "Uploaded" item of Ready content: a 170×135 preview with the file's
 // name and size. Videos get the play control and their length. While a file

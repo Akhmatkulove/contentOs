@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import { deliverableStatusOptions, deliverableTypeOptions } from '@/entities/deliverable'
+import { deliverableTypeOptions } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VDatePicker } from '@/shared/ui/date-picker'
@@ -9,7 +9,7 @@ import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
 import { selectChevronClass, selectTriggerClass, VSelect } from '@/shared/ui/select'
 import type { DeliverableContext } from '../model/add-deliverable'
-import { productOptions, useAddDeliverableForm } from '../model/add-deliverable-form'
+import { productOptions, statusOptions, useAddDeliverableForm } from '../model/add-deliverable-form'
 import {
   firstAndMore,
   type DeliverableReference,
@@ -120,7 +120,7 @@ const referencesId = useId()
         <VDatePicker v-model="form.dueDate" label="Due date" placeholder="Select due date" />
         <VSelect
           v-model="form.status"
-          :options="deliverableStatusOptions"
+          :options="statusOptions"
           label="Status"
           placeholder="Select status"
         />

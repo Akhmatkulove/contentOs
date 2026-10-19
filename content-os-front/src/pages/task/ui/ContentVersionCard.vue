@@ -6,7 +6,7 @@ import type { ContentVersion } from '../model/task'
 import ContentFileCard from './ContentFileCard.vue'
 
 // Figma "Version / V1": the version's name, upload time and review state;
-// opens to its files.
+// opens to the art director's feedback and its files.
 const { version, defaultOpen = false } = defineProps<{
   version: ContentVersion
   defaultOpen?: boolean
@@ -24,6 +24,9 @@ const { version, defaultOpen = false } = defineProps<{
       <span class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <span class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <span class="text-p3 font-semibold break-words text-primary">{{ version.label }}</span>
+          <span v-if="version.author" class="text-p3 font-medium text-primary">
+            · {{ version.author }}
+          </span>
           <span class="text-p4 font-medium text-secondary">{{ version.uploaded }}</span>
         </span>
         <VStatus v-if="version.status" :tone="version.status.tone">
@@ -37,6 +40,16 @@ const { version, defaultOpen = false } = defineProps<{
       />
     </CollapsibleTrigger>
     <CollapsibleContent>
+      <!-- The art director's feedback on this version (docs/adr/0015). -->
+      <div
+        v-if="version.feedback"
+        class="mx-4 mb-4 flex flex-col gap-1 rounded-[10px] bg-subtle p-3 md:mx-[18px]"
+      >
+        <p class="text-p3 font-medium text-secondary">Feedback from the art director</p>
+        <p class="text-p2 font-medium whitespace-pre-line break-words text-primary">
+          {{ version.feedback }}
+        </p>
+      </div>
       <ul
         class="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-[repeat(auto-fill,170px)] md:px-[18px] md:pb-[18px]"
       >

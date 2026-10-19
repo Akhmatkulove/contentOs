@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { deliverablesLabel, deliverableStatuses } from '@/entities/deliverable'
-import { progressPercent, type ShootDetails } from '@/entities/shoot'
-import { toReference } from '@/entities/reference'
+import { progressPercent } from '@/entities/shoot'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon, type IconName } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
@@ -11,12 +10,10 @@ import type { ShootProduct } from '../model/products-tab'
 import type { DeliverableCounts, ShootPerson, coverPhotos, shootFacts } from '../model/shoot'
 import ProgressBar from './ProgressBar.vue'
 
-// Figma "Shoot / Overview": covers, creative direction, products, progress,
-// details and team.
+// Figma "Shoot / Overview": covers, products, progress, details and team.
 // TODO(api): Add cover, Shoot description, Goals, Files and Add member — the
 // shoot has no such fields yet; they come with their own step.
-const { shoot, products, people, counts, covers, facts } = defineProps<{
-  shoot: ShootDetails
+const { products, people, counts, covers, facts } = defineProps<{
   products: ShootProduct[]
   people: ShootPerson[]
   counts: DeliverableCounts
@@ -41,10 +38,6 @@ const details = computed<{ label: string; value: string; icon: IconName }[]>(() 
   { label: 'Start time', value: facts.startTime, icon: 'clock-01' },
   { label: 'Est. duration', value: facts.duration, icon: 'time-02' },
 ])
-
-// Figma "Creative direction": the first references of the shoot.
-const references = computed(() => shoot.references.map(toReference))
-const shownReferences = computed(() => references.value.slice(0, 2))
 </script>
 
 <template>
@@ -71,34 +64,6 @@ const shownReferences = computed(() => references.value.slice(0, 2))
       >
         <span class="text-h4 text-primary">+{{ covers.more }}</span>
         <span class="text-center text-p3 font-medium text-secondary">More from this shoot</span>
-      </div>
-    </section>
-
-    <!-- Figma "Card / Shoot brief": only Creative direction has data yet. -->
-    <section
-      v-if="references.length"
-      aria-labelledby="creative-direction"
-      class="flex flex-col gap-2.5 rounded-2xl bg-card p-5"
-    >
-      <h2 id="creative-direction" class="text-p1 font-semibold text-primary">Creative direction</h2>
-      <div class="flex items-center gap-2.5">
-        <VThumbnail
-          v-for="reference in shownReferences"
-          :key="reference.id"
-          :src="reference.previewUrl"
-          :icon-size="16"
-          class="h-[75px] w-[42px] rounded-md"
-        >
-          <span
-            v-if="reference.kind === 'video'"
-            class="absolute inset-0 m-auto flex size-5 items-center justify-center rounded-[10px] bg-overlay-scrim text-inverse"
-          >
-            <VIcon name="play" :size="12" />
-          </span>
-        </VThumbnail>
-        <p class="text-p2 font-medium text-link">
-          {{ references.length }} {{ references.length === 1 ? 'reference' : 'references' }}
-        </p>
       </div>
     </section>
 

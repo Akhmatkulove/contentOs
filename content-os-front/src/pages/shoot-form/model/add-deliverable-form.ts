@@ -1,7 +1,11 @@
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive } from 'vue'
-import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
+import {
+  deliverableStatusOptions,
+  type DeliverableStatus,
+  type DeliverableType,
+} from '@/entities/deliverable'
 import type { SelectOption } from '@/shared/ui/select'
 import type { DeliverableContext } from './add-deliverable'
 import { toggleSelection, type ShootDeliverable } from './shoot-draft'
@@ -20,6 +24,12 @@ export const shootDeliverableSchema = v.object({
   type: v.picklist(['video', 'image'], 'Select a type.'),
   productId: v.pipe(v.string('Select a product.'), v.nonEmpty('Select a product.')),
 })
+
+// Approved means sent to the brand: only the review does that, after every
+// assignee's work is approved (docs/adr/0015).
+export const statusOptions = deliverableStatusOptions.filter(
+  (option) => option.value !== 'approved',
+)
 
 export function productOptions(context: DeliverableContext): SelectOption[] {
   return context.products.map((product) => ({ value: product.id, label: product.name }))

@@ -1,14 +1,16 @@
-import { type DeliverableStatus } from '@/entities/deliverable'
+import {
+  toContentFile,
+  uploadedLabel,
+  versionLabel,
+  versionStatus,
+  type ContentFile as SavedFile,
+  type ContentVersionResponse,
+  type VersionStatus,
+} from '@/entities/deliverable'
 import { errorMessage, type ApiError } from '@/shared/api'
-import type { TaskFileResponse, TaskVersionResponse } from '../api/task'
 
-export interface ContentFile {
-  id: string
-  name: string
-  // "12.4 MB".
-  size: string
-  url: string
-  video: boolean
+// A file of the draft or of a version; while uploading it carries its progress.
+export interface ContentFile extends SavedFile {
   // While uploading: 0–100.
   progress?: number
   // The upload failed; `retryable` when trying again may help.
@@ -25,33 +27,15 @@ export interface ContentVersion {
   id: string
   // The title the creator gave it, or "V2".
   label: string
+  // Whose version it is, when the list has several authors.
+  author: string | null
   // "Uploaded Sep 18, 14:22".
   uploaded: string
   files: ContentFile[]
-  // Only the latest version carries the task's review state.
-  status: { label: string; tone: 'warning' | 'danger' | 'success' } | null
-}
-
-// The latest upload's state as Figma names it on the version.
-const versionStatuses: Partial<Record<DeliverableStatus, ContentVersion['status']>> = {
-  needs_review: { label: 'On review', tone: 'warning' },
-  needs_changes: { label: 'Needs changes', tone: 'danger' },
-  approved: { label: 'Approved', tone: 'success' },
-}
-
-// 12_400_000 → "11.8 MB"; small files in KB.
-export function fileSizeLabel(bytes: number): string {
-  const kb = bytes / 1024
-  if (kb < 1024) return `${Math.max(1, Math.round(kb))} KB`
-  return `${(kb / 1024).toFixed(1)} MB`
-}
-
-// ISO timestamp → "Uploaded Sep 18, 14:22", in the viewer's timezone.
-export function uploadedLabel(iso: string): string {
-  const date = new Date(iso)
-  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return `Uploaded ${day}, ${time}`
+  // The art director's decision; the latest version waits for it "On review".
+  status: VersionStatus | null
+  // What the art director asked to change (or said on approving).
+  feedback: string | null
 }
 
 // Sent share 0–1 → percent. The server still checks and converts the file
@@ -73,32 +57,23 @@ export function failedUploadsMessage(count: number): string {
   return count === 1 ? 'A file didn’t upload.' : `${count} files didn’t upload.`
 }
 
-// Seconds → "0:15", "1:05".
-export function durationLabel(seconds: number): string {
-  const whole = Math.max(0, Math.round(seconds))
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
-}
-
-export function toFile(file: TaskFileResponse): ContentFile {
-  return {
-    id: file.id,
-    name: file.name || (file.kind === 'video' ? 'Video' : 'Photo'),
-    size: fileSizeLabel(file.size),
-    url: file.url,
-    video: file.kind === 'video',
-  }
-}
-
-// Submitted versions come newest first; they don't change any more.
-export function toVersions(
-  versions: TaskVersionResponse[],
-  status: DeliverableStatus,
-): ContentVersion[] {
-  return versions.map((version, index) => ({
-    id: version.id,
-    label: version.title || `V${version.number}`,
-    uploaded: uploadedLabel(version.submitted_at ?? version.created_at),
-    files: version.files.map(toFile),
-    status: index === 0 ? (versionStatuses[status] ?? null) : null,
-  }))
+// Submitted versions come newest first; they don't change any more. The
+// assignee sees their own; the art director everyone's, so each author's
+// latest waits on review and the card names whose it is.
+export function toVersions(versions: ContentVersionResponse[]): ContentVersion[] {
+  const authors = new Set(versions.map((version) => version.author.id))
+  const seen = new Set<string>()
+  return versions.map((version) => {
+    const latest = !seen.has(version.author.id)
+    seen.add(version.author.id)
+    return {
+      id: version.id,
+      label: versionLabel(version),
+      author: authors.size > 1 ? (version.author.name ?? 'Unnamed') : null,
+      uploaded: uploadedLabel(version.submitted_at ?? version.created_at),
+      files: version.files.map(toContentFile),
+      status: versionStatus(version.review, latest, 'On review'),
+      feedback: version.feedback,
+    }
+  })
 }

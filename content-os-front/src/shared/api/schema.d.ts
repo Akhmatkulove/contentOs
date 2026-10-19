@@ -797,6 +797,70 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/tasks/{task_id}/review': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Review
+     * @description Страница проверки deliverable: работа каждого исполнителя (docs/adr/0015).
+     *
+     *     Только арт-директору съёмки, остальным 404.
+     */
+    get: operations['get_review_api_tasks__task_id__review_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/{task_id}/versions/{version_id}/review': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Review Version
+     * @description Approve или Request changes по последней версии исполнителя.
+     *
+     *     Не последняя версия или deliverable уже отправлен бренду — 409.
+     */
+    post: operations['review_version_api_tasks__task_id__versions__version_id__review_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/{task_id}/send': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Send To Brand
+     * @description Send to brand: deliverable становится approved; пока одобрены не все — 409.
+     */
+    post: operations['send_to_brand_api_tasks__task_id__send_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/team/art-directors': {
     parameters: {
       query?: never
@@ -962,6 +1026,34 @@ export interface components {
       due_date: string | null
       /** Brief */
       brief: string | null
+    }
+    /**
+     * DeliverableReviewResponse
+     * @description Страница проверки deliverable арт-директором (docs/adr/0015).
+     */
+    DeliverableReviewResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      status: components['schemas']['DeliverableStatus']
+      /** Due Date */
+      due_date: string | null
+      shoot: components['schemas']['TaskShoot']
+      product: components['schemas']['TaskProduct']
+      /** Assignees */
+      assignees: components['schemas']['TeamMember'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /** References Total */
+      references_total: number
+      /** Creators */
+      creators: components['schemas']['ReviewCreator'][]
+      /** Can Send */
+      can_send: boolean
     }
     /**
      * DeliverableStatus
@@ -1407,6 +1499,17 @@ export interface components {
      */
     ReferenceType: 'image' | 'video' | 'moodboard'
     /**
+     * ReviewCreator
+     * @description Исполнитель (креатор или мобилограф) на странице проверки: статус и версии.
+     */
+    ReviewCreator: {
+      member: components['schemas']['TeamMember']
+      role: components['schemas']['ShootRole'] | null
+      status: components['schemas']['DeliverableStatus']
+      /** Versions */
+      versions: components['schemas']['TaskVersionResponse'][]
+    }
+    /**
      * Role
      * @description Кто пользователь в продукте. Решает, что доступно внутри.
      * @enum {string}
@@ -1483,8 +1586,7 @@ export interface components {
       reference_ids?: string[]
       /** Due Date */
       due_date?: string | null
-      /** @default to_shoot */
-      status: components['schemas']['DeliverableStatus']
+      status?: components['schemas']['DeliverableStatus'] | null
     }
     /** ShootDeliverableResponse */
     ShootDeliverableResponse: {
@@ -1668,6 +1770,11 @@ export interface components {
       /** Can Edit */
       can_edit: boolean
     }
+    /**
+     * ShootRole
+     * @enum {string}
+     */
+    ShootRole: 'creator' | 'mobilographer'
     /**
      * ShootSort
      * @enum {string}
@@ -1884,6 +1991,11 @@ export interface components {
       created_at: string
       /** Submitted At */
       submitted_at: string | null
+      review: components['schemas']['VersionReview'] | null
+      /** Reviewed At */
+      reviewed_at: string | null
+      /** Feedback */
+      feedback: string | null
       /** Files */
       files: components['schemas']['TaskFile'][]
     }
@@ -1968,6 +2080,23 @@ export interface components {
       input?: unknown
       /** Context */
       ctx?: Record<string, never>
+    }
+    /**
+     * VersionReview
+     * @enum {string}
+     */
+    VersionReview: 'approved' | 'changes_requested'
+    /**
+     * VersionReviewCreate
+     * @description Approve или Request changes по последней версии исполнителя (docs/adr/0015).
+     */
+    VersionReviewCreate: {
+      decision: components['schemas']['VersionReview']
+      /**
+       * Feedback
+       * @default
+       */
+      feedback: string
     }
   }
   responses: never
@@ -3739,6 +3868,110 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_review_api_tasks__task_id__review_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DeliverableReviewResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  review_version_api_tasks__task_id__versions__version_id__review_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+        version_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VersionReviewCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DeliverableReviewResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  send_to_brand_api_tasks__task_id__send_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DeliverableReviewResponse']
         }
       }
       /** @description Validation Error */

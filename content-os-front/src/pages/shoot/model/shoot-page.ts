@@ -4,7 +4,7 @@ import { shootStatuses, useShoot } from '@/entities/shoot'
 import { queryParam, useQueryParams } from '@/shared/lib'
 import { toProducts } from './products-tab'
 import { coverPhotos, shootCounts, shootFacts, shootPeople } from './shoot'
-import { taskFilterOptions, toTasks } from './tasks-tab'
+import { taskFilterOptions, taskRoute, toTasks, type ShootTask } from './tasks-tab'
 
 export const shootTabValues = [
   'overview',
@@ -64,6 +64,9 @@ export function useShootPage(id: () => string) {
   // Only an art director reviews uploads: the Actions column is theirs.
   const session = useSessionStore()
   const canReview = computed(() => session.me?.role === 'art_director')
+  // Opening a task: its review for the shoot's art director, the task for an assignee.
+  const viewer = computed(() => ({ reviews: canEdit.value, id: session.me?.id ?? null }))
+  const taskLink = (task: ShootTask) => taskRoute(task, viewer.value)
 
   // The selects of the Tasks, Needs review and Approved tabs.
   const taskOptions = computed(() => taskFilterOptions(products.value, people.value))
@@ -81,6 +84,7 @@ export function useShootPage(id: () => string) {
     tabs,
     canEdit,
     canReview,
+    taskLink,
     status,
     facts,
     products,

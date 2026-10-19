@@ -61,9 +61,12 @@ describe('toShootCreate', () => {
     ])
   })
 
-  it('keeps the id of a saved deliverable', () => {
-    const body = toShootCreate({ ...data, deliverables: [{ ...walk, saved: true }] })
-    expect(body.deliverables[0]?.id).toBe('d1')
+  it('keeps the id of a saved deliverable and leaves its status to the server', () => {
+    const body = toShootCreate({
+      ...data,
+      deliverables: [{ ...walk, saved: true, status: 'needs_review' }],
+    })
+    expect(body.deliverables[0]).toMatchObject({ id: 'd1', status: null })
   })
 
   it('sends no mobilographer as null', () => {

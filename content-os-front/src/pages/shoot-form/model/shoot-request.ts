@@ -50,7 +50,9 @@ export function toShootCreate(
         .map((reference) => savedId(reference.id))
         .filter((id) => references.has(id)),
       due_date: deliverable.dueDate || null,
-      status: deliverable.status,
+      // Only a new deliverable takes its status from the form; a saved one's
+      // comes from its work and review (docs/adr/0015).
+      status: deliverable.saved ? null : deliverable.status,
     })),
   }
 }

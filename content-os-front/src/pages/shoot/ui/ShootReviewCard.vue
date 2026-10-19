@@ -79,6 +79,6 @@ const { task, canReview } = defineProps<{ task: ShootTask; canReview: boolean }>
       </div>
     </dl>
 
-    <ReviewButton v-if="canReview" :name="task.name" class="h-10 w-full" />
+    <ReviewButton v-if="canReview" :id="task.id" :name="task.name" class="h-10 w-full" />
   </article>
 </template>

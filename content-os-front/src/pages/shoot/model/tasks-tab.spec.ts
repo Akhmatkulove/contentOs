@@ -6,6 +6,7 @@ import {
   defaultTaskFilters,
   findTasks,
   taskFilterOptions,
+  taskRoute,
   toTasks,
 } from './tasks-tab'
 
@@ -60,5 +61,25 @@ describe('taskFilterOptions', () => {
     const options = taskFilterOptions(toProducts(shoot), shootPeople(shoot))
     expect(options.products.map((o) => o.value)).toEqual(['all', 'p1', 'p2'])
     expect(options.assignees.map((o) => o.label)).toEqual(['All assignees', 'Amina', 'Odina'])
+  })
+})
+
+describe('taskRoute', () => {
+  const [task] = toTasks(shoot)
+  const assignee = task!.assignees[0]!.id
+
+  it('opens the review for the shoot’s art director and the task for an assignee', () => {
+    expect(taskRoute(task!, { reviews: true, id: 'ad' })).toEqual({
+      name: 'task-review',
+      params: { id: task!.id },
+    })
+    expect(taskRoute(task!, { reviews: false, id: assignee })).toEqual({
+      name: 'task',
+      params: { id: task!.id },
+    })
+  })
+
+  it('has nothing to open for the rest of the team', () => {
+    expect(taskRoute(task!, { reviews: false, id: 'someone-else' })).toBeNull()
   })
 })

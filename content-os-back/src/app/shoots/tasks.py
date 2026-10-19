@@ -1,6 +1,8 @@
 """Страница My tasks: deliverables съёмок как задачи (docs/adr/0011).
 
 Арт-директор видит deliverables своих съёмок, креатор — те, где он исполнитель.
+Статус задачи арт-директора — статус deliverable, креатора — его собственный
+(docs/adr/0015): одобренная работа одного не ждёт проверки другого.
 """
 
 import enum
@@ -23,6 +25,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import QueryableAttribute, aliased
 
 from app.auth.models import Role, User
 from app.core.config import Settings
@@ -93,13 +96,16 @@ class TaskQuery:
     sort: TaskSort = TaskSort.PRIORITY
 
 
-def _visible(user: User) -> ColumnElement[bool]:
-    """Арт-директор — deliverables своих съёмок, креатор — где он исполнитель."""
-    if user.role == Role.ART_DIRECTOR:
-        return Shoot.art_director_id == user.id
+# Строка исполнителя-пользователя в задачах креатора: алиас, чтобы подзапросы по
+# исполнителям (поиск, фильтр) не связывались с ней.
+_mine = aliased(ShootDeliverableAssignee, name="mine")
+
+
+def task_status(user: User) -> QueryableAttribute[DeliverableStatus]:
+    """Статус задачи для пользователя: креатору — его собственный."""
     if user.role == Role.CREATOR:
-        return _assigned(user.id)
-    return false()
+        return _mine.status
+    return ShootDeliverable.status
 
 
 def _assigned(user_id: uuid.UUID) -> ColumnElement[bool]:
@@ -109,16 +115,31 @@ def _assigned(user_id: uuid.UUID) -> ColumnElement[bool]:
     )
 
 
-def visible_tasks(user: User) -> Select[ShootDeliverable, Shoot, Product]:
-    return (
-        select(ShootDeliverable, Shoot, Product)
+def visible_tasks(user: User) -> Select[ShootDeliverable, Shoot, Product, DeliverableStatus]:
+    """Арт-директор — deliverables своих съёмок, креатор — где он исполнитель.
+
+    Последняя колонка `task_status` — статус задачи для пользователя.
+    """
+    query = (
+        select(ShootDeliverable, Shoot, Product, task_status(user).label("task_status"))
         .join(Shoot, Shoot.id == ShootDeliverable.shoot_id)
         .join(Product, Product.id == ShootDeliverable.product_id)
-        .where(_visible(user))
     )
+    if user.role == Role.ART_DIRECTOR:
+        return query.where(Shoot.art_director_id == user.id)
+    if user.role == Role.CREATOR:
+        return query.join(
+            _mine, (_mine.deliverable_id == ShootDeliverable.id) & (_mine.user_id == user.id)
+        )
+    return query.where(false())
 
 
-def _filtered(user: User, params: TaskQuery) -> Select[ShootDeliverable, Shoot, Product]:
+TaskRow = Row[ShootDeliverable, Shoot, Product, DeliverableStatus]
+
+
+def _filtered(
+    user: User, params: TaskQuery
+) -> Select[ShootDeliverable, Shoot, Product, DeliverableStatus]:
     """Под поиском и фильтрами, без статуса: по ним считаются вкладки."""
     query = visible_tasks(user)
     if params.search:
@@ -153,8 +174,9 @@ def _order(user: User, sort: TaskSort) -> tuple[Any, ...]:
     if sort == TaskSort.DUE_DATE:
         return (due, *tail)
     order = _PRIORITY[Role.ART_DIRECTOR if user.role == Role.ART_DIRECTOR else Role.CREATOR]
+    status = task_status(user)
     rank = case(
-        *((ShootDeliverable.status == value, index) for index, value in enumerate(order)),
+        *((status == value, index) for index, value in enumerate(order)),
         else_=len(order),
     )
     return (rank, due, *tail)
@@ -169,7 +191,9 @@ async def list_tasks(
     page: int,
     per_page: int,
 ) -> TaskList:
-    matched = _filtered(user, params).with_only_columns(ShootDeliverable.status).subquery()
+    matched = (
+        _filtered(user, params).with_only_columns(task_status(user).label("status")).subquery()
+    )
     sizes = (
         await db.execute(
             select(
@@ -186,7 +210,7 @@ async def list_tasks(
     query = _filtered(user, params)
     total = counts.all
     if params.status is not None:
-        query = query.where(ShootDeliverable.status == params.status)
+        query = query.where(task_status(user) == params.status)
         total = getattr(counts, params.status.value)
     rows = (
         await db.execute(
@@ -203,7 +227,7 @@ async def to_items(
     user: User,
     storage: Storage,
     settings: Settings,
-    rows: Sequence[Row[ShootDeliverable, Shoot, Product]],
+    rows: Sequence[TaskRow],
 ) -> list[TaskItem]:
     """Фото продуктов, исполнители и референсы: число запросов не зависит от страницы."""
     if not rows:
@@ -276,7 +300,7 @@ async def to_items(
         TaskItem(
             id=row.ShootDeliverable.id,
             name=row.ShootDeliverable.name,
-            status=row.ShootDeliverable.status,
+            status=row.task_status,
             due_date=row.ShootDeliverable.due_date,
             shoot=TaskShoot(id=row.Shoot.id, name=row.Shoot.name, date=row.Shoot.date),
             product=product(row.Product),

@@ -5,17 +5,14 @@ import { VIcon } from '@/shared/ui/icon'
 import { taskAction, type Task, type TaskRole } from '../model/task'
 
 // Figma "Row action": Review (Soft) or View (Secondary), 36 high.
-// View opens the task page (docs/adr/0012). Until the review screen exists
-// Review opens the shoot on its Needs review tab (docs/adr/0011).
-// TODO(ui): Review becomes a link to the review screen once that is designed.
+// View opens the task page (docs/adr/0012), Review the deliverable's review (0015).
 const { task, role } = defineProps<{ task: Task; role: TaskRole }>()
 
 const review = computed(() => taskAction(role, task.status) === 'review')
-const to = computed(() =>
-  review.value
-    ? { name: 'shoot', params: { id: task.shoot.id }, query: { tab: 'needs_review' } }
-    : { name: 'task', params: { id: task.id } },
-)
+const to = computed(() => ({
+  name: review.value ? 'task-review' : 'task',
+  params: { id: task.id },
+}))
 </script>
 
 <template>

@@ -9,8 +9,16 @@ from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep, delete_quietly
 from app.deliverables.models import DeliverableStatus
-from app.shoots import tasks, versions
-from app.shoots.schemas import TaskDraftFiles, TaskDraftTitle, TaskFilters, TaskList, TaskResponse
+from app.shoots import review, tasks, versions
+from app.shoots.schemas import (
+    DeliverableReviewResponse,
+    TaskDraftFiles,
+    TaskDraftTitle,
+    TaskFilters,
+    TaskList,
+    TaskResponse,
+    VersionReviewCreate,
+)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -117,3 +125,43 @@ async def remove_draft_file(
     await db.commit()
     await delete_quietly(storage, key)
     return await versions.get_task(db, user, storage, settings, task_id)
+
+
+@router.get("/{task_id}/review")
+async def get_review(
+    task_id: uuid.UUID, user: TeamUser, db: SessionDep, storage: StorageDep, settings: SettingsDep
+) -> DeliverableReviewResponse:
+    """Страница проверки deliverable: работа каждого исполнителя (docs/adr/0015).
+
+    Только арт-директору съёмки, остальным 404.
+    """
+    return await review.get_review(db, user, storage, settings, task_id)
+
+
+@router.post("/{task_id}/versions/{version_id}/review")
+async def review_version(
+    task_id: uuid.UUID,
+    version_id: uuid.UUID,
+    body: VersionReviewCreate,
+    user: TeamUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> DeliverableReviewResponse:
+    """Approve или Request changes по последней версии исполнителя.
+
+    Не последняя версия или deliverable уже отправлен бренду — 409.
+    """
+    await review.decide(db, user, task_id, version_id, body)
+    await db.commit()
+    return await review.get_review(db, user, storage, settings, task_id)
+
+
+@router.post("/{task_id}/send")
+async def send_to_brand(
+    task_id: uuid.UUID, user: TeamUser, db: SessionDep, storage: StorageDep, settings: SettingsDep
+) -> DeliverableReviewResponse:
+    """Send to brand: deliverable становится approved; пока одобрены не все — 409."""
+    await review.send(db, user, task_id)
+    await db.commit()
+    return await review.get_review(db, user, storage, settings, task_id)

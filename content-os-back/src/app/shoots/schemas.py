@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, StringConstraints, model_validator
 from app.deliverables.models import DeliverableStatus, DeliverableType
 from app.files.schemas import FileResponse
 from app.references.schemas import ReferenceResponse
-from app.shoots.models import NoteType, NoteVisibility
+from app.shoots.models import NoteType, NoteVisibility, ShootRole, VersionReview
 from app.team.schemas import TeamMember
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -35,12 +35,23 @@ class ShootDeliverableDraft(BaseModel):
     # Из референсов съёмки.
     reference_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
     due_date: dt.date | None = None
-    status: DeliverableStatus = DeliverableStatus.TO_SHOOT
+    # Только у нового deliverable; без него — to_shoot. Статус сохранённого ведут
+    # исполнители и проверка (docs/adr/0015), форма его не присылает.
+    status: DeliverableStatus | None = None
 
     @model_validator(mode="after")
     def ids_unique(self) -> Self:
         if not _unique(self.assignee_ids) or not _unique(self.reference_ids):
             raise ValueError("Ids repeat")
+        return self
+
+    @model_validator(mode="after")
+    def status_of_new_only(self) -> Self:
+        if self.id is not None and self.status is not None:
+            raise ValueError("A saved deliverable's status comes from its work and review")
+        # Approved — отправлен бренду: это делает Send to brand после проверки.
+        if self.status == DeliverableStatus.APPROVED:
+            raise ValueError("Approve and send the deliverable from its review")
         return self
 
 
@@ -314,12 +325,17 @@ class TaskFile(FileResponse):
 
 class TaskVersionResponse(BaseModel):
     id: uuid.UUID
+    # Свой у каждого исполнителя: V1, V2, … (docs/adr/0015).
     number: int
     title: str | None
     author: TeamMember
     created_at: dt.datetime
     # None — черновик.
     submitted_at: dt.datetime | None
+    # Решение арт-директора; None — ещё не проверена (или черновик).
+    review: VersionReview | None
+    reviewed_at: dt.datetime | None
+    feedback: str | None
     files: list[TaskFile]
 
 
@@ -330,5 +346,45 @@ class TaskResponse(TaskItem):
     versions: list[TaskVersionResponse]
     # Неотправленная версия; видят только исполнители.
     draft: TaskVersionResponse | None
-    # Загружает исполнитель задачи; арт-директор только смотрит.
+    # Загружает исполнитель задачи, пока его работа не одобрена и deliverable не
+    # отправлен бренду; арт-директор только смотрит.
     can_upload: bool
+
+
+FEEDBACK_MAX = 1000
+
+Feedback = Annotated[str, StringConstraints(strip_whitespace=True, max_length=FEEDBACK_MAX)]
+
+
+class VersionReviewCreate(BaseModel):
+    """Approve или Request changes по последней версии исполнителя (docs/adr/0015)."""
+
+    decision: VersionReview
+    # Feedback for creator; для Request changes обязателен.
+    feedback: Feedback = ""
+
+    @model_validator(mode="after")
+    def feedback_for_changes(self) -> Self:
+        if self.decision == VersionReview.CHANGES_REQUESTED and not self.feedback:
+            raise ValueError("Tell the creator what to change")
+        return self
+
+
+class ReviewCreator(BaseModel):
+    """Исполнитель (креатор или мобилограф) на странице проверки: статус и версии."""
+
+    member: TeamMember
+    # Роль на съёмке; None — человека уже убрали из команды съёмки.
+    role: ShootRole | None
+    status: DeliverableStatus
+    # Отправленные, новые первыми.
+    versions: list[TaskVersionResponse]
+
+
+class DeliverableReviewResponse(TaskItem):
+    """Страница проверки deliverable арт-директором (docs/adr/0015)."""
+
+    # Исполнители в порядке назначения.
+    creators: list[ReviewCreator]
+    # Send to brand: все исполнители одобрены, deliverable ещё не отправлен.
+    can_send: bool

@@ -25,6 +25,15 @@ export const router = createRouter({
           meta: { roles: team },
         },
         {
+          path: 'tasks/:id/review',
+          name: 'task-review',
+          component: () => import('@/pages/task').then((m) => m.TaskReviewPage),
+          props: true,
+          // The shoot's art director reviews every assignee's work (docs/adr/0015);
+          // the review belongs to the shoot, so Shoots stays highlighted.
+          meta: { section: 'shoots', roles: ['art_director'] },
+        },
+        {
           path: 'tasks/:id',
           name: 'task',
           component: () => import('@/pages/task').then((m) => m.TaskPage),

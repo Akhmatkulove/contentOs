@@ -1,7 +1,7 @@
-"""Страница задачи и версии готового контента (docs/adr/0012).
+"""Страница задачи и версии готового контента (docs/adr/0012, 0015).
 
-Задачу видят те же, кто видит её в My tasks. Исполнители собирают черновик версии
-и отправляют его на проверку; после этого можно начинать следующую.
+Задачу видят те же, кто видит её в My tasks. Каждый исполнитель собирает свой
+черновик версии и отправляет его на проверку; после этого можно начинать следующую.
 Коммитит вызывающий.
 """
 
@@ -9,7 +9,7 @@ import uuid
 from collections import defaultdict
 
 from fastapi import HTTPException, status
-from sqlalchemy import Row, delete, exists, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -19,9 +19,7 @@ from app.deliverables.models import DeliverableStatus
 from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.files.service import claim_files
-from app.products.models import Product
 from app.shoots.models import (
-    Shoot,
     ShootDeliverable,
     ShootDeliverableAssignee,
     TaskVersion,
@@ -34,7 +32,8 @@ from app.shoots.schemas import (
     TaskResponse,
     TaskVersionResponse,
 )
-from app.shoots.tasks import to_items, visible_tasks
+from app.shoots.statuses import sync_status
+from app.shoots.tasks import TaskRow, to_items, visible_tasks
 from app.team.schemas import TeamMember
 
 
@@ -43,12 +42,12 @@ def _not_found(what: str = "Task") -> HTTPException:
     return HTTPException(status.HTTP_404_NOT_FOUND, f"{what} not found")
 
 
-async def _task(
+async def task_row(
     db: AsyncSession, user: User, task_id: uuid.UUID, *, lock: bool = False
-) -> Row[ShootDeliverable, Shoot, Product]:
+) -> TaskRow:
     query = visible_tasks(user).where(ShootDeliverable.id == task_id)
     if lock:
-        # Версии одной задачи нумеруются по очереди.
+        # Версии, проверка и статусы одной задачи меняются по очереди.
         query = query.with_for_update(of=ShootDeliverable)
     row = (await db.execute(query)).one_or_none()
     if row is None:
@@ -56,47 +55,51 @@ async def _task(
     return row
 
 
-async def _is_assignee(db: AsyncSession, user: User, task_id: uuid.UUID) -> bool:
-    return bool(
-        await db.scalar(
-            select(
-                exists().where(
-                    ShootDeliverableAssignee.deliverable_id == task_id,
-                    ShootDeliverableAssignee.user_id == user.id,
-                )
-            )
-        )
-    )
+async def _assignee(
+    db: AsyncSession, user: User, task_id: uuid.UUID
+) -> ShootDeliverableAssignee | None:
+    return await db.get(ShootDeliverableAssignee, (task_id, user.id))
 
 
-async def _require_assignee(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
-    if not await _is_assignee(db, user, task_id):
+async def _require_assignee(
+    db: AsyncSession, user: User, task_id: uuid.UUID
+) -> ShootDeliverableAssignee:
+    assignee = await _assignee(db, user, task_id)
+    if assignee is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the task's assignees upload content")
+    return assignee
 
 
-async def _draft(db: AsyncSession, task_id: uuid.UUID) -> TaskVersion | None:
+async def _draft(db: AsyncSession, user: User, task_id: uuid.UUID) -> TaskVersion | None:
     return await db.scalar(
         select(TaskVersion).where(
-            TaskVersion.deliverable_id == task_id, TaskVersion.submitted_at.is_(None)
+            TaskVersion.deliverable_id == task_id,
+            TaskVersion.author_id == user.id,
+            TaskVersion.submitted_at.is_(None),
         )
     )
 
 
-async def get_task(
-    db: AsyncSession, user: User, storage: Storage, settings: Settings, task_id: uuid.UUID
-) -> TaskResponse:
-    row = await _task(db, user, task_id)
-    [item] = await to_items(db, user, storage, settings, [row])
-    can_upload = await _is_assignee(db, user, task_id)
-
+async def version_responses(
+    db: AsyncSession,
+    storage: Storage,
+    settings: Settings,
+    task_id: uuid.UUID,
+    *,
+    author_id: uuid.UUID | None = None,
+    submitted_only: bool = True,
+) -> list[TaskVersionResponse]:
+    """Версии задачи с файлами, новые первыми: двумя запросами на любое их число."""
     query = (
         select(TaskVersion, User)
         .join(User, User.id == TaskVersion.author_id)
         .where(TaskVersion.deliverable_id == task_id)
-        .order_by(TaskVersion.number.desc())
+        # Черновик (без submitted_at) — первым: он новее всех отправленных.
+        .order_by(TaskVersion.submitted_at.desc().nulls_first(), TaskVersion.number.desc())
     )
-    if not can_upload:
-        # Черновик — работа исполнителей, арт-директор видит только отправленное.
+    if author_id is not None:
+        query = query.where(TaskVersion.author_id == author_id)
+    if submitted_only:
         query = query.where(TaskVersion.submitted_at.is_not(None))
     versions = (await db.execute(query)).all()
     files: dict[uuid.UUID, list[TaskFile]] = defaultdict(list)
@@ -114,8 +117,7 @@ async def get_task(
                 size=file.size,
             )
         )
-
-    responses = [
+    return [
         TaskVersionResponse(
             id=version.TaskVersion.id,
             number=version.TaskVersion.number,
@@ -123,33 +125,73 @@ async def get_task(
             author=TeamMember.of(version.User, settings),
             created_at=version.TaskVersion.created_at,
             submitted_at=version.TaskVersion.submitted_at,
+            review=version.TaskVersion.review,
+            reviewed_at=version.TaskVersion.reviewed_at,
+            feedback=version.TaskVersion.feedback,
             files=files[version.TaskVersion.id],
         )
         for version in versions
     ]
+
+
+async def get_task(
+    db: AsyncSession, user: User, storage: Storage, settings: Settings, task_id: uuid.UUID
+) -> TaskResponse:
+    row = await task_row(db, user, task_id)
+    [item] = await to_items(db, user, storage, settings, [row])
+    assignee = await _assignee(db, user, task_id)
+    # Исполнитель видит свою работу вместе с черновиком; арт-директор — все
+    # отправленные версии, черновики — нет.
+    responses = await version_responses(
+        db,
+        storage,
+        settings,
+        task_id,
+        author_id=user.id if assignee is not None else None,
+        submitted_only=assignee is None,
+    )
     return TaskResponse(
         **dict(item),
         versions=[version for version in responses if version.submitted_at is not None],
         draft=next((version for version in responses if version.submitted_at is None), None),
-        can_upload=can_upload,
+        can_upload=assignee is not None and _is_open(row.ShootDeliverable, assignee),
     )
+
+
+def _is_open(deliverable: ShootDeliverable, assignee: ShootDeliverableAssignee) -> bool:
+    """Отправленный бренду deliverable и одобренная работа больше не меняются."""
+    return (
+        deliverable.status != DeliverableStatus.APPROVED
+        and assignee.status != DeliverableStatus.APPROVED
+    )
+
+
+def _require_open(deliverable: ShootDeliverable, assignee: ShootDeliverableAssignee) -> None:
+    if not _is_open(deliverable, assignee):
+        raise HTTPException(status.HTTP_409_CONFLICT, "The work is approved: no more versions")
 
 
 async def add_draft_files(
     db: AsyncSession, user: User, task_id: uuid.UUID, body: TaskDraftFiles
 ) -> None:
-    """Файлы в черновик следующей версии; черновика нет — он создаётся (V1, V2, …)."""
-    await _task(db, user, task_id, lock=True)
-    await _require_assignee(db, user, task_id)
+    """Файлы в свой черновик следующей версии; черновика нет — он создаётся (V1, V2, …)."""
+    row = await task_row(db, user, task_id, lock=True)
+    assignee = await _require_assignee(db, user, task_id)
+    _require_open(row.ShootDeliverable, assignee)
     await claim_files(db, user, body.file_ids)
 
-    draft = await _draft(db, task_id)
+    draft = await _draft(db, user, task_id)
     if draft is None:
         last = await db.scalar(
-            select(func.max(TaskVersion.number)).where(TaskVersion.deliverable_id == task_id)
+            select(func.max(TaskVersion.number)).where(
+                TaskVersion.deliverable_id == task_id, TaskVersion.author_id == user.id
+            )
         )
         draft = TaskVersion(deliverable_id=task_id, number=(last or 0) + 1, author_id=user.id)
         db.add(draft)
+        if assignee.status == DeliverableStatus.TO_SHOOT:
+            assignee.status = DeliverableStatus.IN_PROGRESS
+            await sync_status(db, row.ShootDeliverable)
         await db.flush()
     start = await db.scalar(select(func.count()).where(TaskVersionFile.version_id == draft.id))
     db.add_all(
@@ -159,20 +201,22 @@ async def add_draft_files(
     await db.flush()
 
 
-async def _own_draft(db: AsyncSession, user: User, task_id: uuid.UUID) -> TaskVersion:
-    await _task(db, user, task_id, lock=True)
-    await _require_assignee(db, user, task_id)
-    draft = await _draft(db, task_id)
+async def _own_draft(
+    db: AsyncSession, user: User, task_id: uuid.UUID
+) -> tuple[TaskVersion, ShootDeliverable, ShootDeliverableAssignee]:
+    row = await task_row(db, user, task_id, lock=True)
+    assignee = await _require_assignee(db, user, task_id)
+    draft = await _draft(db, user, task_id)
     if draft is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "No draft: upload files first")
-    return draft
+    return draft, row.ShootDeliverable, assignee
 
 
 async def save_draft(
     db: AsyncSession, user: User, task_id: uuid.UUID, body: TaskDraftTitle
 ) -> None:
     """Save draft: название черновика без отправки; файлы в нём и так сохранены."""
-    draft = await _own_draft(db, user, task_id)
+    draft, _, _ = await _own_draft(db, user, task_id)
     draft.title = body.title or None
     await db.flush()
 
@@ -180,12 +224,14 @@ async def save_draft(
 async def submit_draft(
     db: AsyncSession, user: User, task_id: uuid.UUID, body: TaskDraftTitle
 ) -> None:
-    """Submit for review: черновик становится версией, задача уходит на проверку (ADR 0009)."""
-    draft = await _own_draft(db, user, task_id)
-    deliverable = await db.get_one(ShootDeliverable, task_id)
+    """Submit for review: черновик становится версией, работа исполнителя уходит
+    на проверку, deliverable — тоже (ADR 0009, 0015)."""
+    draft, deliverable, assignee = await _own_draft(db, user, task_id)
+    _require_open(deliverable, assignee)
     draft.title = body.title or None
     draft.submitted_at = await db.scalar(select(func.now()))
-    deliverable.status = DeliverableStatus.NEEDS_REVIEW
+    assignee.status = DeliverableStatus.NEEDS_REVIEW
+    await sync_status(db, deliverable)
     await db.flush()
 
 
@@ -197,9 +243,9 @@ async def remove_draft_file(
 
     Возвращает ключ файла: из хранилища его удаляет вызывающий после commit.
     """
-    await _task(db, user, task_id, lock=True)
-    await _require_assignee(db, user, task_id)
-    draft = await _draft(db, task_id)
+    row = await task_row(db, user, task_id, lock=True)
+    assignee = await _require_assignee(db, user, task_id)
+    draft = await _draft(db, user, task_id)
     if draft is None:
         raise _not_found("File")
     key: str | None = await db.scalar(
@@ -217,5 +263,18 @@ async def remove_draft_file(
     left = await db.scalar(select(exists().where(TaskVersionFile.version_id == draft.id)))
     if not left:
         await db.delete(draft)
+        # Ничего не отправлено и черновика нет — работа снова не начата.
+        submitted = await db.scalar(
+            select(
+                exists().where(
+                    TaskVersion.deliverable_id == task_id,
+                    TaskVersion.author_id == user.id,
+                    TaskVersion.submitted_at.is_not(None),
+                )
+            )
+        )
+        if not submitted and assignee.status == DeliverableStatus.IN_PROGRESS:
+            assignee.status = DeliverableStatus.TO_SHOOT
+            await sync_status(db, row.ShootDeliverable)
     await db.flush()
     return key

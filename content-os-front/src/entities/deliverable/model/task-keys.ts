@@ -6,4 +6,6 @@ export const taskKeys = {
   filters: ['tasks', 'filters'] as const,
   // The task page: the row plus its content versions (docs/adr/0012).
   detail: (id: string) => ['tasks', 'detail', id] as const,
+  // The art director's review of the deliverable: every assignee's work (docs/adr/0015).
+  review: (id: string) => ['tasks', 'review', id] as const,
 }

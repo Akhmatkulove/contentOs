@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { RouteLocationRaw } from 'vue-router'
 import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
@@ -7,16 +8,30 @@ import { VThumbnail } from '@/shared/ui/thumbnail'
 import { assigneesLabel, type ShootTask } from '../model/tasks-tab'
 
 // Figma "Task / …" card of the mobile Tasks tab, without the checkbox and "…".
+// With `to`, the title is a link that covers the whole card.
 // TODO(api): Latest upload row — content uploads come later.
-const { task } = defineProps<{ task: ShootTask }>()
+const { task, to = null } = defineProps<{ task: ShootTask; to?: RouteLocationRaw | null }>()
 </script>
 
 <template>
   <article
-    class="flex flex-col gap-4 rounded-2xl bg-card p-4 shadow-[0_8px_16px_rgb(29_42_60/0.05)]"
+    :class="[
+      'relative flex flex-col gap-4 rounded-2xl bg-card p-4 shadow-[0_8px_16px_rgb(29_42_60/0.05)]',
+      to && 'active:bg-subtle',
+    ]"
   >
     <div class="flex flex-col items-start gap-2">
-      <h3 class="text-p1 font-semibold break-words text-primary">{{ task.name }}</h3>
+      <h3 class="text-p1 font-semibold break-words text-primary">
+        <!-- after: stretches the link over the card. -->
+        <RouterLink
+          v-if="to"
+          :to="to"
+          class="rounded-sm outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:ring-2 focus-visible:ring-violet-300"
+        >
+          {{ task.name }}
+        </RouterLink>
+        <template v-else>{{ task.name }}</template>
+      </h3>
       <div class="flex items-center gap-2">
         <VStatus :tone="deliverableStatuses[task.status].tone">
           {{ deliverableStatuses[task.status].label }}
