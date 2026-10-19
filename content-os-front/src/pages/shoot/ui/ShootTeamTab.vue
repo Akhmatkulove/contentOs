@@ -16,16 +16,20 @@ import {
 import type { ShootRoleLabel } from '../model/shoot'
 
 // Figma "Shoot / Team": summary, the members as cards and what each role does.
-// Add member opens the edit form (the author's only).
+// Add member opens the edit form; Add / Edit responsibilities of a creator or
+// mobilographer opens a modal (both the author's only).
 // TODO(api): member emails, availability (Active, On set, Available) and the
 // card "…" menu — no such data yet.
 // TODO(ui): mobile filters sheet.
-const { members, total, summary, addTo } = defineProps<{
+const { members, total, summary, addTo, canEdit } = defineProps<{
   members: TeamCard[]
   total: number
   summary: ReturnType<typeof teamSummary>
   addTo: RouteLocationRaw | null
+  canEdit: boolean
 }>()
+
+const emit = defineEmits<{ editResponsibilities: [card: TeamCard] }>()
 
 const search = defineModel<string>('search', { required: true })
 const role = defineModel<string>('role', { required: true })
@@ -170,11 +174,23 @@ const roles: { role: ShootRoleLabel; icon: IconName }[] = [
           </p>
           <div class="h-px bg-neutral-300" />
           <div class="flex flex-col gap-3">
-            <p class="text-p3 font-medium text-primary">Responsibilities</p>
-            <ul class="flex flex-col gap-2">
+            <div class="flex min-h-6 items-center justify-between gap-2">
+              <p class="text-p3 font-medium text-primary">Responsibilities</p>
+              <VButton
+                v-if="canEdit && card.responsibilitiesText !== null && card.responsibilities.length"
+                variant="ghost"
+                size="icon-24"
+                :aria-label="`Edit responsibilities of ${card.member.name || 'member'}`"
+                class="hover:text-primary"
+                @click="emit('editResponsibilities', card)"
+              >
+                <VIcon name="edit-02" :size="16" />
+              </VButton>
+            </div>
+            <ul v-if="card.responsibilities.length" class="flex flex-col gap-2">
               <li
-                v-for="item in card.responsibilities"
-                :key="item"
+                v-for="(item, index) in card.responsibilities"
+                :key="index"
                 class="flex gap-2 text-p3 font-medium text-secondary"
               >
                 <span
@@ -184,6 +200,17 @@ const roles: { role: ShootRoleLabel; icon: IconName }[] = [
                 {{ item }}
               </li>
             </ul>
+            <VButton
+              v-else-if="canEdit"
+              variant="secondary"
+              size="36"
+              class="self-start"
+              @click="emit('editResponsibilities', card)"
+            >
+              <VIcon name="plus-sign" />
+              Add responsibilities
+            </VButton>
+            <p v-else class="text-p3 font-medium text-secondary">Not set yet.</p>
           </div>
         </li>
       </ul>
@@ -210,7 +237,7 @@ const roles: { role: ShootRoleLabel; icon: IconName }[] = [
           </p>
           <ul class="flex flex-col gap-2">
             <li
-              v-for="line in roleResponsibilities[item.role].card"
+              v-for="line in roleResponsibilities[item.role]"
               :key="line"
               class="flex gap-2 text-p3 font-medium text-secondary"
             >

@@ -691,6 +691,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/shoots/{shoot_id}/members/{user_id}/responsibilities': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Set Responsibilities
+     * @description Responsibilities креатора или мобилографа на вкладке Team; только автор съёмки.
+     */
+    put: operations['set_responsibilities_api_shoots__shoot_id__members__user_id__responsibilities_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/shoots/{shoot_id}/notes': {
     parameters: {
       query?: never
@@ -2102,8 +2122,20 @@ export interface components {
       references: components['schemas']['ReferenceResponse'][]
       /** Deliverables */
       deliverables: components['schemas']['ShootDeliverableResponse'][]
+      /** Responsibilities */
+      responsibilities: {
+        [key: string]: string
+      }
       /** Can Edit */
       can_edit: boolean
+    }
+    /**
+     * ShootResponsibilitiesUpdate
+     * @description Responsibilities участника на вкладке Team; пустой текст их убирает.
+     */
+    ShootResponsibilitiesUpdate: {
+      /** Responsibilities */
+      responsibilities: string
     }
     /**
      * ShootRole
@@ -3901,6 +3933,44 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['ShootCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ShootResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  set_responsibilities_api_shoots__shoot_id__members__user_id__responsibilities_put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        shoot_id: string
+        user_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ShootResponsibilitiesUpdate']
       }
     }
     responses: {

@@ -18,6 +18,7 @@ from app.shoots.schemas import (
     ShootNotePatch,
     ShootNoteResponse,
     ShootResponse,
+    ShootResponsibilitiesUpdate,
     ShootStatus,
 )
 
@@ -101,6 +102,22 @@ async def update_shoot(
     shoot = await service.update_shoot(db, art_director, shoot_id, body)
     await db.commit()
     return await service.get_shoot(db, art_director, storage, settings, shoot.id)
+
+
+@router.put("/{shoot_id}/members/{user_id}/responsibilities")
+async def set_responsibilities(
+    shoot_id: uuid.UUID,
+    user_id: uuid.UUID,
+    body: ShootResponsibilitiesUpdate,
+    art_director: ArtDirectorUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ShootResponse:
+    """Responsibilities креатора или мобилографа на вкладке Team; только автор съёмки."""
+    await service.set_responsibilities(db, art_director, shoot_id, user_id, body.responsibilities)
+    await db.commit()
+    return await service.get_shoot(db, art_director, storage, settings, shoot_id)
 
 
 @router.get("/{shoot_id}/notes")

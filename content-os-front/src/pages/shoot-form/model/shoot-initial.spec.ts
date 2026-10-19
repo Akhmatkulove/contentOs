@@ -46,6 +46,7 @@ const shoot: ShootDetails = {
       status: 'in_progress',
     },
   ],
+  responsibilities: {},
   can_edit: true,
 }
 

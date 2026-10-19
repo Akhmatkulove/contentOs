@@ -49,6 +49,8 @@ class ShootMember(Base):
     )
     role: Mapped[ShootRole] = mapped_column(string_enum(ShootRole, "shoot_role"))
     position: Mapped[int]
+    # Responsibilities на карточке Team; каждая непустая строка — пункт списка.
+    responsibilities: Mapped[str | None] = mapped_column(Text)
 
 
 class ShootProduct(Base):

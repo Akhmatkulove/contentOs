@@ -165,12 +165,27 @@ def _set_fields(shoot: Shoot, body: ShootCreate) -> None:
     shoot.location = body.location or None
 
 
-def _add_links(db: AsyncSession, shoot: Shoot, body: ShootCreate) -> None:
-    """Команда, продукты и референсы съёмки в порядке запроса."""
+def _add_links(
+    db: AsyncSession,
+    shoot: Shoot,
+    body: ShootCreate,
+    responsibilities: dict[uuid.UUID, str | None] | None = None,
+) -> None:
+    """Команда, продукты и референсы съёмки в порядке запроса.
+
+    `responsibilities` — уже заданные участникам: оставшиеся в команде их сохраняют.
+    """
+    kept = responsibilities or {}
     roles = [(user_id, ShootRole.CREATOR) for user_id in body.creator_ids]
     roles += [(user_id, ShootRole.MOBILOGRAPHER) for user_id in body.mobilographer_ids]
     db.add_all(
-        ShootMember(shoot_id=shoot.id, user_id=user_id, role=role, position=index)
+        ShootMember(
+            shoot_id=shoot.id,
+            user_id=user_id,
+            role=role,
+            position=index,
+            responsibilities=kept.get(user_id),
+        )
         for index, (user_id, role) in enumerate(roles)
     )
     db.add_all(
@@ -290,6 +305,14 @@ async def update_shoot(
         raise _unprocessable("A saved deliverable keeps its product")
     await product_deliverables.require_linkable(db, art_director, body.deliverables, existing)
 
+    responsibilities: dict[uuid.UUID, str | None] = {
+        row.user_id: row.responsibilities
+        for row in await db.execute(
+            select(ShootMember.user_id, ShootMember.responsibilities).where(
+                ShootMember.shoot_id == shoot.id
+            )
+        )
+    }
     for model in (ShootMember, ShootProduct, ShootReference):
         await db.execute(delete(model).where(model.shoot_id == shoot.id))
     if removed := set(existing) - kept:
@@ -300,10 +323,32 @@ async def update_shoot(
         for link in (ShootDeliverableAssignee, ShootDeliverableReference):
             await db.execute(delete(link).where(link.deliverable_id.in_(kept)))
     _set_fields(shoot, body)
-    _add_links(db, shoot, body)
+    _add_links(db, shoot, body, responsibilities)
     await _write_deliverables(db, shoot, body.deliverables, existing, progress)
     await db.flush()
     return shoot
+
+
+async def set_responsibilities(
+    db: AsyncSession, art_director: User, shoot_id: uuid.UUID, user_id: uuid.UUID, text: str
+) -> None:
+    """Responsibilities креатора или мобилографа съёмки; пустой текст их убирает.
+
+    Только автор съёмки; чужая съёмка и не участник команды — 404. Съёмка под
+    блокировкой, как в update_shoot: правка команды не потеряет запись.
+    """
+    shoot = await db.scalar(
+        select(Shoot)
+        .where(Shoot.id == shoot_id, Shoot.art_director_id == art_director.id)
+        .with_for_update()
+    )
+    if shoot is None:
+        raise _not_found()
+    member = await db.get(ShootMember, (shoot.id, user_id))
+    if member is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+    member.responsibilities = text or None
+    await db.flush()
 
 
 def _not_found() -> HTTPException:
@@ -567,7 +612,7 @@ async def get_shoot(
 
     members = (
         await db.execute(
-            select(ShootMember.user_id, ShootMember.role)
+            select(ShootMember.user_id, ShootMember.role, ShootMember.responsibilities)
             .where(ShootMember.shoot_id == shoot.id)
             .order_by(ShootMember.position)
         )
@@ -685,5 +730,6 @@ async def get_shoot(
             )
             for deliverable in deliverables
         ],
+        responsibilities={m.user_id: m.responsibilities for m in members if m.responsibilities},
         can_edit=shoot.art_director_id == user.id,
     )

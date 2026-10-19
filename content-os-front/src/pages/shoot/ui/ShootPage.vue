@@ -73,6 +73,7 @@ const {
   cards: team,
   found: foundTeam,
   summary,
+  editResponsibilities,
 } = useTeamTab(() => shoot.value)
 
 // Notes load when their tab opens; anyone on the team can be assigned.
@@ -268,6 +269,8 @@ const {
             :total="team.length"
             :summary="summary"
             :add-to="canEdit ? editRoute : null"
+            :can-edit="canEdit"
+            @edit-responsibilities="editResponsibilities"
           />
         </TabsContent>
 

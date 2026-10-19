@@ -95,6 +95,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
         status: 'to_shoot',
       },
     ],
+    responsibilities: { odina: 'Manage camera equipment\nBack up files' },
     can_edit: true,
     ...overrides,
   }

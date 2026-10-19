@@ -430,6 +430,43 @@ async def test_only_the_author_edits_and_only_its_deliverables(
     assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 403
 
 
+async def test_the_author_sets_member_responsibilities(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    body = await shoot(client)
+    created = await post(client, body)
+    team = await creators(client)
+    url = f"/api/shoots/{created['id']}/members/{{}}/responsibilities"
+    assert (await client.get(f"/api/shoots/{created['id']}")).json()["responsibilities"] == {}
+
+    text = "  Model for product shots\nCreate short-form video  "
+    response = await client.put(url.format(team["Lana"]), json={"responsibilities": text})
+    assert response.status_code == 200, response.text
+    lana = {team["Lana"]: "Model for product shots\nCreate short-form video"}
+    assert response.json()["responsibilities"] == lana
+
+    # Editing the shoot keeps them for whoever stays on the team.
+    response = await client.put(f"/api/shoots/{created['id']}", json=body)
+    assert response.json()["responsibilities"] == lana
+    # An empty text clears them.
+    response = await client.put(url.format(team["Lana"]), json={"responsibilities": " "})
+    assert response.json()["responsibilities"] == {}
+
+    # Only the team's creators and mobilographers, only by the author.
+    art_director_id = created["team"][0]["id"]
+    for user in (art_director_id, str(uuid.uuid4())):
+        response = await client.put(url.format(user), json={"responsibilities": "x"})
+        assert response.status_code == 404
+    response = await client.put(url.format(team["Odina"]), json={"responsibilities": "x" * 2001})
+    assert response.status_code == 422
+    await log_in(client, "lana@example.com")
+    response = await client.put(url.format(team["Lana"]), json={"responsibilities": "x"})
+    assert response.status_code == 403
+    await sign_up(client, db_session, "ad2@example.com", Role.ART_DIRECTOR, "Risolat")
+    response = await client.put(url.format(team["Lana"]), json={"responsibilities": "x"})
+    assert response.status_code == 404
+
+
 # --- Product deliverables (docs/adr/0017) ---
 
 

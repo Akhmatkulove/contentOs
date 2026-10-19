@@ -1,61 +1,63 @@
-import { computed, ref } from 'vue'
-import type { ShootDetails } from '@/entities/shoot'
+import { useMutation, useQueryCache } from '@pinia/colada'
+import { computed, defineAsyncComponent, ref } from 'vue'
+import { shootKeys, type ShootDetails } from '@/entities/shoot'
+import { openModal } from '@/shared/ui/modal'
+import { toast } from '@/shared/ui/toast'
+import { setResponsibilities, type ResponsibilitiesBody } from '../api/responsibilities'
+import { noteLines } from './notes'
 import { ALL, matches, shootPeople, type ShootPerson, type ShootRoleLabel } from './shoot'
 
-// What each role on a shoot does: Figma "Role responsibilities" and the lists
-// on the member cards. Static: the shoot has no per-person responsibilities yet.
-export const roleResponsibilities: Record<ShootRoleLabel, { card: string[]; member: string[] }> = {
-  'Art Director': {
-    card: [
-      'Set creative vision and style direction',
-      'Approve shot list, content and final edits',
-      'Ensure brand consistency across outputs',
-    ],
-    member: ['Creative direction', 'Shot list & moodboard approval', 'Final review and sign-off'],
-  },
-  Mobilographer: {
-    card: [
-      'Capture high-quality photo and video',
-      'Manage and maintain camera equipment',
-      'Organize, label and back up all files',
-    ],
-    member: [
-      'Capture photo & video content',
-      'Manage camera equipment',
-      'Organize and back up files',
-    ],
-  },
-  Creator: {
-    card: [
-      'Model for product and lifestyle shots',
-      'Create engaging short-form video content',
-      'Collaborate on team creative ideas',
-    ],
-    member: [
-      'Model for product shots',
-      'Create short-form video content',
-      'Collaborate on creative ideas',
-    ],
-  },
+// What each role on a shoot does: Figma "Role responsibilities".
+export const roleResponsibilities: Record<ShootRoleLabel, string[]> = {
+  'Art Director': [
+    'Set creative vision and style direction',
+    'Approve shot list, content and final edits',
+    'Ensure brand consistency across outputs',
+  ],
+  Mobilographer: [
+    'Capture high-quality photo and video',
+    'Manage and maintain camera equipment',
+    'Organize, label and back up all files',
+  ],
+  Creator: [
+    'Model for product and lifestyle shots',
+    'Create engaging short-form video content',
+    'Collaborate on team creative ideas',
+  ],
 }
+
+// The art director's member card: the same on every shoot.
+const artDirectorResponsibilities = [
+  'Creative direction',
+  'Shot list & moodboard approval',
+  'Final review and sign-off',
+]
 
 export interface TeamCard extends ShootPerson {
   // Deliverables the member is an assignee of; the art director's line counts
   // every deliverable of the shoot instead (they oversee all of them).
   tasks: number
   responsibilities: string[]
+  // Creators and mobilographers: the text behind `responsibilities`, set per
+  // shoot by its author ('' — not yet). Null for the art director (fixed list).
+  responsibilitiesText: string | null
 }
 
 export function teamCards(shoot: ShootDetails): TeamCard[] {
-  return shootPeople(shoot).map((person) => ({
-    ...person,
-    tasks:
-      person.role === 'Art Director'
-        ? shoot.deliverables.length
-        : shoot.deliverables.filter((d) => d.assignees.some((a) => a.id === person.member.id))
-            .length,
-    responsibilities: roleResponsibilities[person.role].member,
-  }))
+  return shootPeople(shoot).map((person) => {
+    const text =
+      person.role === 'Art Director' ? null : (shoot.responsibilities[person.member.id] ?? '')
+    return {
+      ...person,
+      tasks:
+        person.role === 'Art Director'
+          ? shoot.deliverables.length
+          : shoot.deliverables.filter((d) => d.assignees.some((a) => a.id === person.member.id))
+              .length,
+      responsibilities: text === null ? artDirectorResponsibilities : noteLines(text),
+      responsibilitiesText: text,
+    }
+  })
 }
 
 // "5 tasks assigned"; the art director's line reads "Oversees 5 deliverables".
@@ -93,7 +95,11 @@ export function findTeam(cards: TeamCard[], search: string, role: string): TeamC
   )
 }
 
-// The Team tab: the member cards, their search and role filter, and the summary.
+// The modal's code loads on first open.
+const ResponsibilitiesModal = defineAsyncComponent(() => import('../ui/ResponsibilitiesModal.vue'))
+
+// The Team tab: the member cards, their search and role filter, the summary and
+// Add / Edit responsibilities (the shoot's author).
 export function useTeamTab(shoot: () => ShootDetails | undefined) {
   const search = ref('')
   const role = ref<string>(ALL)
@@ -106,5 +112,29 @@ export function useTeamTab(shoot: () => ShootDetails | undefined) {
     const value = shoot()
     return value ? teamSummary(value) : { members: 0, creators: 0, tasks: 0, mobilographers: 0 }
   })
-  return { search, role, cards, found, summary }
+
+  const queryCache = useQueryCache()
+  const { mutate: save } = useMutation({
+    mutation: (vars: { shootId: string; userId: string; body: ResponsibilitiesBody }) =>
+      setResponsibilities(vars.shootId, vars.userId, vars.body),
+    onSuccess: (saved) => {
+      queryCache.setQueryData(shootKeys.detail(saved.id), saved)
+      toast.success('Responsibilities saved')
+    },
+  })
+
+  // Unchanged text isn't sent; a failed save shows the global error toast.
+  async function editResponsibilities(card: TeamCard) {
+    const shootId = shoot()?.id
+    if (!shootId || card.responsibilitiesText === null) return
+    const body = await openModal(ResponsibilitiesModal, {
+      name: card.member.name || 'this member',
+      text: card.responsibilitiesText,
+    })
+    if (body && body.responsibilities !== card.responsibilitiesText) {
+      save({ shootId, userId: card.member.id, body })
+    }
+  }
+
+  return { search, role, cards, found, summary, editResponsibilities }
 }

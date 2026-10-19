@@ -204,6 +204,9 @@ class ShootResponse(BaseModel):
     products: list[ShootProductItem]
     references: list[ReferenceResponse]
     deliverables: list[ShootDeliverableResponse]
+    # Responsibilities креаторов и мобилографов: id участника → текст, по строке
+    # на пункт. Без записи — ещё не заданы.
+    responsibilities: dict[uuid.UUID, str]
     # Пользователь — автор съёмки: ему доступно редактирование.
     can_edit: bool
 
@@ -228,6 +231,12 @@ class ProductDeliverableOption(BaseModel):
     status: DeliverableStatus
     # Съёмки арт-директора, где заказ уже закрывает deliverable, по дате.
     shoots: list[PlannedShoot]
+
+
+class ShootResponsibilitiesUpdate(BaseModel):
+    """Responsibilities участника на вкладке Team; пустой текст их убирает."""
+
+    responsibilities: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 
 
 NoteTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
