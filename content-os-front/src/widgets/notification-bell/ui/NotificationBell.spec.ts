@@ -17,6 +17,7 @@ const listing = (read: boolean) => ({
         read,
         actor: { id: 'b1', name: 'Acme', photo_url: null },
         product: { id: 'p1', name: 'Black Abaya', photo: null },
+        deliverable: null,
         count: 3,
       },
     ],

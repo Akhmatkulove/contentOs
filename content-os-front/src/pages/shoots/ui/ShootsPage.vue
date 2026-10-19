@@ -41,7 +41,7 @@ const { search, status, date, sort, tab, tabs, shoots, total, loading, page, can
           </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
-        <NotificationBell class="lg:hidden" />
+        <NotificationBell />
       </div>
     </header>
 

@@ -19,6 +19,7 @@ from app.content import service as content
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.deliverables.models import DeliverableStatus
+from app.notifications import service as notifications
 from app.shoots.models import (
     ShootDeliverable,
     ShootDeliverableAssignee,
@@ -147,7 +148,8 @@ async def decide(
 async def send(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
     """Send to brand: когда одобрена работа каждого исполнителя.
 
-    Файлы одобренных версий уходят на страницу Content (docs/adr/0025).
+    Файлы одобренных версий уходят на страницу Content, бренд получает
+    уведомление «заказ готов» (docs/adr/0025).
     """
     row = await _reviewed(db, user, task_id, lock=True)
     deliverable = row.ShootDeliverable
@@ -156,4 +158,5 @@ async def send(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Every assignee's work must be approved")
     deliverable.status = DeliverableStatus.APPROVED
     await db.flush()
-    await content.add_sent(db, task_id)
+    files = await content.add_sent(db, task_id)
+    await notifications.content_sent(db, user, deliverable, files)

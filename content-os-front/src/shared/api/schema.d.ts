@@ -1572,6 +1572,16 @@ export interface components {
      * @enum {string}
      */
     NoteVisibility: 'internal' | 'private'
+    /** NotificationDeliverable */
+    NotificationDeliverable: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
     /**
      * NotificationList
      * @description Последние уведомления, новые первыми, и число непрочитанных всего.
@@ -1610,6 +1620,7 @@ export interface components {
       read: boolean
       actor: components['schemas']['TeamMember'] | null
       product: components['schemas']['NotificationProduct'] | null
+      deliverable: components['schemas']['NotificationDeliverable'] | null
       /** Count */
       count: number
     }
@@ -1617,7 +1628,7 @@ export interface components {
      * NotificationType
      * @enum {string}
      */
-    NotificationType: 'deliverables_assigned'
+    NotificationType: 'deliverables_assigned' | 'content_sent'
     /**
      * OnboardingUpdate
      * @description Ответы шага онбординга. Неуказанные поля не меняются.

@@ -75,10 +75,11 @@ class ContentQuery:
     scope: ContentScope = ContentScope.ALL
 
 
-async def add_sent(db: AsyncSession, deliverable_id: uuid.UUID) -> None:
+async def add_sent(db: AsyncSession, deliverable_id: uuid.UUID) -> int:
     """Send to brand: файлы одобренной версии каждого исполнителя — на страницу Content.
 
-    Исполнителей, которых сняли с deliverable, отправка не касается. Коммитит вызывающий.
+    Исполнителей, которых сняли с deliverable, отправка не касается. Возвращает,
+    сколько файлов отправлено. Коммитит вызывающий.
     """
     deliverable = await db.get_one(ShootDeliverable, deliverable_id)
     rows = await db.execute(
@@ -95,7 +96,7 @@ async def add_sent(db: AsyncSession, deliverable_id: uuid.UUID) -> None:
         )
         .order_by(ShootDeliverableAssignee.position, TaskVersionFile.position)
     )
-    db.add_all(
+    items = [
         ContentItem(
             file_id=row.file_id,
             deliverable_id=deliverable_id,
@@ -104,8 +105,10 @@ async def add_sent(db: AsyncSession, deliverable_id: uuid.UUID) -> None:
             position=position,
         )
         for position, row in enumerate(rows)
-    )
+    ]
+    db.add_all(items)
     await db.flush()
+    return len(items)
 
 
 def _joined(*columns: Any) -> Select[Any]:

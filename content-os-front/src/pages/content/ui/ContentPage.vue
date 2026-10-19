@@ -8,6 +8,7 @@ import { VIcon } from '@/shared/ui/icon'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
+import { NotificationBell } from '@/widgets/notification-bell'
 import {
   foundLabel,
   sortOptions,
@@ -54,11 +55,15 @@ function setSort(value: string | undefined) {
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
     <!-- Below lg the app topbar carries the title. -->
-    <header class="hidden min-h-16 flex-col justify-center gap-1.5 lg:flex">
-      <h1 class="text-h3 text-brand">Content</h1>
-      <p class="text-p2 font-medium text-secondary">
-        All approved and in-progress content from your shoots. Find, download or share.
-      </p>
+    <header class="hidden min-h-16 items-center justify-between gap-4 lg:flex">
+      <div class="flex min-w-0 flex-col gap-1.5">
+        <h1 class="text-h3 text-brand">Content</h1>
+        <p class="text-p2 font-medium text-secondary">
+          All approved and in-progress content from your shoots. Find, download or share.
+        </p>
+      </div>
+      <!-- Below lg the bell sits in the app topbar. -->
+      <NotificationBell class="shrink-0" />
     </header>
 
     <!-- Mobile: equal-width underlined tabs; desktop: the tab bar of Figma. The tabs

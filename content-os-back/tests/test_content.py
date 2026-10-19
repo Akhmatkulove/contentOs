@@ -178,3 +178,22 @@ async def test_art_director_of_the_product_sees_content_of_others_shoots(
     assert listing["counts"] == {"all": 2, "mine": 0}
     assert [item["shoot"] for item in listing["items"]] == [None, None]
     assert (await filters(client))["shoots"] == []
+
+
+async def test_the_brand_is_notified_that_the_order_is_ready(client: AsyncClient) -> None:
+    task_id = await sent_close_up(client)
+    # A later rename doesn't reach what the brand was sent.
+    await edit_close_up(client, task_id, name="Renamed")
+
+    await log_in(client, "brand@example.com")
+    response = await client.get("/api/notifications")
+    assert response.status_code == 200, response.text
+    listing = response.json()
+    assert listing["unread"] == 1
+    [ready] = listing["items"]
+    assert (ready["type"], ready["actor"]["name"], ready["product"]["name"]) == (
+        "content_sent",
+        "Amina",
+        "Dress",
+    )
+    assert (ready["deliverable"]["name"], ready["count"], ready["read"]) == ("Close-up", 2, False)

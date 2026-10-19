@@ -21,6 +21,7 @@ describe('toNotification', () => {
     read: false,
     actor: { id: 'b1', name: 'Acme', photo_url: null },
     product: { id: 'p1', name: 'Black Abaya', photo: null },
+    deliverable: null,
     count: 3,
   }
 
@@ -38,6 +39,39 @@ describe('toNotification', () => {
   it('speaks of one deliverable and of a deleted brand account', () => {
     expect(toNotification({ ...item, count: 1, actor: null }, now).text).toBe(
       'A brand assigned you 1 deliverable in Black Abaya',
+    )
+  })
+})
+
+describe('toNotification: content sent', () => {
+  const item: NotificationItem = {
+    id: 'n2',
+    type: 'content_sent',
+    created_at: '2024-09-18T11:55:00Z',
+    read: true,
+    actor: { id: 'a1', name: 'Amina', photo_url: null },
+    product: { id: 'p1', name: 'Black Abaya', photo: null },
+    deliverable: { id: 'd1', name: 'Close-up' },
+    count: 3,
+  }
+
+  it('tells the brand the order is ready and opens its content', () => {
+    expect(toNotification(item, now)).toEqual({
+      id: 'n2',
+      text: 'Your order is ready: Close-up for Black Abaya (3 files)',
+      time: '5 min ago',
+      read: true,
+      photoUrl: null,
+      to: { name: 'content', query: { product: 'p1' } },
+    })
+  })
+
+  it('speaks of one file', () => {
+    expect(toNotification({ ...item, count: 1, product: null }, now).text).toBe(
+      'Your order is ready: Close-up (1 file)',
+    )
+    expect(toNotification({ ...item, deliverable: null }, now).text).toBe(
+      'Your order is ready: Black Abaya (3 files)',
     )
   })
 })

@@ -48,7 +48,7 @@ const {
           </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
-        <NotificationBell class="lg:hidden" />
+        <NotificationBell />
       </div>
     </header>
 

@@ -14,6 +14,7 @@ import { VIcon } from '@/shared/ui/icon'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { useAddReference } from '../model/add-reference'
 import { foundLabel } from '../model/reference-filters'
 import {
@@ -79,10 +80,14 @@ function setSort(value: string | undefined) {
           and reuse inspiration.
         </p>
       </div>
-      <VButton class="shrink-0" @click="addReference">
-        <VIcon name="plus-sign" />
-        Add reference
-      </VButton>
+      <div class="flex shrink-0 items-center gap-3">
+        <VButton @click="addReference">
+          <VIcon name="plus-sign" />
+          Add reference
+        </VButton>
+        <!-- Below lg the bell sits in the app topbar. -->
+        <NotificationBell />
+      </div>
     </header>
 
     <!-- Mobile: Figma "CMS / Mobile / Tab" (equal-width, underlined); desktop: the

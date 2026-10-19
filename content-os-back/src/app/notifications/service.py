@@ -1,4 +1,4 @@
-"""Уведомления в колокольчике (docs/adr/0020). Коммитит вызывающий."""
+"""Уведомления в колокольчике (docs/adr/0020, 0025). Коммитит вызывающий."""
 
 import uuid
 from collections import Counter
@@ -8,6 +8,7 @@ from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select, u
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
+from app.content.models import ContentItem
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.deliverables.models import Deliverable
@@ -15,11 +16,13 @@ from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.notifications.models import Notification, NotificationType
 from app.notifications.schemas import (
+    NotificationDeliverable,
     NotificationList,
     NotificationProduct,
     NotificationResponse,
 )
 from app.products.models import Product, ProductPhoto
+from app.shoots.models import ShootDeliverable
 from app.team.schemas import TeamMember
 
 
@@ -59,6 +62,26 @@ async def deliverables_assigned(
                     count=count,
                 )
             )
+    await db.flush()
+
+
+async def content_sent(
+    db: AsyncSession, art_director: User, deliverable: ShootDeliverable, files: int
+) -> None:
+    """Бренду продукта: заказ готов, арт-директор отправил deliverable (docs/adr/0025)."""
+    brand_id = await db.scalar(select(Product.brand_id).where(Product.id == deliverable.product_id))
+    if brand_id is None:
+        return
+    db.add(
+        Notification(
+            user_id=brand_id,
+            type=NotificationType.CONTENT_SENT,
+            actor_id=art_director.id,
+            product_id=deliverable.product_id,
+            deliverable_id=deliverable.id,
+            count=files,
+        )
+    )
     await db.flush()
 
 
@@ -111,6 +134,16 @@ async def list_notifications(
         actor.id: TeamMember.of(actor, settings)
         for actor in await db.scalars(select(User).where(User.id.in_(actor_ids)))
     }
+    deliverable_ids = {n.deliverable_id for n in notifications if n.deliverable_id is not None}
+    # Название — как на странице Content: снятое при отправке, а не текущее.
+    deliverables = {
+        row.deliverable_id: NotificationDeliverable(id=row.deliverable_id, name=row.name)
+        for row in await db.execute(
+            select(ContentItem.deliverable_id, func.min(ContentItem.name).label("name"))
+            .where(ContentItem.deliverable_id.in_(deliverable_ids))
+            .group_by(ContentItem.deliverable_id)
+        )
+    }
     product_ids = {n.product_id for n in notifications if n.product_id is not None}
     products = {
         row.Product.id: NotificationProduct(
@@ -137,6 +170,7 @@ async def list_notifications(
                 read=n.read_at is not None,
                 actor=actors.get(n.actor_id) if n.actor_id else None,
                 product=products.get(n.product_id) if n.product_id else None,
+                deliverable=deliverables.get(n.deliverable_id) if n.deliverable_id else None,
                 count=n.count,
             )
             for n in notifications

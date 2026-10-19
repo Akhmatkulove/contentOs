@@ -26,7 +26,8 @@ describe('HomePage', () => {
     })
 
     expect(wrapper.text()).toContain('Hello, Anna')
-    await wrapper.get('button').trigger('click')
+    const logOut = wrapper.findAll('button').find((button) => button.text() === 'Log out')!
+    await logOut.trigger('click')
     await flushPromises()
 
     expect(post).toHaveBeenCalledWith('/auth/logout')

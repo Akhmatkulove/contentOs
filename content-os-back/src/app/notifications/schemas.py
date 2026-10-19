@@ -15,6 +15,11 @@ class NotificationProduct(BaseModel):
     photo: FileResponse | None
 
 
+class NotificationDeliverable(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
 class NotificationResponse(BaseModel):
     id: uuid.UUID
     type: NotificationType
@@ -24,6 +29,9 @@ class NotificationResponse(BaseModel):
     # Кто сделал; None — аккаунт удалён.
     actor: TeamMember | None
     product: NotificationProduct | None
+    # Отправленный deliverable (content_sent); у назначения — None.
+    deliverable: NotificationDeliverable | None
+    # Назначено deliverables или отправлено файлов.
     count: int
 
 

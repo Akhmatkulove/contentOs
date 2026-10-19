@@ -34,14 +34,14 @@ const { artDirector, view, views } = useTasksView()
       </div>
 
       <div class="flex items-center gap-3">
-        <VButton v-if="artDirector" as-child size="44" class="hidden md:inline-flex">
+        <VButton v-if="artDirector" as-child class="hidden md:inline-flex">
           <RouterLink :to="{ name: 'shoots' }">
             <VIcon name="plus-sign" />
             Add deliverable
           </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
-        <NotificationBell class="lg:hidden" />
+        <NotificationBell />
       </div>
     </header>
 
