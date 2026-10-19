@@ -8,6 +8,7 @@ describe('referenceKeys', () => {
   it('refreshes the page and the reference bank together', () => {
     expect(under(referenceKeys.list({ page: 1 }), referenceKeys.lists)).toBe(true)
     expect(under(referenceKeys.picker({ search: '' }), referenceKeys.lists)).toBe(true)
+    expect(under(referenceKeys.collections({ page: 1 }), referenceKeys.lists)).toBe(true)
   })
 
   it('leaves the filter options alone when only lists refresh', () => {
