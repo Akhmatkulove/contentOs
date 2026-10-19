@@ -37,6 +37,7 @@ const {
   referenceSearch,
   referenceSort,
   references,
+  referenceRoute,
   deliverableSearch,
   foundDeliverables,
 } = useProductPage(() => id)
@@ -192,6 +193,7 @@ useActiveTabInView(useTemplateRef('tabList'), tab)
 
             <TabsContent value="references" class="outline-none">
               <ProductReferences
+                :reference-route="referenceRoute"
                 v-model:search="referenceSearch"
                 v-model:sort="referenceSort"
                 :references="references"

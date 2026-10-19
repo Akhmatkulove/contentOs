@@ -94,7 +94,11 @@ const linked = computed(
         class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-x-4 md:gap-y-5 xl:grid-cols-5"
       >
         <li v-for="reference in references" :key="reference.id" class="min-w-0">
-          <ReferenceCard :reference="reference" :favorite-toggle="false">
+          <ReferenceCard
+            :reference="reference"
+            :to="{ name: 'reference', params: { id: reference.id } }"
+            :favorite-toggle="false"
+          >
             <template #footer>
               <p class="flex items-center gap-1.5 text-p4 font-medium text-secondary">
                 <VIcon

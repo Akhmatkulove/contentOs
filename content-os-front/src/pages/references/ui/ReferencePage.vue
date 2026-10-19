@@ -23,6 +23,7 @@ const {
   removeReference,
   openFile,
   back,
+  backLabel,
 } = useReferencePage(() => id)
 </script>
 
@@ -39,7 +40,7 @@ const {
         class="flex items-center gap-1.5 text-p3 font-medium text-secondary transition-colors hover:text-brand"
       >
         <VIcon name="arrow-left-02-sharp" :size="14" />
-        Back to references
+        {{ backLabel }}
       </RouterLink>
     </div>
 
@@ -73,7 +74,7 @@ const {
         }}
       </p>
       <VButton as-child variant="secondary" size="36">
-        <RouterLink :to="back">All references</RouterLink>
+        <RouterLink :to="{ name: 'references' }">All references</RouterLink>
       </VButton>
     </div>
 

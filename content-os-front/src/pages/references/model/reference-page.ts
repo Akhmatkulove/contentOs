@@ -16,14 +16,22 @@ import { linkIcon, referenceFacts, referenceTitle } from './reference'
 
 const ReferenceViewer = defineAsyncComponent(() => import('../ui/ReferenceViewer.vue'))
 
-// Where "Back" leads: the references list the user came from, with its tab,
-// filters and page, or the plain list after a direct link.
-function fromList(): string | null {
+// The in-app page the user came from: the references list with its tab,
+// filters and page, a shoot, a product. None after a direct link or a new tab.
+function previousPage(): string | null {
   const back: unknown = window.history.state?.back
-  return typeof back === 'string' && /^\/references(\?|$)/.test(back) ? back : null
+  return typeof back === 'string' ? back : null
 }
+// Where "Back" leads: that page, or the references list.
 function backRoute(): RouteLocationRaw {
-  return fromList() ?? { name: 'references' }
+  return previousPage() ?? { name: 'references' }
+}
+function backLabel(): string {
+  const back = previousPage()
+  if (back === null || /^\/references(\?|$)/.test(back)) return 'Back to references'
+  if (back.startsWith('/shoots/')) return 'Back to shoot'
+  if (back.startsWith('/products/')) return 'Back to product'
+  return 'Back'
 }
 
 // The reference page: its files in their own proportions, the details, the
@@ -81,8 +89,8 @@ export function useReferencePage(id: () => string) {
     mutation: (reference: ReferenceDetails) => deleteReference(reference.id),
     onSuccess: async (_data, reference) => {
       toast.success('Reference deleted')
-      // Back to the list it came from, so history has no second copy of it.
-      if (fromList()) router.back()
+      // Back to the page it came from, so history has no second copy of it.
+      if (previousPage()) router.back()
       else await router.replace(backRoute())
       // Dropped rather than refreshed: it would refetch into a 404.
       const entry = queryCache.get(referenceKeys.detail(reference.id))
@@ -125,5 +133,6 @@ export function useReferencePage(id: () => string) {
     removeReference,
     openFile,
     back: backRoute(),
+    backLabel: backLabel(),
   }
 }

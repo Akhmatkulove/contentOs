@@ -3,6 +3,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { toDeliverable } from '@/entities/deliverable'
 import { productStatuses, useProduct } from '@/entities/product'
 import { toReference } from '@/entities/reference'
+import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
 import {
   deliveryProgress,
@@ -45,6 +46,14 @@ export function useProductPage(id: () => string) {
   const team = computed(() => productTeam(deliverables.value))
   const moodboard = computed(() => moodboardImages(product.value?.references ?? []))
 
+  // The reference page is the team's (the pool); a brand stays on the product.
+  const session = useSessionStore()
+  function referenceRoute(referenceId: string): RouteLocationRaw | undefined {
+    return session.me?.role === 'brand'
+      ? undefined
+      : { name: 'reference', params: { id: referenceId } }
+  }
+
   const referenceSearch = ref('')
   const referenceSort = ref<ReferenceSort>('newest')
   const references = computed(() =>
@@ -80,6 +89,7 @@ export function useProductPage(id: () => string) {
     referenceSearch,
     referenceSort,
     references,
+    referenceRoute,
     deliverableSearch,
     foundDeliverables,
   }

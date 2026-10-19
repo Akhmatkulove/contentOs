@@ -15,11 +15,14 @@ const {
   references,
   total,
   addTo = null,
+  referenceRoute,
 } = defineProps<{
   references: Reference[]
   // All references of the product, before the search.
   total: number
   addTo?: RouteLocationRaw | null
+  // The reference page, when the viewer may open it.
+  referenceRoute?: (id: string) => RouteLocationRaw | undefined
 }>()
 
 const search = defineModel<string>('search', { required: true })
@@ -77,7 +80,11 @@ function setSort(value: string | undefined) {
       >
         <li v-for="reference in references" :key="reference.id">
           <!-- Favourites live in the pool; the brand can't star at all (docs/adr/0004). -->
-          <ReferenceCard :reference="reference" :favorite-toggle="false" />
+          <ReferenceCard
+            :reference="reference"
+            :to="referenceRoute?.(reference.id)"
+            :favorite-toggle="false"
+          />
         </li>
       </ul>
       <p v-else class="py-6 text-center text-p2 font-medium text-secondary">

@@ -70,6 +70,7 @@ async function mountPage(data: unknown, path = '/products/p1') {
       { path: '/products/:id', name: 'product', component: ProductPage, props: true },
       { path: '/products/:id/edit', name: 'product-edit', component: { template: '<div />' } },
       { path: '/products', name: 'products', component: { template: '<div />' } },
+      { path: '/references/:id', name: 'reference', component: { template: '<div />' } },
     ],
   })
   await router.push(path)

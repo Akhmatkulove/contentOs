@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import type { Reference } from '@/entities/reference'
 import SelectableReferenceCard from './SelectableReferenceCard.vue'
 
@@ -16,7 +16,10 @@ const reference: Reference = {
 }
 
 function mountCard(selected: boolean) {
-  return mount(SelectableReferenceCard, { props: { reference, selected } })
+  return mount(SelectableReferenceCard, {
+    props: { reference, selected },
+    global: { stubs: { RouterLink: RouterLinkStub } },
+  })
 }
 
 describe('SelectableReferenceCard', () => {
@@ -49,5 +52,14 @@ describe('SelectableReferenceCard', () => {
 
   it('hides the click layer from assistive tech', () => {
     expect(mountCard(false).get('[data-card-hit-area]').attributes('aria-hidden')).toBe('true')
+  })
+
+  it('previews the reference in a new tab without ticking it', () => {
+    const wrapper = mountCard(false)
+    const link = wrapper.getComponent(RouterLinkStub)
+    expect(link.props('to')).toEqual({ name: 'reference', params: { id: 'r1' } })
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.text()).toBe('Preview')
+    expect(wrapper.emitted('update:selected')).toBeUndefined()
   })
 })
