@@ -75,17 +75,6 @@ describe('ShootForm', () => {
     wrapper.unmount()
   })
 
-  it('saves a draft without asking for the details', async () => {
-    const wrapper = await mountForm()
-
-    const saveDraft = wrapper.findAll('button').find((b) => b.text() === 'Save draft')!
-    await saveDraft.trigger('click')
-    await flushPromises()
-
-    expect(errorTexts(wrapper)).toEqual([])
-    wrapper.unmount()
-  })
-
   it('asks for at least one product on the browse button', async () => {
     const wrapper = await mountForm()
 

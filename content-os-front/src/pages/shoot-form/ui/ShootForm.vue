@@ -43,7 +43,6 @@ const {
   removeDeliverable,
   submit,
   saving,
-  saveDraft,
 } = useShootForm({ members, creatorIds, mobilographerIds }, editing)
 
 const formElement = useTemplateRef('formElement')
@@ -92,7 +91,6 @@ async function onSubmit() {
         </p>
       </div>
       <div class="hidden shrink-0 items-center gap-2.5 md:flex">
-        <VButton v-if="!editing" variant="secondary" @click="saveDraft">Save draft</VButton>
         <VButton type="submit" :disabled="saving">
           <VIcon name="tick-01" />
           {{ submitLabel }}
@@ -144,7 +142,6 @@ async function onSubmit() {
 
     <!-- Figma "Form footer": the header's actions again after the long form. -->
     <div class="hidden justify-end gap-3 py-2 md:flex">
-      <VButton v-if="!editing" variant="secondary" @click="saveDraft">Save draft</VButton>
       <VButton type="submit" :disabled="saving">
         <VIcon name="tick-01" />
         {{ submitLabel }}
@@ -156,9 +153,6 @@ async function onSubmit() {
       data-fixed-actions
       class="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] flex gap-2 bg-card px-4 pt-4 pb-6 md:hidden"
     >
-      <VButton v-if="!editing" variant="secondary" class="flex-1" @click="saveDraft">
-        Save draft
-      </VButton>
       <VButton type="submit" :disabled="saving" class="flex-1">
         <VIcon name="tick-01" />
         {{ submitLabel }}

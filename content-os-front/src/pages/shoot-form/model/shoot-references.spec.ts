@@ -85,72 +85,67 @@ describe('referenceProductOptions', () => {
 describe('useShootReferences', () => {
   afterEach(() => vi.clearAllMocks())
 
-  it('adds a ticked draft, with the user as the creator and the shoot products', async () => {
+  // The modal calls `save` with the draft, then closes with it.
+  function addedThroughModal(added: ReferenceDraft) {
+    vi.mocked(openAddReference).mockImplementationOnce(async (opened) => {
+      await opened.save!(added)
+      return added
+    })
+  }
+
+  it('saves a new reference to the pool from the modal and ticks it', async () => {
     let options!: Parameters<typeof openAddReference>[0]
     vi.mocked(openAddReference).mockImplementation(async (opened) => {
       options = opened
+      await opened.save!(draft('d1'))
       return draft('d1')
+    })
+    vi.mocked(saveReference).mockImplementation(async (saved) => savedFrom(saved.id))
+    const shoot = setup()
+    const invalidate = vi.spyOn(useQueryCache(), 'invalidateQueries')
+
+    await shoot.addReference()
+    expect(options.creator).toBe('Amina')
+    expect((options.products as () => unknown)()).toEqual([{ value: 'p1', label: 'Abaya' }])
+    expect(saveReference).toHaveBeenCalledExactlyOnceWith(draft('d1'))
+    expect(invalidate).toHaveBeenCalledWith({ key: ['references'] })
+    expect(shoot.references.value).toMatchObject([{ id: 'saved-d1', title: 'd1', author: 'Amina' }])
+    expect(shoot.selected.value).toEqual(['saved-d1'])
+  })
+
+  it('adds nothing when the modal is cancelled or the save fails', async () => {
+    vi.mocked(openAddReference).mockResolvedValueOnce(undefined)
+    vi.mocked(saveReference).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(openAddReference).mockImplementationOnce(async (opened) => {
+      // The modal stays open on a failed save; then it is closed.
+      await opened.save!(draft('d1')).catch(() => {})
+      return undefined
     })
     const shoot = setup()
 
     await shoot.addReference()
-    expect(options.creator).toBe('Amina')
-    expect(options.save).toBeUndefined()
-    expect((options.products as () => unknown)()).toEqual([{ value: 'p1', label: 'Abaya' }])
-    expect(shoot.references.value).toMatchObject([{ id: 'd1', title: 'd1', author: 'Amina' }])
-    expect(shoot.selected.value).toEqual(['d1'])
-    expect(saveReference).not.toHaveBeenCalled()
+    await shoot.addReference()
+    expect(shoot.references.value).toEqual([])
+    expect(shoot.selected.value).toEqual([])
   })
 
-  it('keeps drafts when the bank pick replaces the saved references', async () => {
-    vi.mocked(openAddReference).mockResolvedValue(draft('d1'))
+  it('puts new references first and lets the bank pick replace them', async () => {
+    addedThroughModal(draft('d1'))
+    vi.mocked(saveReference).mockImplementation(async (saved) => savedFrom(saved.id))
     vi.mocked(openReferenceBank).mockResolvedValue([bankReference])
     const shoot = setup()
+    shoot.references.value = [bankReference]
+    shoot.selected.value = ['b1']
+
     await shoot.addReference()
+    expect(shoot.references.value.map((reference) => reference.id)).toEqual(['saved-d1', 'b1'])
+    expect(shoot.selected.value).toEqual(['b1', 'saved-d1'])
 
     await shoot.browse()
-    expect(openReferenceBank).toHaveBeenCalledWith([])
-    expect(shoot.references.value.map((reference) => reference.id)).toEqual(['d1', 'b1'])
-    expect(shoot.selected.value).toEqual(['d1', 'b1'])
-  })
-
-  it('saves only the ticked drafts and keeps them ticked as saved references', async () => {
-    vi.mocked(openAddReference)
-      .mockResolvedValueOnce(draft('d1'))
-      .mockResolvedValueOnce(draft('d2'))
-    vi.mocked(saveReference).mockImplementation(async (saved) => savedFrom(saved.id))
-    const shoot = setup()
-    await shoot.addReference()
-    await shoot.addReference()
-    shoot.selected.value = ['d2']
-    const invalidate = vi.spyOn(useQueryCache(), 'invalidateQueries')
-
-    await shoot.saveDrafts()
-    expect(saveReference).toHaveBeenCalledExactlyOnceWith(draft('d2'))
-    expect(shoot.references.value.map((reference) => reference.id)).toEqual(['d1', 'saved-d2'])
-    expect(shoot.selected.value).toEqual(['saved-d2'])
-    expect(invalidate).toHaveBeenCalledWith({ key: ['references'] })
-  })
-
-  it('does not save a draft twice after a failure', async () => {
-    vi.mocked(openAddReference)
-      .mockResolvedValueOnce(draft('d1'))
-      .mockResolvedValueOnce(draft('d2'))
-    vi.mocked(saveReference)
-      .mockResolvedValueOnce(savedFrom('d1'))
-      .mockRejectedValueOnce(new Error('offline'))
-    const shoot = setup()
-    await shoot.addReference()
-    await shoot.addReference()
-
-    await expect(shoot.saveDrafts()).rejects.toThrow('offline')
-    vi.mocked(saveReference).mockResolvedValueOnce(savedFrom('d2'))
-    await shoot.saveDrafts()
-    expect(vi.mocked(saveReference).mock.calls.map(([saved]) => saved.id)).toEqual([
-      'd1',
-      'd2',
-      'd2',
-    ])
-    expect(shoot.selected.value).toEqual(['saved-d1', 'saved-d2'])
+    expect(vi.mocked(openReferenceBank).mock.calls[0]![0].map((reference) => reference.id)).toEqual(
+      ['saved-d1', 'b1'],
+    )
+    expect(shoot.references.value).toEqual([bankReference])
+    expect(shoot.selected.value).toEqual(['b1'])
   })
 })

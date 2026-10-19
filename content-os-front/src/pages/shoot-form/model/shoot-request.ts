@@ -13,18 +13,15 @@ export interface ShootFormData {
   creatorIds: string[]
   mobilographerIds: string[]
   productIds: string[]
-  // The ticked references, new ones already saved to the pool.
+  // The ticked references, all in the pool.
   referenceIds: string[]
   deliverables: ShootDeliverable[]
 }
 
 // The request for POST /api/shoots. A deliverable keeps only the assignees still
 // in the team and the references still ticked: either could change after it was
-// added. `savedId` turns a draft reference's id into its id in the pool.
-export function toShootCreate(
-  data: ShootFormData,
-  savedId: (id: string) => string = (id) => id,
-): ShootCreate {
+// added.
+export function toShootCreate(data: ShootFormData): ShootCreate {
   const team = new Set([...data.creatorIds, ...data.mobilographerIds])
   const references = new Set(data.referenceIds)
   return {
@@ -44,7 +41,7 @@ export function toShootCreate(
       product_id: deliverable.product.id,
       assignee_ids: deliverable.assignees.map((member) => member.id).filter((id) => team.has(id)),
       reference_ids: deliverable.references
-        .map((reference) => savedId(reference.id))
+        .map((reference) => reference.id)
         .filter((id) => references.has(id)),
       due_date: deliverable.dueDate || null,
       // Only a new deliverable takes its status from the form; a saved one's

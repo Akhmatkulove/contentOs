@@ -9,7 +9,7 @@ const walk: ShootDeliverable = {
   type: 'video',
   product: { id: 'p1', name: 'Abaya', collection: '', photoUrl: null },
   references: [
-    { id: 'draft-1', title: 'New', previewUrl: null },
+    { id: 'r1', title: 'New', previewUrl: null },
     { id: 'r2', title: 'Unticked later', previewUrl: null },
   ],
   assignees: [member('lana'), member('gone')],
@@ -34,7 +34,7 @@ const data: ShootFormData = {
 
 describe('toShootCreate', () => {
   it('maps the form to the request', () => {
-    const body = toShootCreate(data, (id) => (id === 'draft-1' ? 'r1' : id))
+    const body = toShootCreate(data)
     expect(body).toMatchObject({
       name: 'Autumn Drop',
       date: '2024-09-18',
@@ -45,8 +45,7 @@ describe('toShootCreate', () => {
       product_ids: ['p1'],
       reference_ids: ['r1'],
     })
-    // Saved drafts by their pool id; people out of the team and unticked
-    // references left out.
+    // People out of the team and unticked references left out.
     expect(body.deliverables).toEqual([
       {
         id: null,

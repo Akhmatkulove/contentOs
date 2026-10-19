@@ -67,9 +67,8 @@ export interface ShootFormTarget {
   initial: ShootFormInitial
 }
 
-// State of the create and edit shoot screens. Saving puts the new references
-// in the pool, then the shoot with everything in it, and opens the shoot.
-// TODO(api): save a draft.
+// State of the create and edit shoot screens. Saving puts the shoot with
+// everything in it and opens the shoot.
 export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
   const initial = editing?.initial
   const details = reactive({
@@ -130,8 +129,6 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
     selected: selectedReferences,
     addReference,
     browse: browseReferences,
-    saveDrafts,
-    savedId,
   } = useShootReferences(tickedProducts, initial?.references)
 
   // Picked from what the shoot has now.
@@ -156,22 +153,17 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
   const router = useRouter()
   const queryCache = useQueryCache()
 
-  // New references go to the pool first (docs/adr/0006, 0007): a saved one turns
-  // into a pool reference at once, so a retry after a failure doesn't repeat it.
+  // New references are already in the pool: they were saved when added (docs/adr/0006).
   const { mutate: create, isLoading: saving } = useMutation({
     mutation: async (validated: { details: v.InferOutput<typeof shootDetailsSchema> }) => {
-      await saveDrafts()
-      const body = toShootCreate(
-        {
-          details: validated.details,
-          creatorIds: team.creatorIds.value,
-          mobilographerIds: team.mobilographerIds.value,
-          productIds: selectedProducts.value,
-          referenceIds: selectedReferences.value,
-          deliverables: deliverables.value,
-        },
-        savedId,
-      )
+      const body = toShootCreate({
+        details: validated.details,
+        creatorIds: team.creatorIds.value,
+        mobilographerIds: team.mobilographerIds.value,
+        productIds: selectedProducts.value,
+        referenceIds: selectedReferences.value,
+        deliverables: deliverables.value,
+      })
       if (!editing) return { id: (await createShoot(body)).id }
       const saved = await updateShoot(editing.id, body)
       // The shoot page opens with what the server saved, without a refetch.
@@ -197,9 +189,6 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
     if (valid) create(data)
     return valid
   }
-  // A draft may stay incomplete: no validation.
-  // TODO(api): save the shoot as a draft.
-  function saveDraft() {}
 
   return {
     details,
@@ -217,6 +206,5 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
     removeDeliverable,
     submit,
     saving,
-    saveDraft,
   }
 }
