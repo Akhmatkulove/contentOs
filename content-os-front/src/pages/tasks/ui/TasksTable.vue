@@ -11,8 +11,9 @@ import TaskReferences from './TaskReferences.vue'
 // Figma "Card / Task table" rows. The art director's row adds Assignee and
 // Latest upload. Scrolls sideways when the card is narrower than the columns.
 // No checkboxes and no row "…" menu (no bulk or row actions yet).
-// TODO(api): the task's upload — preview, format badges ("Reel", "15–30s") and
-// Latest upload — come with content uploads; until then a placeholder and "—".
+// The task preview is the product photo.
+// TODO(api): format badges ("Reel", "15–30s") and Latest upload come with
+// content uploads; until then "—".
 const { tasks, role } = defineProps<{ tasks: Task[]; role: TaskRole }>()
 
 const headCell = 'pr-2 text-left text-p3 font-medium whitespace-nowrap text-secondary'
@@ -48,7 +49,11 @@ const headCell = 'pr-2 text-left text-p3 font-medium whitespace-nowrap text-seco
         >
           <th scope="row" class="py-2 pr-2 text-left font-normal">
             <div class="flex items-center gap-2.5">
-              <VThumbnail :src="null" :icon-size="14" class="h-12.5 w-10 rounded-md" />
+              <VThumbnail
+                :src="task.product.photoUrl"
+                :icon-size="14"
+                class="h-12.5 w-10 rounded-md"
+              />
               <span
                 class="max-w-60 text-p2 font-semibold whitespace-normal break-words text-primary"
               >
