@@ -4,6 +4,7 @@ import * as v from 'valibot'
 import { computed, nextTick, onScopeDispose, reactive, shallowRef, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { collectionKeys, useCollectionNames } from '@/entities/collection'
+import { contentKeys } from '@/entities/content'
 import { taskKeys, toDeliverable } from '@/entities/deliverable'
 import {
   productKeys,
@@ -219,13 +220,14 @@ export function useProductForm(productId?: string) {
       // The product page opens with what the server saved, without a refetch.
       queryCache.setQueryData(productKeys.detail(saved.id), saved)
       // Lists, filter options and the pool may all show the product or its references;
-      // shoots and tasks show its name, collection and photo. The collection may be new.
+      // shoots, tasks and content show its name, collection and photo. The collection may be new.
       await Promise.all([
         queryCache.invalidateQueries({ key: productKeys.lists }),
         queryCache.invalidateQueries({ key: collectionKeys.all }),
         queryCache.invalidateQueries({ key: referenceKeys.all }),
         queryCache.invalidateQueries({ key: shootKeys.all }),
         queryCache.invalidateQueries({ key: taskKeys.all }),
+        queryCache.invalidateQueries({ key: contentKeys.all }),
       ])
       toast.success(editing ? 'Changes saved' : 'Product created')
       await router.push({ name: 'product', params: { id: saved.id } })

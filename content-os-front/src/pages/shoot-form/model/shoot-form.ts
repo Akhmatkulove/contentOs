@@ -3,6 +3,7 @@ import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive, ref, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { contentKeys } from '@/entities/content'
 import { taskKeys } from '@/entities/deliverable'
 import { shootKeys } from '@/entities/shoot'
 import { toast } from '@/shared/ui/toast'
@@ -186,10 +187,12 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget, pla
     },
     onSuccess: async ({ id }) => {
       // The list, its tab counts and Next shoot show the change; the deliverables
-      // are tasks. Not the saved shoot: it is already in the cache.
+      // are tasks, and a removed sent one takes its content along (docs/adr/0025).
+      // Not the saved shoot: it is already in the cache.
       await Promise.all([
         queryCache.invalidateQueries({ key: shootKeys.lists }),
         queryCache.invalidateQueries({ key: taskKeys.all }),
+        queryCache.invalidateQueries({ key: contentKeys.all }),
       ])
       toast.success(editing ? 'Changes saved' : 'Shoot created')
       await router.push({ name: 'shoot', params: { id } })

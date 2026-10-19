@@ -15,6 +15,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
+from app.content import service as content
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.deliverables.models import DeliverableStatus
@@ -144,7 +145,10 @@ async def decide(
 
 
 async def send(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
-    """Send to brand: когда одобрена работа каждого исполнителя."""
+    """Send to brand: когда одобрена работа каждого исполнителя.
+
+    Файлы одобренных версий уходят на страницу Content (docs/adr/0025).
+    """
     row = await _reviewed(db, user, task_id, lock=True)
     deliverable = row.ShootDeliverable
     _require_not_sent(deliverable)
@@ -152,3 +156,4 @@ async def send(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Every assignee's work must be approved")
     deliverable.status = DeliverableStatus.APPROVED
     await db.flush()
+    await content.add_sent(db, task_id)

@@ -99,6 +99,7 @@ export const router = createRouter({
           path: 'content',
           name: 'content',
           component: () => import('@/pages/content').then((m) => m.ContentPage),
+          meta: { title: 'Content' },
         },
         {
           path: 'references',

@@ -7,6 +7,7 @@ from app.admin.router import router as admin_router
 from app.auth.deps import get_approved_user
 from app.auth.router import router as auth_router
 from app.collections.router import router as collections_router
+from app.content.router import router as content_router
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings, get_settings
 from app.core.csrf import origin_check
@@ -63,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # endpoint can't be left open by forgetting a dependency. Roles are checked on top.
     product = APIRouter(dependencies=[Depends(get_approved_user)])
     product.include_router(collections_router)
+    product.include_router(content_router)
     product.include_router(files_router)
     product.include_router(locations_router)
     product.include_router(notifications_router)

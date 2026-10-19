@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { useRegleSchema } from '@regle/schemas'
 import { computed, reactive, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import { contentKeys } from '@/entities/content'
 import { deliverableStatuses, dueHint, formatDueDate, taskKeys } from '@/entities/deliverable'
 import { shootKeys } from '@/entities/shoot'
 import { errorStatus, type ApiError } from '@/shared/api'
@@ -171,6 +172,8 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
     mutation: () => sendToBrand(toValue(id)),
     onSuccess: (next) => {
       saved(next)
+      // The approved files are on the content page now (docs/adr/0025).
+      queryCache.invalidateQueries({ key: contentKeys.all })
       toast.success('Sent to the brand')
     },
     onError: stale,

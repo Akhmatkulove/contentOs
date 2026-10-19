@@ -282,6 +282,48 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/content': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Content
+     * @description Поиск по deliverable, продукту, съёмке и креатору, без учёта регистра.
+     *
+     *     `scope=mine` — My content; `counts` — размеры обеих вкладок.
+     */
+    get: operations['list_content_api_content_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/content/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Filters
+     * @description Варианты для фильтров Product, Shoot и Creator.
+     */
+    get: operations['list_filters_api_content_filters_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/uploads': {
     parameters: {
       query?: never
@@ -482,7 +524,8 @@ export interface paths {
     }
     /**
      * Get Product
-     * @description Страница продукта: бренду-владельцу и арт-директорам с его deliverables (docs/adr/0005).
+     * @description Страница продукта: бренду-владельцу, арт-директорам с его deliverables (docs/adr/0005)
+     *     и их креаторам (docs/adr/0024).
      */
     get: operations['get_product_api_products__product_id__get']
     /**
@@ -1237,6 +1280,81 @@ export interface components {
       /** Name */
       name: string
     }
+    /**
+     * ContentCounts
+     * @description Сколько файлов на каждой вкладке под текущими поиском и фильтрами.
+     */
+    ContentCounts: {
+      /** All */
+      all: number
+      /** Mine */
+      mine: number
+    }
+    /**
+     * ContentFilters
+     * @description Варианты фильтров: только то, что встречается в видимом контенте.
+     */
+    ContentFilters: {
+      /** Products */
+      products: components['schemas']['ContentOption'][]
+      /** Shoots */
+      shoots: components['schemas']['ContentOption'][]
+      /** Creators */
+      creators: components['schemas']['TeamMember'][]
+    }
+    /** ContentItemResponse */
+    ContentItemResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      file: components['schemas']['FileResponse']
+      /** Name */
+      name: string
+      product: components['schemas']['ContentOption']
+      shoot: components['schemas']['ContentOption'] | null
+      author: components['schemas']['TeamMember']
+      status: components['schemas']['ContentStatus']
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /** ContentList */
+    ContentList: {
+      /** Items */
+      items: components['schemas']['ContentItemResponse'][]
+      /** Total */
+      total: number
+      counts: components['schemas']['ContentCounts']
+    }
+    /** ContentOption */
+    ContentOption: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
+    /**
+     * ContentScope
+     * @enum {string}
+     */
+    ContentScope: 'all' | 'mine'
+    /**
+     * ContentSort
+     * @enum {string}
+     */
+    ContentSort: 'newest' | 'oldest' | 'name_asc' | 'name_desc'
+    /**
+     * ContentStatus
+     * @enum {string}
+     */
+    ContentStatus: 'new' | 'approved'
     /**
      * DeliverableCounts
      * @description Deliverables съёмки по статусам: прогресс продукта или всей съёмки.
@@ -3077,6 +3195,78 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['CollectionOption'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_content_api_content_get: {
+    parameters: {
+      query?: {
+        search?: string
+        product_id?: string | null
+        shoot_id?: string | null
+        author_id?: string | null
+        status?: components['schemas']['ContentStatus'] | null
+        sort?: components['schemas']['ContentSort']
+        scope?: components['schemas']['ContentScope']
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContentList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_filters_api_content_filters_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContentFilters']
         }
       }
       /** @description Validation Error */
