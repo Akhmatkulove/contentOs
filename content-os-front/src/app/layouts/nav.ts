@@ -8,6 +8,7 @@ import {
 } from 'vue-router'
 import { useTasksBadge } from '@/entities/deliverable'
 import { useSessionStore, type Me } from '@/entities/session'
+import { badgeLabel } from '@/shared/lib'
 import type { IconName } from '@/shared/ui/icon'
 import { canOpen } from '../router/access'
 
@@ -32,11 +33,6 @@ export const sidebarNav: NavItem[] = [
 // The mobile tab bar fits four sections; the rest live behind More.
 const TABBAR_LIMIT = 4
 const tabbarPicks = ['Home', 'My tasks', 'Shoots', 'Content']
-
-export function badgeLabel(count: number): string | undefined {
-  if (count <= 0) return undefined
-  return count > 99 ? '99+' : String(count)
-}
 
 // A section is listed only if its route lets the user in, so the menu and the
 // access guard can't disagree. `badges` are counts by section label.

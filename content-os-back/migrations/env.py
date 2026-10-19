@@ -13,6 +13,7 @@ from app.core.db import Base
 from app.core.rate_limit import RateLimitCounter  # noqa: F401
 from app.deliverables.models import Deliverable  # noqa: F401
 from app.files.models import StoredFile  # noqa: F401
+from app.notifications.models import Notification  # noqa: F401
 from app.products.models import Product, ProductPhoto  # noqa: F401
 from app.references.models import Reference, ReferenceFavorite, ReferenceFile  # noqa: F401
 from app.review.models import ReviewMessage  # noqa: F401

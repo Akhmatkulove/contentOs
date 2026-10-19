@@ -1,6 +1,6 @@
 import type { Me, Role } from '@/entities/session'
 import { router } from '../router'
-import { badgeLabel, isNavItemActive, navFor, sidebarNav } from './nav'
+import { isNavItemActive, navFor, sidebarNav } from './nav'
 
 function approved(role: Role): Me {
   return {
@@ -52,9 +52,5 @@ describe('badges', () => {
     const tasks = (items: typeof sidebar) => items.find((item) => item.label === 'My tasks')
     expect([tasks(sidebar)?.badge, tasks(tabbar)?.badge]).toEqual(['3', '3'])
     expect(sidebar.find((item) => item.label === 'Home')?.badge).toBeUndefined()
-  })
-
-  it('hides zero and caps big numbers', () => {
-    expect([badgeLabel(0), badgeLabel(7), badgeLabel(100)]).toEqual([undefined, '7', '99+'])
   })
 })

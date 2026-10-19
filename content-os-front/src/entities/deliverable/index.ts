@@ -7,6 +7,8 @@ export type {
 } from './model/deliverable'
 export {
   deliverablesLabel,
+  deliverableInWork,
+  deliverableStatusChip,
   deliverableStatuses,
   deliverableStatusOptions,
   deliverableTypeOptions,
@@ -32,5 +34,5 @@ export {
   workWaits,
 } from './model/content'
 export { taskKeys } from './model/task-keys'
-export { attentionStatus, useTasksBadge } from './model/tasks-badge'
+export { attentionStatus, useNotScheduledCount, useTasksBadge } from './model/tasks-badge'
 export { default as DeliverablesTable } from './ui/DeliverablesTable.vue'

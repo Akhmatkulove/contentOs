@@ -132,6 +132,31 @@ async def _check(
         raise _unprocessable("Reference not found")
 
 
+async def _require_archived_to_shoot(db: AsyncSession, body: ShootCreate) -> None:
+    """Новый deliverable архивного продукта начинается только с to_shoot: работу
+    по архивному продукту не начать в обход запрета архива (docs/adr/0022).
+
+    FOR SHARE на продукты до блокировок deliverables съёмки — тот же порядок, что
+    у архива (продукт, затем deliverables): архив не пройдёт одновременно, и
+    взаимоблокировки нет.
+    """
+    working = {
+        draft.product_id
+        for draft in body.deliverables
+        if draft.id is None and draft.status not in (None, DeliverableStatus.TO_SHOOT)
+    }
+    if not working:
+        return
+    statuses = await db.scalars(
+        select(Product.status)
+        .where(Product.id.in_(working))
+        .order_by(Product.id)
+        .with_for_update(read=True)
+    )
+    if ProductStatus.ARCHIVED in set(statuses):
+        raise _unprocessable("A new deliverable of an archived product starts as to shoot")
+
+
 def _set_fields(shoot: Shoot, body: ShootCreate) -> None:
     shoot.name = body.name
     shoot.date = body.date
@@ -213,6 +238,7 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
     if any(draft.id is not None for draft in body.deliverables):
         raise _unprocessable("Unknown deliverable")
     await _check(db, art_director, body)
+    await _require_archived_to_shoot(db, body)
     await product_deliverables.require_linkable(db, art_director, body.deliverables, {})
     shoot = Shoot(art_director_id=art_director.id)
     _set_fields(shoot, body)
@@ -241,6 +267,7 @@ async def update_shoot(
     if shoot is None:
         raise _not_found()
     await _check(db, art_director, body, shoot)
+    await _require_archived_to_shoot(db, body)
     # Исполнители меняют версии и статусы под блокировкой deliverable: ждём их.
     existing = {
         deliverable.id: deliverable
@@ -254,6 +281,13 @@ async def update_shoot(
     kept = {draft.id for draft in body.deliverables if draft.id is not None}
     if not kept <= set(existing):
         raise _unprocessable("Unknown deliverable")
+    # Сохранённый deliverable держит свой продукт: его работа и версии — о нём, и
+    # так работу не перенести на архивный продукт (docs/adr/0022).
+    if any(
+        draft.id is not None and existing[draft.id].product_id != draft.product_id
+        for draft in body.deliverables
+    ):
+        raise _unprocessable("A saved deliverable keeps its product")
     await product_deliverables.require_linkable(db, art_director, body.deliverables, existing)
 
     for model in (ShootMember, ShootProduct, ShootReference):
@@ -631,6 +665,7 @@ async def get_shoot(
                 collection=product.collection,
                 category=product.category,
                 photo=FileResponse.of(photo, storage) if photo is not None else None,
+                archived=product.status == ProductStatus.ARCHIVED,
                 deliverables=counts([d for d in deliverables if d.product_id == product.id]),
             )
             for product, photo in products

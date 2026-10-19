@@ -6,7 +6,7 @@ const walk: ShootDeliverable = {
   id: 'd1',
   name: 'Walking transition',
   type: 'video',
-  product: { id: 'p1', name: 'Black Abaya 042', collection: '', photoUrl: null },
+  product: { id: 'p1', name: 'Black Abaya 042', collection: '', photoUrl: null, archived: false },
   productDeliverable: null,
   references: [],
   assignees: [],

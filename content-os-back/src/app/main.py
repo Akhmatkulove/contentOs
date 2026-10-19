@@ -15,6 +15,7 @@ from app.core.storage import build_storage
 from app.files.router import router as files_router
 from app.health.router import router as health_router
 from app.locations.router import router as locations_router
+from app.notifications.router import router as notifications_router
 from app.onboarding.router import router as onboarding_router
 from app.products.router import router as products_router
 from app.profile.router import router as profile_router
@@ -64,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     product.include_router(collections_router)
     product.include_router(files_router)
     product.include_router(locations_router)
+    product.include_router(notifications_router)
     product.include_router(products_router)
     product.include_router(references_router)
     product.include_router(shoots_router)

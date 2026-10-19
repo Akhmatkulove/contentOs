@@ -9,8 +9,11 @@ from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep, delete_quietly
 from app.deliverables.models import DeliverableStatus
-from app.shoots import review, tasks, versions
+from app.shoots import backlog, review, tasks, versions
 from app.shoots.schemas import (
+    BrandDeliverableFilters,
+    BrandDeliverableList,
+    BrandDeliverableStatus,
     DeliverableReviewResponse,
     TaskDraftFiles,
     TaskDraftTitle,
@@ -24,6 +27,7 @@ from app.shoots.schemas import (
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 TeamUser = Annotated[User, Depends(require_role(Role.ART_DIRECTOR, Role.CREATOR))]
+ArtDirectorUser = Annotated[User, Depends(require_role(Role.ART_DIRECTOR))]
 
 
 @router.get("")
@@ -54,6 +58,40 @@ async def list_tasks(
 async def list_filters(user: TeamUser, db: SessionDep, settings: SettingsDep) -> TaskFilters:
     """Съёмки, продукты и исполнители задач пользователя: варианты фильтров."""
     return await tasks.list_filters(db, user, settings)
+
+
+# До /{task_id}: иначе путь разберётся как id задачи.
+@router.get("/brand-deliverables")
+async def list_brand_deliverables(
+    art_director: ArtDirectorUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+    search: Annotated[str, Query(max_length=100)] = "",
+    status: BrandDeliverableStatus | None = None,
+    product_id: uuid.UUID | None = None,
+    brand_id: uuid.UUID | None = None,
+    sort: backlog.BrandDeliverableSort = backlog.BrandDeliverableSort.PRIORITY,
+    page: Annotated[int, Query(ge=1, le=10_000)] = 1,
+    per_page: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> BrandDeliverableList:
+    """Бэклог: заказы брендов, назначенные на арт-директора (docs/adr/0019).
+
+    Поиск по заказу, продукту и бренду без учёта регистра. `counts` — размеры
+    вкладок под поиском и фильтрами, `total` — выбранной.
+    """
+    params = backlog.BrandDeliverableQuery(search.strip(), status, product_id, brand_id, sort)
+    return await backlog.list_brand_deliverables(
+        db, art_director, storage, settings, params, page, per_page
+    )
+
+
+@router.get("/brand-deliverables/filters")
+async def list_brand_deliverable_filters(
+    art_director: ArtDirectorUser, db: SessionDep, settings: SettingsDep
+) -> BrandDeliverableFilters:
+    """Продукты и бренды бэклога: варианты фильтров."""
+    return await backlog.list_filters(db, art_director, settings)
 
 
 @router.get("/{task_id}")

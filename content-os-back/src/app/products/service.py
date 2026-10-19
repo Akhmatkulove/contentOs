@@ -2,6 +2,7 @@
 
 import enum
 import uuid
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -31,6 +32,7 @@ from app.deliverables.schemas import DeliverableDraft, DeliverableResponse
 from app.files.models import FileKind, StoredFile
 from app.files.schemas import FileResponse
 from app.files.service import claim_files
+from app.notifications import service as notifications
 from app.products.models import Product, ProductPhoto, ProductStatus
 from app.products.schemas import (
     ProductCreate,
@@ -45,6 +47,7 @@ from app.products.schemas import (
 from app.references import service as references
 from app.references.models import Reference, ReferenceFile
 from app.references.schemas import ReferenceDraft
+from app.shoots import product_deliverables
 from app.team import service as team
 from app.team.schemas import TeamMember
 
@@ -114,12 +117,20 @@ async def _add_references(
         )
 
 
-def _add_deliverables(
-    db: AsyncSession, product: Product, drafts: list[DeliverableDraft], start: int = 0
+async def _add_deliverables(
+    db: AsyncSession,
+    brand: User,
+    product: Product,
+    drafts: list[DeliverableDraft],
+    start: int = 0,
 ) -> None:
+    """Новые deliverables; их арт-директора получают уведомление (docs/adr/0020)."""
     db.add_all(
         Deliverable(product_id=product.id, position=start + index, **draft.model_dump())
         for index, draft in enumerate(drafts)
+    )
+    await notifications.deliverables_assigned(
+        db, brand, product.id, Counter(draft.assignee_id for draft in drafts)
     )
 
 
@@ -137,7 +148,7 @@ async def create_product(db: AsyncSession, brand: User, body: ProductCreate) -> 
     await db.flush()
     _add_photos(db, product, body.photo_ids)
     await _add_references(db, brand, product, body.references, files)
-    _add_deliverables(db, product, body.deliverables)
+    await _add_deliverables(db, brand, product, body.deliverables)
     await db.flush()
     await db.refresh(product, ["collection"])
     return product
@@ -155,12 +166,14 @@ def _require_subset(
 async def _own_product(db: AsyncSession, brand: User, product_id: uuid.UUID) -> Product:
     """Продукт бренда, заблокированный до конца транзакции; чужой — 404, как несуществующий.
 
-    Блокировка: два сохранения подряд не перемешают фото и позиции.
+    Блокировка: два сохранения подряд не перемешают фото и позиции. NO KEY
+    UPDATE: сохранение съёмки ссылается на продукт (KEY SHARE) и не ждёт её,
+    иначе блокировки deliverables съёмок дали бы взаимоблокировку (docs/adr/0022).
     """
     product = await db.scalar(
         select(Product)
         .where(Product.id == product_id, Product.brand_id == brand.id)
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if product is None:
         raise _not_found()
@@ -170,8 +183,17 @@ async def _own_product(db: AsyncSession, brand: User, product_id: uuid.UUID) -> 
 async def patch_product(
     db: AsyncSession, brand: User, product_id: uuid.UUID, body: ProductPatch
 ) -> Product:
-    """Меняет только переданные поля (сейчас статус: архив и возврат)."""
+    """Меняет только переданные поля (сейчас статус: архив и возврат).
+
+    Продукт, по которому идёт работа в съёмках, в архив не уходит (docs/adr/0022).
+    """
     product = await _own_product(db, brand, product_id)
+    if (
+        body.status == ProductStatus.ARCHIVED
+        and product.status != ProductStatus.ARCHIVED
+        and await product_deliverables.products_in_work(db, [product.id], lock=True)
+    ):
+        raise _unprocessable("A product in work can't be archived")
     product.status = body.status
     await db.flush()
     return product
@@ -224,7 +246,12 @@ async def update_product(
     removed_keys += await references.delete_with_files(db, own_references - set(body.reference_ids))
     # Без deliverable арт-директор теряет доступ к продукту (docs/adr/0004).
     if removed := deliverables - set(body.deliverable_ids):
+        # По заказу уже снимают: работа команды осталась бы без заказа (docs/adr/0021).
+        # Запланированный, но не начатый удаляется: deliverable съёмки остаётся без него.
+        if await product_deliverables.any_in_work(db, removed):
+            raise _unprocessable("A deliverable in work can't be removed")
         await db.execute(delete(Deliverable).where(Deliverable.id.in_(removed)))
+        await notifications.forget_unassigned(db, product.id)
     if body.deliverable_ids:
         positions = {deliverable_id: i for i, deliverable_id in enumerate(body.deliverable_ids)}
         await db.execute(
@@ -240,7 +267,7 @@ async def update_product(
     product.collection_id = await collections.resolve(db, brand, body.collection)
     _add_photos(db, product, body.photo_ids)
     await _add_references(db, brand, product, body.references, files)
-    _add_deliverables(db, product, body.deliverables, start=len(body.deliverable_ids))
+    await _add_deliverables(db, brand, product, body.deliverables, start=len(body.deliverable_ids))
     await db.flush()
     await db.refresh(product, ["collection"])
     return product, removed_keys
@@ -296,6 +323,15 @@ async def product_response(
         else {}
     )
 
+    progresses = await product_deliverables.progress(db, (d.id for d in deliverables))
+    deliverable_responses = []
+    for deliverable in deliverables:
+        progress = progresses.get(deliverable.id, product_deliverables.NOT_SCHEDULED)
+        assignee = assignees.get(deliverable.assignee_id) if deliverable.assignee_id else None
+        deliverable_responses.append(
+            DeliverableResponse.of(deliverable, assignee, progress.status, progress.shoots)
+        )
+
     return ProductResponse(
         id=product.id,
         name=product.name,
@@ -308,14 +344,9 @@ async def product_response(
         tags=product.tags,
         photos=[FileResponse.of(photo, storage) for photo in photos],
         references=await references.to_responses(db, user, storage, product_references),
-        deliverables=[
-            DeliverableResponse.of(
-                deliverable,
-                assignees.get(deliverable.assignee_id) if deliverable.assignee_id else None,
-            )
-            for deliverable in deliverables
-        ],
+        deliverables=deliverable_responses,
         created_at=product.created_at,
+        in_work=bool(await product_deliverables.products_in_work(db, [product.id])),
         can_edit=product.brand_id == user.id,
     )
 
@@ -423,6 +454,7 @@ async def list_products(
             )
         )
     }
+    in_work = await product_deliverables.products_in_work(db, (p.id for p in products))
     return ProductList(
         items=[
             ProductListItem(
@@ -435,6 +467,7 @@ async def list_products(
                 if product.id in covers
                 else None,
                 created_at=product.created_at,
+                in_work=product.id in in_work,
             )
             for product in products
         ],

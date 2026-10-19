@@ -7,6 +7,7 @@ const product: ShootProduct = {
   name: 'Black Abaya 042',
   collection: 'Autumn 26',
   photoUrl: null,
+  archived: false,
 }
 
 function mountCard(selected: boolean, overrides: Partial<ShootProduct> = {}) {

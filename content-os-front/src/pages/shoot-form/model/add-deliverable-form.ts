@@ -38,6 +38,12 @@ export const statusOptions = deliverableStatusOptions.filter(
   (option) => option.value !== 'approved',
 )
 
+// A new deliverable of an archived product starts as To shoot: work on it
+// can't start around the archive (docs/adr/0022).
+export function statusOptionsFor(archived: boolean) {
+  return archived ? statusOptions.filter((option) => option.value === 'to_shoot') : statusOptions
+}
+
 // "Black Abaya 042 · Hero reel", by the ticked products' order, plus
 // "· In Shoot 04" when another shoot already closes it (docs/adr/0017).
 export function productDeliverableOptions(
@@ -58,7 +64,7 @@ export function productDeliverableOptions(
 
 export function useAddDeliverableForm(context: DeliverableContext) {
   const form = reactive({
-    productDeliverableId: undefined as string | undefined,
+    productDeliverableId: context.productDeliverableId,
     name: '',
     type: undefined as DeliverableType | undefined,
     assigneeIds: [] as string[],
@@ -88,16 +94,41 @@ export function useAddDeliverableForm(context: DeliverableContext) {
   const picked = computed(() =>
     assigned.value?.find((item) => item.id === form.productDeliverableId),
   )
-  // Picking fills in the brand's name, type and due date, unless they were
-  // changed by hand since the previous pick.
-  watch(picked, (next, previous) => {
-    if (!next) return
-    if (!form.name || form.name === previous?.name) form.name = next.name
-    if (!form.type || form.type === previous?.type) form.type = next.type
-    if (!form.dueDate || form.dueDate === (previous?.due_date ?? '')) {
-      form.dueDate = next.due_date ?? ''
+  // The picked deliverable's product is archived: the status stays To shoot.
+  const archived = computed(
+    () => context.products.find((item) => item.id === picked.value?.product_id)?.archived === true,
+  )
+  const statuses = computed(() => statusOptionsFor(archived.value))
+  watch(
+    archived,
+    (value) => {
+      if (value) form.status = 'to_shoot'
+    },
+    { immediate: true },
+  )
+
+  // A deliverable picked up front that isn't offered (no longer assigned to the
+  // art director) is dropped, so the field asks for a pick instead.
+  watch(assigned, (items) => {
+    if (items && !items.some((item) => item.id === form.productDeliverableId)) {
+      form.productDeliverableId = undefined
     }
   })
+  // Picking fills in the brand's name, type and due date, unless they were
+  // changed by hand since the previous pick. Immediate: a deliverable picked up
+  // front (Plan shoot) fills in at once.
+  watch(
+    picked,
+    (next, previous) => {
+      if (!next) return
+      if (!form.name || form.name === previous?.name) form.name = next.name
+      if (!form.type || form.type === previous?.type) form.type = next.type
+      if (!form.dueDate || form.dueDate === (previous?.due_date ?? '')) {
+        form.dueDate = next.due_date ?? ''
+      }
+    },
+    { immediate: true },
+  )
 
   // In the order they were picked.
   const assignees = computed(() => membersByIds(context.team, form.assigneeIds))
@@ -138,6 +169,8 @@ export function useAddDeliverableForm(context: DeliverableContext) {
     errors,
     productDeliverables,
     loadingProductDeliverables: isLoading,
+    statuses,
+    archived,
     assignees,
     references,
     toggleAssignee,

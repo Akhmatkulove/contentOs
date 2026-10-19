@@ -100,6 +100,7 @@ describe('AddDeliverableModal', () => {
       type: 'image',
       assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
       status: 'to_shoot',
+      shoots: 0,
       dueDate: '',
       brief: 'Slow walk to the window',
     })

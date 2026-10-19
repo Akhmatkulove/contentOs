@@ -442,8 +442,9 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
                 db, storage, brand, f"{name}:{position}", photo(colour, name, position)
             )
             db.add(ProductPhoto(product_id=product.id, position=position, file_id=file.id))
-        # The art director's deliverables: they let ad1 see the product.
-        for position, status in enumerate([S.APPROVED, S.IN_PROGRESS, S.TO_SHOOT][: 2 + index % 2]):
+        # The art director's deliverables: they let ad1 see the product. Their status
+        # comes from the shoot deliverables that close them (docs/adr/0018).
+        for position in range(2 + index % 2):
             db.add(
                 Deliverable(
                     product_id=product.id,
@@ -451,7 +452,6 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
                     assignee_id=art_director.id,
                     name=["Lookbook photos", "Reels", "Detail shots"][position],
                     type=DeliverableType.VIDEO if position == 1 else DeliverableType.IMAGE,
-                    status=status,
                     due_date=today + timedelta(days=7 * (position + 1)),
                 )
             )
@@ -543,10 +543,19 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
         for position, (task, product_index, assignees, refs, status, due) in enumerate(
             deliverables
         ):
+            # Closes one of the product's deliverables, in turn (docs/adr/0017).
+            orders = list(
+                await db.scalars(
+                    select(Deliverable.id)
+                    .where(Deliverable.product_id == products[product_index].id)
+                    .order_by(Deliverable.position)
+                )
+            )
             deliverable = ShootDeliverable(
                 shoot_id=shoot.id,
                 position=position,
                 product_id=products[product_index].id,
+                product_deliverable_id=orders[position % len(orders)],
                 name=task,
                 type=demo_type(task),
                 status=status,

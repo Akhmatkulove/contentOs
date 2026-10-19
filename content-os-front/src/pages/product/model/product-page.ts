@@ -33,6 +33,12 @@ export function useProductPage(id: () => string) {
 
   // The brand that owns the product edits it; art directors only look.
   const canEdit = computed(() => product.value?.can_edit === true)
+  // What the "…" menu needs: Archive is off while shoots work on it.
+  const actionsTarget = computed(() =>
+    product.value
+      ? { id: product.value.id, status: product.value.status, inWork: product.value.in_work }
+      : null,
+  )
   function editRoute(section?: EditSection): RouteLocationRaw {
     return { name: 'product-edit', params: { id: id() }, hash: section ? `#${section}` : '' }
   }
@@ -78,6 +84,7 @@ export function useProductPage(id: () => string) {
     notFound,
     tab,
     canEdit,
+    actionsTarget,
     editRoute,
     status,
     meta,

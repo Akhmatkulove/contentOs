@@ -697,3 +697,91 @@ async def test_the_form_sets_the_status_of_new_deliverables_only(client: AsyncCl
     # Sent stays sent when the shoot is saved again.
     await edit_close_up(client, task_id)
     assert (await review_page(client, task_id))["status"] == "approved"
+
+
+# --- Brand deliverables (docs/adr/0019) ---
+
+
+async def brand_deliverables(client: AsyncClient, **params: Any) -> dict[str, Any]:
+    response = await client.get("/api/tasks/brand-deliverables", params=params)
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def rows(listing: dict[str, Any]) -> list[tuple[str, str, int]]:
+    return [(i["product"]["name"], i["status"], i["shoots_total"]) for i in listing["items"]]
+
+
+async def test_art_director_sees_brand_deliverables_and_whether_they_are_planned(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    created = await post(client, await shoot(client))
+
+    listing = await brand_deliverables(client)
+    # Priority: not scheduled first.
+    assert rows(listing) == [("Dress", "to_shoot", 0), ("Abaya", "to_shoot", 1)]
+    abaya = listing["items"][1]
+    assert abaya["shoots"] == [
+        {"id": created["id"], "name": created["name"], "date": created["date"]}
+    ]
+    assert (abaya["name"], abaya["type"], abaya["brand"]["name"]) == (
+        "Walking transition",
+        "video",
+        "Acme",
+    )
+    assert abaya["product"]["photo"]["url"]
+    assert listing["counts"] == {
+        "all": 2,
+        "not_scheduled": 1,
+        "to_shoot": 1,
+        "in_progress": 0,
+        "needs_review": 0,
+        "needs_changes": 0,
+        "approved": 0,
+    }
+
+    not_scheduled = await brand_deliverables(client, status="not_scheduled")
+    assert (rows(not_scheduled), not_scheduled["total"]) == ([("Dress", "to_shoot", 0)], 1)
+    await db_session.execute(update(ShootDeliverable).values(status=DeliverableStatus.NEEDS_REVIEW))
+    assert rows(await brand_deliverables(client, status="needs_review")) == [
+        ("Abaya", "needs_review", 1)
+    ]
+
+    # Only the art director has a backlog.
+    for email in ("lana@example.com", "brand@example.com"):
+        await log_in(client, email)
+        response = await client.get("/api/tasks/brand-deliverables")
+        assert response.status_code == 403
+
+
+async def test_brand_deliverables_leave_out_others_and_archived_products(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await sign_up(client, db_session, "ad2@example.com", Role.ART_DIRECTOR, "Risolat")
+    await log_in(client, "brand@example.com")
+    named = await products(client)
+    archived = await client.patch(f"/api/products/{named['Dress']}", json={"status": "archived"})
+    assert archived.status_code == 200
+    await log_in(client, "amina@example.com")
+    assert rows(await brand_deliverables(client)) == [("Abaya", "to_shoot", 0)]
+
+    await log_in(client, "ad2@example.com")
+    assert (await brand_deliverables(client))["total"] == 0
+
+
+async def test_brand_deliverables_search_filter_and_sort(client: AsyncClient) -> None:
+    named = await products(client)
+    assert rows(await brand_deliverables(client, search="dre")) == [("Dress", "to_shoot", 0)]
+    assert rows(await brand_deliverables(client, search="acme"))[0][0] in {"Abaya", "Dress"}
+    assert (await brand_deliverables(client, search="nothing"))["total"] == 0
+    assert rows(await brand_deliverables(client, product_id=named["Abaya"])) == [
+        ("Abaya", "to_shoot", 0)
+    ]
+    by_name = await brand_deliverables(client, sort="name_asc", per_page=1, page=2)
+    assert (len(by_name["items"]), by_name["total"]) == (1, 2)
+
+    filters = (await client.get("/api/tasks/brand-deliverables/filters")).json()
+    assert [p["name"] for p in filters["products"]] == ["Abaya", "Dress"]
+    assert [b["name"] for b in filters["brands"]] == ["Acme"]
+    assert rows(await brand_deliverables(client, brand_id=filters["brands"][0]["id"])) != []

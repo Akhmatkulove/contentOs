@@ -9,6 +9,8 @@ export interface Product {
   sku: string | null
   photoUrl: string | null
   status: ProductStatus
+  // Shoots are working on it: Archive is off (docs/adr/0022).
+  inWork: boolean
 }
 
 export function toProduct(item: Schemas['ProductListItem']): Product {
@@ -19,6 +21,7 @@ export function toProduct(item: Schemas['ProductListItem']): Product {
     sku: item.sku,
     photoUrl: item.photo?.url ?? null,
     status: item.status,
+    inWork: item.in_work,
   }
 }
 

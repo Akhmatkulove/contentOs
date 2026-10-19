@@ -2,8 +2,9 @@
 import { nextTick, useTemplateRef } from 'vue'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { useShootForm, type ShootFormTarget } from '../model/shoot-form'
+import type { ShootPlan } from '../model/shoot-plan'
 import { useShootTeam } from '../model/shoot-team'
 import ShootDeliverablesSection from './ShootDeliverablesSection.vue'
 import ShootDetailsSection from './ShootDetailsSection.vue'
@@ -12,7 +13,8 @@ import ShootReferencesSection from './ShootReferencesSection.vue'
 import ShootTeamSection from './ShootTeamSection.vue'
 
 // `editing`: the shoot to edit (its id and saved state); without it, a new shoot.
-const { editing } = defineProps<{ editing?: ShootFormTarget }>()
+// `plan`: a new shoot planned from the backlog (docs/adr/0019).
+const { editing, plan } = defineProps<{ editing?: ShootFormTarget; plan?: ShootPlan }>()
 
 // Create new shoot (Figma "SCREEN:s_new Create new shoot" and its mobile
 // state): details, team, products, references, deliverables.
@@ -43,7 +45,7 @@ const {
   removeDeliverable,
   submit,
   saving,
-} = useShootForm({ members, creatorIds, mobilographerIds }, editing)
+} = useShootForm({ members, creatorIds, mobilographerIds }, editing, plan)
 
 const formElement = useTemplateRef('formElement')
 
@@ -76,7 +78,7 @@ async function onSubmit() {
         <VIcon name="arrow-left-02-sharp" :size="14" />
         {{ editing ? 'Back to shoot' : 'Back to shoots' }}
       </RouterLink>
-      <VNotificationButton unread class="lg:hidden" />
+      <NotificationBell class="lg:hidden" />
     </div>
 
     <header class="flex items-center justify-between gap-4 md:min-h-16">

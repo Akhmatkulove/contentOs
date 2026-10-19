@@ -12,6 +12,8 @@ export interface ShootProduct {
   name: string
   collection: string
   photoUrl: string | null
+  // In the archive: a new deliverable of it starts as To shoot (docs/adr/0022).
+  archived: boolean
 }
 
 export function toShootProduct(item: ProductListItem): ShootProduct {
@@ -20,6 +22,7 @@ export function toShootProduct(item: ProductListItem): ShootProduct {
     name: item.name,
     collection: item.collection ?? '',
     photoUrl: item.photo?.url ?? null,
+    archived: item.status === 'archived',
   }
 }
 

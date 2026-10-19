@@ -4,7 +4,7 @@ import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import {
-  deliverableStatuses,
+  deliverableStatusChip,
   deliverableTypes,
   formatDueDate,
   type Deliverable,
@@ -83,8 +83,8 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
           <span v-else class="text-p3 font-medium text-secondary">Unassigned</span>
         </div>
         <div role="cell">
-          <VStatus :tone="deliverableStatuses[item.status].tone" class="w-full">
-            {{ deliverableStatuses[item.status].label }}
+          <VStatus :tone="deliverableStatusChip(item).tone" class="w-full">
+            {{ deliverableStatusChip(item).label }}
           </VStatus>
         </div>
         <div role="cell" class="text-p3 font-medium text-secondary">

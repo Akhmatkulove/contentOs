@@ -7,7 +7,7 @@ import { VCombobox } from '@/shared/ui/combobox'
 import { VDropzone } from '@/shared/ui/dropzone'
 import { VIcon } from '@/shared/ui/icon'
 import { VInput } from '@/shared/ui/input'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { VSectionCard } from '@/shared/ui/section-card'
 import { VSelect } from '@/shared/ui/select'
 import { VTagsInput } from '@/shared/ui/tags-input'
@@ -66,7 +66,7 @@ const emptyListClass =
         <VIcon name="arrow-left-02-sharp" :size="14" />
         {{ editing ? 'Back to product' : 'Back to products' }}
       </RouterLink>
-      <VNotificationButton unread class="lg:hidden" />
+      <NotificationBell class="lg:hidden" />
     </div>
 
     <header class="flex items-center justify-between gap-4">

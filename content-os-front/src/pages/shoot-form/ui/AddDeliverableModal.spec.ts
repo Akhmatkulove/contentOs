@@ -12,8 +12,8 @@ vi.mock('../api/shoots', async (importOriginal) => ({
 
 const context: DeliverableContext = {
   products: [
-    { id: 'p1', name: 'Black Abaya 042', collection: '', photoUrl: null },
-    { id: 'p2', name: 'Sand Abaya 017', collection: '', photoUrl: null },
+    { id: 'p1', name: 'Black Abaya 042', collection: '', photoUrl: null, archived: false },
+    { id: 'p2', name: 'Sand Abaya 017', collection: '', photoUrl: null, archived: false },
   ],
   team: [
     { id: 'amina', name: 'Amina', photo_url: null },
@@ -34,6 +34,7 @@ beforeEach(() => {
       name: 'Hero walk',
       type: 'video',
       brief: null,
+      status: 'to_shoot',
       due_date: '2024-09-20',
       shoots: [],
     },
@@ -43,6 +44,7 @@ beforeEach(() => {
       name: 'Fabric detail',
       type: 'image',
       brief: null,
+      status: 'to_shoot',
       due_date: null,
       shoots: [{ id: 's9', name: 'Shoot 04', date: '2024-09-10' }],
     },
@@ -53,12 +55,12 @@ let host: VueWrapper | undefined
 
 // Returns the pending result in an object: awaiting a bare promise here
 // would wait for the modal to close.
-async function open() {
+async function open(extra: Partial<DeliverableContext> = {}) {
   host = mount(VModalHost, {
     attachTo: document.body,
     global: { plugins: [createPinia(), PiniaColada] },
   })
-  const result = openAddDeliverable(context)
+  const result = openAddDeliverable({ ...context, ...extra })
   // The modal is an async component: let its chunk load and render.
   await vi.dynamicImportSettled()
   await flushPromises()
@@ -151,6 +153,38 @@ describe('AddDeliverableModal (shoot)', () => {
       product: { id: 'p2' },
       productDeliverable: { id: 'pd2', name: 'Fabric detail' },
     })
+  })
+
+  it('starts with the deliverable planned from the backlog', async () => {
+    const { result } = await open({ productDeliverableId: 'pd1' })
+    expect(field('Product deliverable').textContent).toContain('Black Abaya 042 · Hero walk')
+    expect(field('Deliverable').value).toBe('Hero walk')
+
+    await click(button('Add deliverable'))
+    expect(await result).toMatchObject({
+      name: 'Hero walk',
+      type: 'video',
+      dueDate: '2024-09-20',
+      productDeliverable: { id: 'pd1' },
+    })
+  })
+
+  it('asks for a pick when the planned deliverable is no longer offered', async () => {
+    await open({ productDeliverableId: 'gone' })
+    await click(button('Add deliverable'))
+    expect(document.body.textContent).toContain('Select the product deliverable.')
+  })
+
+  it('keeps a new deliverable of an archived product at To shoot', async () => {
+    const products = context.products.map((product) =>
+      product.id === 'p2' ? { ...product, archived: true } : product,
+    )
+    const { result } = await open({ products })
+    await choose('Product deliverable', 'Sand Abaya 017 · Fabric detail · In Shoot 04')
+    expect(field('Status').disabled).toBe(true)
+
+    await click(button('Add deliverable'))
+    expect(await result).toMatchObject({ status: 'to_shoot', product: { id: 'p2' } })
   })
 
   it('offers the shoot team as assignees', async () => {

@@ -91,6 +91,8 @@ class ProductResponse(BaseModel):
     references: list[ReferenceResponse]
     deliverables: list[DeliverableResponse]
     created_at: datetime
+    # По продукту идёт работа в съёмках: архив недоступен (docs/adr/0022).
+    in_work: bool
     # Пользователь — бренд-владелец: ему доступны редактирование и кнопки «+».
     can_edit: bool
 
@@ -104,6 +106,8 @@ class ProductListItem(BaseModel):
     # Первое фото продукта, presigned URL.
     photo: FileResponse | None
     created_at: datetime
+    # По продукту идёт работа в съёмках: архив недоступен (docs/adr/0022).
+    in_work: bool
 
 
 class ProductOption(BaseModel):

@@ -12,6 +12,7 @@ import { openBrowseProducts } from './browse-products'
 import type { ShootDeliverable, ShootProduct, TeamMember } from './shoot-draft'
 import { useShootReferences } from './shoot-references'
 import type { ShootFormInitial } from './shoot-initial'
+import type { ShootPlan } from './shoot-plan'
 import { toShootCreate } from './shoot-request'
 
 // Shoot details: everything but the location is required, as on the server
@@ -68,8 +69,9 @@ export interface ShootFormTarget {
 }
 
 // State of the create and edit shoot screens. Saving puts the shoot with
-// everything in it and opens the shoot.
-export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
+// everything in it and opens the shoot. A `plan` from the backlog starts a new
+// shoot with its product ticked and its deliverable ready (docs/adr/0019).
+export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget, plan?: ShootPlan) {
   const initial = editing?.initial
   const details = reactive({
     name: initial?.details.name ?? '',
@@ -84,9 +86,10 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
   })
 
   // The shoot's products, from "Browse all products"; the ticked ones go into the shoot.
-  const products = ref<ShootProduct[]>(initial?.products ?? [])
+  const startProducts = initial?.products ?? (plan ? [plan.product] : [])
+  const products = ref<ShootProduct[]>(startProducts)
   const productSearch = ref('')
-  const selectedProducts = ref<string[]>((initial?.products ?? []).map((product) => product.id))
+  const selectedProducts = ref<string[]>(startProducts.map((product) => product.id))
 
   // Deliverables of the shoot: all of them go into it. Removing a saved one
   // deletes it on save.
@@ -135,6 +138,16 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
   async function addDeliverable() {
     const deliverable = await openAddDeliverable({
       shootId: editing?.id,
+      // The planned deliverable, while its product is ticked and until the
+      // shoot has a deliverable for it.
+      productDeliverableId:
+        plan &&
+        selectedProducts.value.includes(plan.product.id) &&
+        !deliverables.value.some(
+          (item) => item.productDeliverable?.id === plan.productDeliverableId,
+        )
+          ? plan.productDeliverableId
+          : undefined,
       products: tickedProducts.value,
       team: toValue(team.members),
       references: references.value

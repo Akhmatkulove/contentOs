@@ -533,6 +533,179 @@ async def test_a_saved_deliverable_keeps_its_product_deliverable(
     assert response.status_code == 422
 
 
+async def test_a_product_deliverable_takes_its_status_from_the_shoots(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    named = await products(client)
+    url = f"/api/products/{named['Abaya']}"
+
+    async def order() -> tuple[str, int]:
+        [item] = (await client.get(url)).json()["deliverables"]
+        return item["status"], item["shoots"]
+
+    assert await order() == ("to_shoot", 0)
+    first = await post(client, await shoot(client))
+    second = await post(client, await shoot(client))
+    assert await order() == ("to_shoot", 2)
+
+    async def set_status(shoot_id: str, value: DeliverableStatus) -> None:
+        await db_session.execute(
+            update(ShootDeliverable)
+            .where(ShootDeliverable.shoot_id == shoot_id)
+            .values(status=value)
+        )
+
+    # The most urgent work wins; content sent to the brand wins over all.
+    await set_status(first["id"], DeliverableStatus.IN_PROGRESS)
+    assert await order() == ("in_progress", 2)
+    await set_status(second["id"], DeliverableStatus.NEEDS_CHANGES)
+    assert await order() == ("needs_changes", 2)
+    await set_status(first["id"], DeliverableStatus.NEEDS_REVIEW)
+    assert await order() == ("needs_review", 2)
+    await set_status(second["id"], DeliverableStatus.APPROVED)
+    assert await order() == ("approved", 2)
+    # The brand sees it too, and the picker shows the same status.
+    options = (await client.get("/api/shoots/product-deliverables")).json()
+    assert [o["status"] for o in options if o["product_id"] == named["Abaya"]] == ["approved"]
+    await log_in(client, "brand@example.com")
+    assert await order() == ("approved", 2)
+
+
+async def test_the_brand_cannot_remove_a_deliverable_in_work(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    body = await shoot(client)
+    await post(client, body)
+    url = f"/api/products/{body['product_ids'][0]}"
+
+    async def remove() -> Any:
+        await log_in(client, "brand@example.com")
+        current = (await client.get(url)).json()
+        response = await client.put(url, json=edit_body(current, deliverable_ids=[]))
+        await log_in(client, "amina@example.com")
+        return response
+
+    in_work = set(DeliverableStatus) - {DeliverableStatus.TO_SHOOT}
+    for value in sorted(in_work):
+        await db_session.execute(update(ShootDeliverable).values(status=value))
+        response = await remove()
+        assert (response.status_code, response.json()["detail"]) == (
+            422,
+            "A deliverable in work can't be removed",
+        ), value
+    # The rest of the product still saves.
+    await log_in(client, "brand@example.com")
+    current = (await client.get(url)).json()
+    assert (await client.put(url, json=edit_body(current, name="Renamed"))).status_code == 200
+
+    # Planned but not started yet: it goes, the shoot keeps its deliverable.
+    await db_session.execute(update(ShootDeliverable).values(status=DeliverableStatus.TO_SHOOT))
+    assert (await remove()).status_code == 200
+
+
+async def test_a_product_in_work_cannot_be_archived(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    body = await shoot(client)
+    await post(client, body)
+    abaya = body["product_ids"][0]
+    url = f"/api/products/{abaya}"
+
+    async def archive() -> Any:
+        await log_in(client, "brand@example.com")
+        response = await client.patch(url, json={"status": "archived"})
+        await log_in(client, "amina@example.com")
+        return response
+
+    async def in_work() -> tuple[bool, bool]:
+        await log_in(client, "brand@example.com")
+        page = (await client.get(url)).json()["in_work"]
+        listing = (await client.get("/api/products")).json()["items"]
+        await log_in(client, "amina@example.com")
+        return page, next(item["in_work"] for item in listing if item["id"] == abaya)
+
+    assert await in_work() == (False, False)
+    # Planned, nothing started: it can go and come back.
+    assert (await archive()).status_code == 200
+    await log_in(client, "brand@example.com")
+    assert (await client.patch(url, json={"status": "active"})).status_code == 200
+    await log_in(client, "amina@example.com")
+    for value in (
+        DeliverableStatus.IN_PROGRESS,
+        DeliverableStatus.NEEDS_REVIEW,
+        DeliverableStatus.NEEDS_CHANGES,
+    ):
+        await db_session.execute(update(ShootDeliverable).values(status=value))
+        assert await in_work() == (True, True), value
+        response = await archive()
+        assert (response.status_code, response.json()["detail"]) == (
+            422,
+            "A product in work can't be archived",
+        ), value
+
+    # Everything sent to the brand: done, it can go.
+    await db_session.execute(update(ShootDeliverable).values(status=DeliverableStatus.APPROVED))
+    assert await in_work() == (False, False)
+    assert (await archive()).status_code == 200
+    # Restoring is always allowed, and archiving an archived one changes nothing.
+    await db_session.execute(update(ShootDeliverable).values(status=DeliverableStatus.IN_PROGRESS))
+    assert (await archive()).status_code == 200
+    await log_in(client, "brand@example.com")
+    assert (await client.patch(url, json={"status": "active"})).status_code == 200
+
+
+async def test_new_work_on_an_archived_product_starts_as_to_shoot(client: AsyncClient) -> None:
+    body = await shoot(client)
+    created = await post(client, body)
+    url = f"/api/shoots/{created['id']}"
+    await log_in(client, "brand@example.com")
+    archived = await client.patch(
+        f"/api/products/{body['product_ids'][0]}", json={"status": "archived"}
+    )
+    assert archived.status_code == 200
+    await log_in(client, "amina@example.com")
+    page = (await client.get(url)).json()
+    assert page["products"][0]["archived"] is True
+    saved = {**body["deliverables"][0], "id": page["deliverables"][0]["id"]}
+
+    def with_new(status: str) -> dict[str, Any]:
+        return {**body, "deliverables": [saved, {**body["deliverables"][0], "status": status}]}
+
+    for status in ("in_progress", "needs_review", "needs_changes"):
+        response = await client.put(url, json=with_new(status))
+        assert (response.status_code, response.json()["detail"]) == (
+            422,
+            "A new deliverable of an archived product starts as to shoot",
+        ), status
+    assert (await client.put(url, json=with_new("to_shoot"))).status_code == 200
+    # Without a status it starts as to shoot too.
+    planned = {**body, "deliverables": [saved, body["deliverables"][0]]}
+    assert (await client.put(url, json=planned)).status_code == 200
+
+
+async def test_a_saved_deliverable_keeps_its_product(client: AsyncClient) -> None:
+    body = await shoot(client)
+    created = await post(client, body)
+    url = f"/api/shoots/{created['id']}"
+    walk = (await client.get(url)).json()["deliverables"][0]
+    named = await products(client)
+    ordered = await product_deliverables(client)
+    moved = {
+        **body["deliverables"][0],
+        "id": walk["id"],
+        "product_id": named["Dress"],
+        "product_deliverable_id": ordered["Dress"],
+    }
+    response = await client.put(
+        url,
+        json={**body, "product_ids": [named["Abaya"], named["Dress"]], "deliverables": [moved]},
+    )
+    assert (response.status_code, response.json()["detail"]) == (
+        422,
+        "A saved deliverable keeps its product",
+    )
+
+
 # --- Notes ---
 
 

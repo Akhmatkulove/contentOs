@@ -349,6 +349,66 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/notifications': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Notifications
+     * @description Последние уведомления пользователя и число непрочитанных (docs/adr/0020).
+     */
+    get: operations['list_notifications_api_notifications_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/notifications/read': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Read All
+     * @description Mark all as read.
+     */
+    post: operations['read_all_api_notifications_read_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/notifications/{notification_id}/read': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Read One
+     * @description Прочитано одно, например по клику; чужое — 404.
+     */
+    post: operations['read_one_api_notifications__notification_id__read_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/products': {
     parameters: {
       query?: never
@@ -717,6 +777,49 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/tasks/brand-deliverables': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Brand Deliverables
+     * @description Бэклог: заказы брендов, назначенные на арт-директора (docs/adr/0019).
+     *
+     *     Поиск по заказу, продукту и бренду без учёта регистра. `counts` — размеры
+     *     вкладок под поиском и фильтрами, `total` — выбранной.
+     */
+    get: operations['list_brand_deliverables_api_tasks_brand_deliverables_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/tasks/brand-deliverables/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Brand Deliverable Filters
+     * @description Продукты и бренды бэклога: варианты фильтров.
+     */
+    get: operations['list_brand_deliverable_filters_api_tasks_brand_deliverables_filters_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/tasks/{task_id}': {
     parameters: {
       query?: never
@@ -1006,6 +1109,81 @@ export interface components {
       assigned_at: string
     }
     /**
+     * BrandDeliverableCounts
+     * @description Размеры вкладок под текущими поиском и фильтрами.
+     */
+    BrandDeliverableCounts: {
+      /** All */
+      all: number
+      /** Not Scheduled */
+      not_scheduled: number
+      /** To Shoot */
+      to_shoot: number
+      /** In Progress */
+      in_progress: number
+      /** Needs Review */
+      needs_review: number
+      /** Needs Changes */
+      needs_changes: number
+      /** Approved */
+      approved: number
+    }
+    /**
+     * BrandDeliverableFilters
+     * @description Продукты и бренды заказов арт-директора: варианты фильтров.
+     */
+    BrandDeliverableFilters: {
+      /** Products */
+      products: components['schemas']['TaskFilterOption'][]
+      /** Brands */
+      brands: components['schemas']['TeamMember'][]
+    }
+    /**
+     * BrandDeliverableItem
+     * @description Строка бэклога: заказ бренда, назначенный на арт-директора (docs/adr/0019).
+     */
+    BrandDeliverableItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      type: components['schemas']['DeliverableType']
+      /** Brief */
+      brief: string | null
+      /** Due Date */
+      due_date: string | null
+      status: components['schemas']['DeliverableStatus']
+      /** Shoots Total */
+      shoots_total: number
+      /** Shoots */
+      shoots: components['schemas']['PlannedShoot'][]
+      product: components['schemas']['TaskProduct']
+      brand: components['schemas']['TeamMember']
+    }
+    /** BrandDeliverableList */
+    BrandDeliverableList: {
+      /** Items */
+      items: components['schemas']['BrandDeliverableItem'][]
+      /** Total */
+      total: number
+      counts: components['schemas']['BrandDeliverableCounts']
+    }
+    /**
+     * BrandDeliverableSort
+     * @enum {string}
+     */
+    BrandDeliverableSort: 'priority' | 'due_date' | 'name_asc'
+    /**
+     * BrandDeliverableStatus
+     * @description Вкладки бэклога: статус заказа, а to_shoot — отдельно запланированные и нет.
+     * @enum {string}
+     */
+    BrandDeliverableStatus:
+      'not_scheduled' | 'to_shoot' | 'in_progress' | 'needs_review' | 'needs_changes' | 'approved'
+    /**
      * CollectionOption
      * @description Коллекция в списке поля Collection.
      */
@@ -1049,8 +1227,6 @@ export interface components {
        * Format: uuid
        */
       assignee_id: string
-      /** @default to_shoot */
-      status: components['schemas']['DeliverableStatus']
       /** Due Date */
       due_date?: string | null
       /** Brief */
@@ -1068,6 +1244,8 @@ export interface components {
       type: components['schemas']['DeliverableType']
       assignee: components['schemas']['TeamMember'] | null
       status: components['schemas']['DeliverableStatus']
+      /** Shoots */
+      shoots: number
       /** Due Date */
       due_date: string | null
       /** Brief */
@@ -1236,6 +1414,52 @@ export interface components {
      */
     NoteVisibility: 'internal' | 'private'
     /**
+     * NotificationList
+     * @description Последние уведомления, новые первыми, и число непрочитанных всего.
+     */
+    NotificationList: {
+      /** Items */
+      items: components['schemas']['NotificationResponse'][]
+      /** Unread */
+      unread: number
+    }
+    /** NotificationProduct */
+    NotificationProduct: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      photo: components['schemas']['FileResponse'] | null
+    }
+    /** NotificationResponse */
+    NotificationResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      type: components['schemas']['NotificationType']
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** Read */
+      read: boolean
+      actor: components['schemas']['TeamMember'] | null
+      product: components['schemas']['NotificationProduct'] | null
+      /** Count */
+      count: number
+    }
+    /**
+     * NotificationType
+     * @enum {string}
+     */
+    NotificationType: 'deliverables_assigned'
+    /**
      * OnboardingUpdate
      * @description Ответы шага онбординга. Неуказанные поля не меняются.
      */
@@ -1307,6 +1531,7 @@ export interface components {
       brief: string | null
       /** Due Date */
       due_date: string | null
+      status: components['schemas']['DeliverableStatus']
       /** Shoots */
       shoots: components['schemas']['PlannedShoot'][]
     }
@@ -1345,6 +1570,8 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /** In Work */
+      in_work: boolean
     }
     /**
      * ProductOption
@@ -1399,6 +1626,8 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /** In Work */
+      in_work: boolean
       /** Can Edit */
       can_edit: boolean
     }
@@ -1831,6 +2060,8 @@ export interface components {
       /** Category */
       category: string | null
       photo: components['schemas']['FileResponse'] | null
+      /** Archived */
+      archived: boolean
       deliverables: components['schemas']['DeliverableCounts']
     }
     /**
@@ -2907,6 +3138,99 @@ export interface operations {
       }
     }
   }
+  list_notifications_api_notifications_get: {
+    parameters: {
+      query?: {
+        limit?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['NotificationList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  read_all_api_notifications_read_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  read_one_api_notifications__notification_id__read_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        notification_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_products_api_products_get: {
     parameters: {
       query?: {
@@ -3836,6 +4160,76 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['TaskFilters']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_brand_deliverables_api_tasks_brand_deliverables_get: {
+    parameters: {
+      query?: {
+        search?: string
+        status?: components['schemas']['BrandDeliverableStatus'] | null
+        product_id?: string | null
+        brand_id?: string | null
+        sort?: components['schemas']['BrandDeliverableSort']
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BrandDeliverableList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_brand_deliverable_filters_api_tasks_brand_deliverables_filters_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['BrandDeliverableFilters']
         }
       }
       /** @description Validation Error */

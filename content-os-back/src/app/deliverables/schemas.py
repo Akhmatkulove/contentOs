@@ -17,7 +17,6 @@ class DeliverableDraft(BaseModel):
     name: Name
     type: DeliverableType
     assignee_id: uuid.UUID
-    status: DeliverableStatus = DeliverableStatus.TO_SHOOT
     due_date: date | None = None
     brief: LongText = None
 
@@ -28,18 +27,28 @@ class DeliverableResponse(BaseModel):
     type: DeliverableType
     # None: исполнителя сняли (связку убрали или аккаунт удалён).
     assignee: TeamMember | None
+    # Из deliverables съёмок, которые его закрывают (docs/adr/0018).
     status: DeliverableStatus
+    # Сколько съёмок его закрывают; 0 — ещё не запланирован.
+    shoots: int
     due_date: date | None
     brief: str | None
 
     @classmethod
-    def of(cls, deliverable: Deliverable, assignee: TeamMember | None) -> "DeliverableResponse":
+    def of(
+        cls,
+        deliverable: Deliverable,
+        assignee: TeamMember | None,
+        status: DeliverableStatus,
+        shoots: int,
+    ) -> "DeliverableResponse":
         return cls(
             id=deliverable.id,
             name=deliverable.name,
             type=deliverable.type,
             assignee=assignee,
-            status=deliverable.status,
+            status=status,
+            shoots=shoots,
             due_date=deliverable.due_date,
             brief=deliverable.brief,
         )

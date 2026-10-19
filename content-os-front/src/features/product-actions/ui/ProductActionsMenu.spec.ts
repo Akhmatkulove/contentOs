@@ -5,7 +5,11 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { http } from '@/shared/api'
 import ProductActionsMenu from './ProductActionsMenu.vue'
 
-async function openMenu(canEdit: boolean, status: 'active' | 'archived' = 'active') {
+async function openMenu(
+  canEdit: boolean,
+  status: 'active' | 'archived' = 'active',
+  inWork = false,
+) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -16,7 +20,7 @@ async function openMenu(canEdit: boolean, status: 'active' | 'archived' = 'activ
   })
   await router.push('/')
   const wrapper = mount(ProductActionsMenu, {
-    props: { product: { id: 'p1', status }, canEdit },
+    props: { product: { id: 'p1', status, inWork }, canEdit },
     slots: { trigger: '<button type="button" aria-label="Product actions">…</button>' },
     global: { plugins: [router, createPinia(), PiniaColada] },
     attachTo: document.body,
@@ -77,6 +81,24 @@ describe('ProductActionsMenu', () => {
     const archived = await openMenu(true, 'archived')
     await pick(archived.items(), 'Restore product')
     expect(patch).toHaveBeenLastCalledWith('/products/p1', { status: 'active' })
+    archived.wrapper.unmount()
+  })
+
+  it('keeps a product shoots work on out of the archive, and says why', async () => {
+    const patch = vi.spyOn(http, 'patch')
+    const { items, wrapper } = await openMenu(true, 'active', true)
+    const archive = items().find((item) => item.textContent?.includes('Archive product'))!
+    expect(archive.textContent).toContain('Shoots are still working on it')
+    expect(archive.hasAttribute('data-disabled')).toBe(true)
+    archive.click()
+    await flushPromises()
+    expect(patch).not.toHaveBeenCalled()
+    wrapper.unmount()
+    document.body.innerHTML = ''
+
+    // Restoring is always allowed.
+    const archived = await openMenu(true, 'archived', true)
+    expect(archived.items().map((item) => item.textContent?.trim())).toContain('Restore product')
     archived.wrapper.unmount()
   })
 

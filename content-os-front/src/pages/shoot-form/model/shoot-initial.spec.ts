@@ -21,6 +21,7 @@ const shoot: ShootDetails = {
       collection: null,
       category: null,
       photo: null,
+      archived: false,
       deliverables: {
         total: 1,
         to_shoot: 1,
@@ -61,7 +62,9 @@ describe('fromShoot', () => {
     expect(initial.creatorIds).toEqual(['lana'])
     expect(initial.mobilographerIds).toEqual(['odina', 'dilya'])
     expect(initial.members.map((m) => m.id)).toEqual(['lana', 'odina', 'dilya'])
-    expect(initial.products).toEqual([{ id: 'p1', name: 'Abaya', collection: '', photoUrl: null }])
+    expect(initial.products).toEqual([
+      { id: 'p1', name: 'Abaya', collection: '', photoUrl: null, archived: false },
+    ])
   })
 
   it('marks deliverables as saved, so they keep their ids', () => {

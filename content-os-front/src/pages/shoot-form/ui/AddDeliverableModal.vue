@@ -9,7 +9,7 @@ import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
 import { selectChevronClass, selectTriggerClass, VSelect } from '@/shared/ui/select'
 import type { DeliverableContext } from '../model/add-deliverable'
-import { statusOptions, useAddDeliverableForm } from '../model/add-deliverable-form'
+import { useAddDeliverableForm } from '../model/add-deliverable-form'
 import {
   firstAndMore,
   type DeliverableReference,
@@ -35,6 +35,8 @@ const {
   errors,
   productDeliverables,
   loadingProductDeliverables,
+  statuses,
+  archived,
   assignees,
   references,
   toggleAssignee,
@@ -137,12 +139,19 @@ const referencesId = useId()
         </div>
 
         <VDatePicker v-model="form.dueDate" label="Due date" placeholder="Select due date" />
-        <VSelect
-          v-model="form.status"
-          :options="statusOptions"
-          label="Status"
-          placeholder="Select status"
-        />
+        <div class="flex min-w-0 flex-col gap-1.5">
+          <VSelect
+            v-model="form.status"
+            :options="statuses"
+            label="Status"
+            placeholder="Select status"
+            :disabled="archived"
+          />
+          <!-- Why the status is fixed (docs/adr/0022). -->
+          <p v-if="archived" class="text-p4 font-medium text-secondary">
+            The product is archived: new work starts as To shoot.
+          </p>
+        </div>
       </div>
 
       <div class="flex min-w-0 flex-col gap-2">

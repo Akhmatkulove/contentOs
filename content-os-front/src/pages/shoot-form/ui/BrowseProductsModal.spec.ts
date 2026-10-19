@@ -20,6 +20,7 @@ function item(id: string, name: string) {
     status: 'active' as const,
     photo: null,
     created_at: '2026-10-01T10:00:00Z',
+    in_work: false,
   }
 }
 
@@ -69,7 +70,15 @@ describe('BrowseProductsModal', () => {
       total: 2,
     })
 
-    await open([{ id: 'p2', name: 'Cream Dress 011', collection: 'Autumn 26', photoUrl: null }])
+    await open([
+      {
+        id: 'p2',
+        name: 'Cream Dress 011',
+        collection: 'Autumn 26',
+        photoUrl: null,
+        archived: false,
+      },
+    ])
 
     expect(fetchProducts).toHaveBeenCalledWith({
       search: '',
@@ -98,7 +107,13 @@ describe('BrowseProductsModal', () => {
     button('Save').click()
 
     expect(await result).toEqual([
-      { id: 'p1', name: 'Black Abaya 042', collection: 'Autumn 26', photoUrl: null },
+      {
+        id: 'p1',
+        name: 'Black Abaya 042',
+        collection: 'Autumn 26',
+        photoUrl: null,
+        archived: false,
+      },
     ])
   })
 

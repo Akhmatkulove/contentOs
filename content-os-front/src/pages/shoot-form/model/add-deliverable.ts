@@ -9,6 +9,8 @@ const AddDeliverableModal = defineAsyncComponent(() => import('../ui/AddDelivera
 export interface DeliverableContext {
   // The shoot being edited; a new one has none.
   shootId?: string
+  // Picked when the modal opens: the deliverable planned from the backlog.
+  productDeliverableId?: string
   // The ticked products.
   products: ShootProduct[]
   // The shoot's team: creators and mobilographers.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSessionStore } from '@/entities/session'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 
 // Figma "CMS / Mobile / Topbar": the user's avatar, the screen title, the bell.
 // Shown below lg, where there is no sidebar.
@@ -29,7 +29,6 @@ const initial = computed(() => (session.me?.name ?? '').charAt(0).toUpperCase())
       </div>
       <h1 class="truncate text-h6 text-primary">{{ title }}</h1>
     </div>
-    <!-- TODO(api): notifications — the dot is always on until they exist. -->
-    <VNotificationButton unread />
+    <NotificationBell />
   </header>
 </template>

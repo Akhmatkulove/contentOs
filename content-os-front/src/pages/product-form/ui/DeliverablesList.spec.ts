@@ -9,6 +9,7 @@ const deliverables: DeliverableDraft[] = [
     type: 'video',
     assignee: { id: 'a', name: 'Amina', photo_url: '/amina.webp' },
     status: 'to_shoot',
+    shoots: 0,
     dueDate: '2024-09-18',
     brief: 'Product movement video',
   },
@@ -18,6 +19,7 @@ const deliverables: DeliverableDraft[] = [
     type: 'video',
     assignee: { id: 'b', name: 'Odina', photo_url: null },
     status: 'approved',
+    shoots: 1,
     dueDate: '',
     brief: '',
   },
@@ -27,6 +29,7 @@ const deliverables: DeliverableDraft[] = [
     type: 'video',
     assignee: { id: 'c', name: null, photo_url: null },
     status: 'needs_changes',
+    shoots: 1,
     dueDate: '',
     brief: '',
   },
@@ -58,7 +61,7 @@ describe('DeliverablesList', () => {
         'Walking transitionProduct movement video',
         'Video',
         'Amina',
-        'To shoot',
+        'Not scheduled',
         'Sep 18, 2024',
         '',
       ],
@@ -73,7 +76,7 @@ describe('DeliverablesList', () => {
     const cards = wrapper.findAll('li')
     expect(cards).toHaveLength(3)
     expect(cards[0]!.text()).toBe(
-      'Walking transitionProduct movement videoTo shootVideoAssigneeAminaDue date Sep 18, 2024',
+      'Walking transitionProduct movement videoNot scheduledVideoAssigneeAminaDue date Sep 18, 2024',
     )
     expect(wrapper.find('li input[type="checkbox"]').exists()).toBe(false)
     expect(cards[0]!.find('[aria-label="Remove Walking transition"]').exists()).toBe(true)
@@ -81,7 +84,15 @@ describe('DeliverablesList', () => {
 
   it('asks to remove a deliverable', async () => {
     const wrapper = mount(DeliverablesList, { props: { deliverables } })
-    await wrapper.get('[aria-label="Remove Fabric close-up"]').trigger('click')
-    expect(wrapper.emitted('remove')).toEqual([['2']])
+    await wrapper.get('[aria-label="Remove Walking transition"]').trigger('click')
+    expect(wrapper.emitted('remove')).toEqual([['1']])
+  })
+
+  it('keeps a deliverable a shoot already works on', () => {
+    const wrapper = mount(DeliverablesList, { props: { deliverables } })
+    const cross = wrapper.get(
+      '[aria-label="Fabric close-up is in work in a shoot and can\'t be removed"]',
+    )
+    expect(cross.attributes('disabled')).toBeDefined()
   })
 })

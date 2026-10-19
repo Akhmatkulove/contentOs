@@ -1,4 +1,27 @@
-import { deliverablesLabel, dueHint, formatDueDate, toDeliverable } from './deliverable'
+import {
+  deliverableInWork,
+  deliverablesLabel,
+  deliverableStatusChip,
+  dueHint,
+  formatDueDate,
+  toDeliverable,
+} from './deliverable'
+
+describe('deliverableInWork', () => {
+  it('is in work once a shoot has started it, sent content included', () => {
+    expect(deliverableInWork({ status: 'to_shoot' })).toBe(false)
+    expect(deliverableInWork({ status: 'in_progress' })).toBe(true)
+    expect(deliverableInWork({ status: 'approved' })).toBe(true)
+  })
+})
+
+describe('deliverableStatusChip', () => {
+  it('says a deliverable no shoot closes yet is not scheduled', () => {
+    expect(deliverableStatusChip({ status: 'to_shoot', shoots: 0 }).label).toBe('Not scheduled')
+    expect(deliverableStatusChip({ status: 'to_shoot', shoots: 1 }).label).toBe('To shoot')
+    expect(deliverableStatusChip({ status: 'approved', shoots: 1 }).label).toBe('Approved')
+  })
+})
 
 describe('formatDueDate', () => {
   it('shows the day as in Figma, without a timezone shift', () => {
@@ -20,6 +43,7 @@ describe('toDeliverable', () => {
         type: 'video',
         assignee: null,
         status: 'approved',
+        shoots: 2,
         due_date: null,
         brief: null,
       }),
@@ -29,6 +53,7 @@ describe('toDeliverable', () => {
       type: 'video',
       assignee: null,
       status: 'approved',
+      shoots: 2,
       dueDate: '',
       brief: '',
     })

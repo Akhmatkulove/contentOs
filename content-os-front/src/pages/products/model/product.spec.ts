@@ -9,8 +9,9 @@ describe('toProduct', () => {
       sku: null,
       status: 'active' as const,
       created_at: '2026-10-04T10:00:00Z',
+      in_work: true,
     }
-    expect(toProduct({ ...item, photo: null }).photoUrl).toBeNull()
+    expect(toProduct({ ...item, photo: null })).toMatchObject({ photoUrl: null, inWork: true })
     expect(
       toProduct({
         ...item,

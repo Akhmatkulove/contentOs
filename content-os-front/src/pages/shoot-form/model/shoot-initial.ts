@@ -28,6 +28,7 @@ export function fromShoot(shoot: ShootDetails): ShootFormInitial {
     name: product.name,
     collection: product.collection ?? '',
     photoUrl: product.photo?.url ?? null,
+    archived: product.archived,
   }))
   const references = shoot.references.map(toReference)
   const byId = new Map(references.map((reference) => [reference.id, reference]))

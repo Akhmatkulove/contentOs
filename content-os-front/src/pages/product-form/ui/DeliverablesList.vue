@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
-  deliverableStatuses,
+  deliverableInWork,
+  deliverableStatusChip,
   DeliverablesTable,
   deliverableTypes,
   formatDueDate,
@@ -20,6 +21,13 @@ const { deliverables, disabled = false } = defineProps<{
 }>()
 
 const emit = defineEmits<{ remove: [id: string] }>()
+
+// A deliverable a shoot already works on can't be removed (docs/adr/0021): the
+// cross is off and says why.
+const removeLabel = (item: Deliverable) =>
+  deliverableInWork(item)
+    ? `${item.name} is in work in a shoot and can't be removed`
+    : `Remove ${item.name}`
 </script>
 
 <template>
@@ -36,8 +44,8 @@ const emit = defineEmits<{ remove: [id: string] }>()
             {{ item.brief }}
           </p>
           <div class="flex items-center gap-2">
-            <VStatus :tone="deliverableStatuses[item.status].tone" :size="24">
-              {{ deliverableStatuses[item.status].label }}
+            <VStatus :tone="deliverableStatusChip(item).tone" :size="24">
+              {{ deliverableStatusChip(item).label }}
             </VStatus>
             <span class="text-p4 font-medium text-secondary">{{
               deliverableTypes[item.type]
@@ -47,8 +55,8 @@ const emit = defineEmits<{ remove: [id: string] }>()
         <VButton
           variant="ghost"
           size="icon-24"
-          :aria-label="`Remove ${item.name}`"
-          :disabled="disabled"
+          :aria-label="removeLabel(item)"
+          :disabled="disabled || deliverableInWork(item)"
           class="w-7"
           @click="emit('remove', item.id)"
         >
@@ -82,8 +90,8 @@ const emit = defineEmits<{ remove: [id: string] }>()
       <VButton
         variant="ghost"
         size="icon-24"
-        :aria-label="`Remove ${deliverable.name}`"
-        :disabled="disabled"
+        :aria-label="removeLabel(deliverable)"
+        :disabled="disabled || deliverableInWork(deliverable)"
         class="size-7"
         @click="emit('remove', deliverable.id)"
       >

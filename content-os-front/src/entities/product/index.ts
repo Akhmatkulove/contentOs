@@ -1,4 +1,4 @@
-export { patchProduct, type ProductDetails } from './api/product'
+export { fetchProduct, patchProduct, type ProductDetails } from './api/product'
 export {
   fetchProducts,
   type ProductList,

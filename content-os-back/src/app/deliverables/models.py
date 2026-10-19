@@ -25,7 +25,8 @@ class DeliverableType(enum.StrEnum):
 class Deliverable(Base):
     """Единица контента, которую нужно снять для продукта.
 
-    Назначенный арт-директор видит продукт (docs/adr/0004).
+    Назначенный арт-директор видит продукт (docs/adr/0004). Статус не хранится:
+    он выводится из deliverables съёмок, которые закрывают этот (docs/adr/0018).
     """
 
     __tablename__ = "deliverables"
@@ -42,8 +43,5 @@ class Deliverable(Base):
     name: Mapped[str] = mapped_column(String(200))
     type: Mapped[DeliverableType] = mapped_column(string_enum(DeliverableType, "deliverable_type"))
     brief: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[DeliverableStatus] = mapped_column(
-        string_enum(DeliverableStatus, "deliverable_status"), default=DeliverableStatus.TO_SHOOT
-    )
     due_date: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

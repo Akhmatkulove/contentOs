@@ -30,6 +30,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
         collection: 'Autumn Drop',
         category: 'Abayas',
         photo: { id: 'f1', kind: 'image', content_type: 'image/webp', url: 'abaya.webp' },
+        archived: false,
         deliverables: counts(1, 2),
       },
       {
@@ -38,6 +39,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
         collection: null,
         category: null,
         photo: null,
+        archived: false,
         deliverables: counts(0, 1),
       },
     ],

@@ -161,6 +161,8 @@ class ShootProductItem(BaseModel):
     category: str | None
     # Первое фото продукта, presigned URL.
     photo: FileResponse | None
+    # В архиве: новый deliverable только to_shoot (docs/adr/0022).
+    archived: bool
     # Deliverables этой съёмки по продукту.
     deliverables: DeliverableCounts
 
@@ -222,6 +224,8 @@ class ProductDeliverableOption(BaseModel):
     type: DeliverableType
     brief: str | None
     due_date: dt.date | None
+    # Из deliverables всех съёмок, которые его закрывают (docs/adr/0018).
+    status: DeliverableStatus
     # Съёмки арт-директора, где заказ уже закрывает deliverable, по дате.
     shoots: list[PlannedShoot]
 
@@ -325,6 +329,61 @@ class TaskFilters(BaseModel):
     shoots: list[TaskFilterOption]
     products: list[TaskFilterOption]
     assignees: list[TeamMember]
+
+
+class BrandDeliverableStatus(enum.StrEnum):
+    """Вкладки бэклога: статус заказа, а to_shoot — отдельно запланированные и нет."""
+
+    # Ни одна съёмка его не закрывает.
+    NOT_SCHEDULED = "not_scheduled"
+    TO_SHOOT = "to_shoot"
+    IN_PROGRESS = "in_progress"
+    NEEDS_REVIEW = "needs_review"
+    NEEDS_CHANGES = "needs_changes"
+    APPROVED = "approved"
+
+
+class BrandDeliverableItem(BaseModel):
+    """Строка бэклога: заказ бренда, назначенный на арт-директора (docs/adr/0019)."""
+
+    id: uuid.UUID
+    name: str
+    type: DeliverableType
+    brief: str | None
+    due_date: dt.date | None
+    # Из deliverables всех съёмок, которые его закрывают (docs/adr/0018).
+    status: DeliverableStatus
+    # Сколько съёмок его закрывают; 0 — не запланирован.
+    shoots_total: int
+    # Съёмки этого арт-директора, где он уже закрывает deliverable, по дате.
+    shoots: list[PlannedShoot]
+    product: TaskProduct
+    brand: TeamMember
+
+
+class BrandDeliverableCounts(BaseModel):
+    """Размеры вкладок под текущими поиском и фильтрами."""
+
+    all: int
+    not_scheduled: int
+    to_shoot: int
+    in_progress: int
+    needs_review: int
+    needs_changes: int
+    approved: int
+
+
+class BrandDeliverableList(BaseModel):
+    items: list[BrandDeliverableItem]
+    total: int
+    counts: BrandDeliverableCounts
+
+
+class BrandDeliverableFilters(BaseModel):
+    """Продукты и бренды заказов арт-директора: варианты фильтров."""
+
+    products: list[TaskFilterOption]
+    brands: list[TeamMember]
 
 
 VersionTitle = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]

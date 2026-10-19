@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { useHelpArticle } from '../model/article'
 
 const { slug } = defineProps<{ slug: string }>()
@@ -23,8 +23,7 @@ const { topic, vote } = useHelpArticle(() => slug)
         <VIcon name="arrow-left-02-sharp" :size="18" />
         Back to Help &amp; support
       </RouterLink>
-      <!-- TODO(api): notifications — the dot is always on until they exist. -->
-      <VNotificationButton unread class="hidden lg:inline-flex" />
+      <NotificationBell class="hidden lg:inline-flex" />
     </div>
 
     <p v-if="!topic" class="py-10 text-center text-p2 font-medium text-secondary">

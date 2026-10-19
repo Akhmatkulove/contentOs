@@ -378,20 +378,20 @@ async def test_creates_deliverables_in_order(client: AsyncClient, db_session: As
             [photo["id"]],
             deliverables=[
                 deliverable(amina, due_date="2024-09-18", brief="  Slow walk "),
-                deliverable(
-                    amina, name=" Fabric close-up ", type="image", status="approved", brief=""
-                ),
+                deliverable(amina, name=" Fabric close-up ", type="image", brief=""),
             ],
         ),
     )
 
+    # Not in any shoot yet: to shoot (docs/adr/0018).
     assert [
-        (d["name"], d["type"], d["assignee"]["id"], d["status"], d["due_date"], d["brief"])
+        tuple(d[key] for key in ("name", "type", "status", "shoots", "due_date", "brief"))
         for d in body["deliverables"]
     ] == [
-        ("Walking transition", "video", amina, "to_shoot", "2024-09-18", "Slow walk"),
-        ("Fabric close-up", "image", amina, "approved", None, None),
+        ("Walking transition", "video", "to_shoot", 0, "2024-09-18", "Slow walk"),
+        ("Fabric close-up", "image", "to_shoot", 0, None, None),
     ]
+    assert [d["assignee"]["id"] for d in body["deliverables"]] == [amina, amina]
 
 
 async def test_deliverable_needs_name_type_and_assignee(

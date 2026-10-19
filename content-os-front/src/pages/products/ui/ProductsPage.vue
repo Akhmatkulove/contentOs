@@ -2,7 +2,7 @@
 import { VButton } from '@/shared/ui/button'
 import { VClearFilters } from '@/shared/ui/clear-filters'
 import { VIcon } from '@/shared/ui/icon'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { VPagination } from '@/shared/ui/pagination'
 import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
@@ -48,7 +48,7 @@ const {
           </RouterLink>
         </VButton>
         <!-- TODO(ui): mobile topbar in AppLayout (Figma "CMS / Mobile / Topbar"); move the bell there. -->
-        <VNotificationButton unread class="lg:hidden" />
+        <NotificationBell class="lg:hidden" />
       </div>
     </header>
 

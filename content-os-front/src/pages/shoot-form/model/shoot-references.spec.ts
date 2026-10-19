@@ -21,7 +21,13 @@ vi.mock('@/features/add-reference', async (importOriginal) => ({
 }))
 vi.mock('./browse-references', () => ({ openReferenceBank: vi.fn() }))
 
-const abaya: ShootProduct = { id: 'p1', name: 'Abaya', collection: '', photoUrl: null }
+const abaya: ShootProduct = {
+  id: 'p1',
+  name: 'Abaya',
+  collection: '',
+  photoUrl: null,
+  archived: false,
+}
 
 function draft(id: string): ReferenceDraft {
   return {

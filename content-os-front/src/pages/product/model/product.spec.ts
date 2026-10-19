@@ -24,6 +24,7 @@ const deliverable = (fields: Partial<Deliverable>): Deliverable => ({
   type: 'video',
   assignee: amina,
   status: 'to_shoot',
+  shoots: 0,
   dueDate: '',
   brief: '',
   ...fields,

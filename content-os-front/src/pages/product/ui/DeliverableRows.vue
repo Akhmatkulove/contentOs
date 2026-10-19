@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  deliverableStatuses,
+  deliverableStatusChip,
   deliverableTypes,
   formatDueDate,
   type Deliverable,
@@ -35,8 +35,8 @@ const { deliverables } = defineProps<{ deliverables: Deliverable[] }>()
             {{ item.brief }}
           </p>
         </div>
-        <VStatus :tone="deliverableStatuses[item.status].tone" class="min-w-[118px]">
-          {{ deliverableStatuses[item.status].label }}
+        <VStatus :tone="deliverableStatusChip(item).tone" class="min-w-[118px]">
+          {{ deliverableStatusChip(item).label }}
         </VStatus>
       </div>
       <div class="flex min-h-7 items-center gap-3 pl-15">

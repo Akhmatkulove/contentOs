@@ -2,7 +2,7 @@ import { useQuery } from '@pinia/colada'
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive } from 'vue'
-import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
+import type { DeliverableType } from '@/entities/deliverable'
 import type { SelectOption } from '@/shared/ui/select'
 import { fetchArtDirectors, type TeamMember } from '../api/team'
 import type { DeliverableDraft } from './deliverable-draft'
@@ -24,7 +24,6 @@ export function useAddDeliverableForm() {
     name: '',
     type: undefined as DeliverableType | undefined,
     assigneeId: undefined as string | undefined,
-    status: 'to_shoot' as DeliverableStatus,
     dueDate: '',
     brief: '',
   })
@@ -55,7 +54,9 @@ export function useAddDeliverableForm() {
       name: data.name,
       type: data.type,
       assignee,
-      status: form.status,
+      // Not in any shoot yet; then the status comes from the shoots (docs/adr/0018).
+      status: 'to_shoot',
+      shoots: 0,
       dueDate: form.dueDate,
       brief: data.brief,
     }

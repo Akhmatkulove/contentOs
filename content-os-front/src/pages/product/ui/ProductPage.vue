@@ -26,6 +26,7 @@ const {
   notFound,
   tab,
   canEdit,
+  actionsTarget,
   editRoute,
   status,
   meta,
@@ -77,7 +78,7 @@ useActiveTabInView(useTemplateRef('tabList'), tab)
               Edit
             </RouterLink>
           </VButton>
-          <ProductActionsMenu :product="product" :can-edit="canEdit">
+          <ProductActionsMenu v-if="actionsTarget" :product="actionsTarget" :can-edit="canEdit">
             <template #trigger>
               <VButton
                 variant="surface"
@@ -124,7 +125,7 @@ useActiveTabInView(useTemplateRef('tabList'), tab)
                 Edit
               </RouterLink>
             </VButton>
-            <ProductActionsMenu :product="product" :can-edit="canEdit">
+            <ProductActionsMenu v-if="actionsTarget" :product="actionsTarget" :can-edit="canEdit">
               <template #trigger>
                 <VButton
                   variant="ghost"

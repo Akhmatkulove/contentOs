@@ -7,6 +7,13 @@ import { toast } from '@/shared/ui/toast'
 export interface ProductActionsTarget {
   id: string
   status: ProductStatus
+  // Shoots are working on it: it can't be archived (docs/adr/0022).
+  inWork: boolean
+}
+
+// Archive is off while shoots work on the product; Restore is always on.
+export function canToggleArchive(product: ProductActionsTarget): boolean {
+  return product.status === 'archived' || !product.inWork
 }
 
 // "Archive product" while active, "Restore product" once archived.
@@ -36,12 +43,21 @@ export function useProductActions() {
   }
 
   const { mutate: setStatus, isLoading: archiving } = useMutation({
-    mutation: ({ id, status }: ProductActionsTarget) => patchProduct(id, { status }),
+    mutation: ({ id, status }: { id: string; status: ProductStatus }) =>
+      patchProduct(id, { status }),
     onSuccess: async (saved) => {
       queryCache.setQueryData(productKeys.detail(saved.id), saved)
       // Cards show the status; filters by status will too.
       await queryCache.invalidateQueries({ key: productKeys.lists })
       toast.success(saved.status === 'archived' ? 'Product archived' : 'Product restored')
+    },
+    // Refused (shoots started working on it meanwhile, docs/adr/0022): the menu
+    // reloads what it knows, so Archive turns off.
+    onError: async (_error, { id }) => {
+      await Promise.all([
+        queryCache.invalidateQueries({ key: productKeys.detail(id) }),
+        queryCache.invalidateQueries({ key: productKeys.lists }),
+      ])
     },
   })
 

@@ -13,7 +13,10 @@ export interface Deliverable {
   type: DeliverableType
   // Null once the assignee is unassigned (the brand–art director link was removed).
   assignee: Assignee | null
+  // Comes from the shoot deliverables that close it (docs/adr/0018).
   status: DeliverableStatus
+  // How many shoots close it; 0 — not scheduled yet.
+  shoots: number
   // ISO date, YYYY-MM-DD; empty when not set.
   dueDate: string
   brief: string
@@ -26,6 +29,7 @@ export function toDeliverable(item: Schemas['DeliverableResponse']): Deliverable
     type: item.type,
     assignee: item.assignee,
     status: item.status,
+    shoots: item.shoots,
     dueDate: item.due_date ?? '',
     brief: item.brief ?? '',
   }
@@ -60,6 +64,24 @@ export const deliverableStatuses = {
   needs_changes: { label: 'Needs changes', tone: 'danger' },
   approved: { label: 'Approved', tone: 'success' },
 } as const satisfies Record<DeliverableStatus, { label: string; tone: string }>
+
+// A brand's deliverable as a VStatus: its status, but "Not scheduled" while no
+// shoot closes it yet (docs/adr/0018).
+export function deliverableStatusChip(deliverable: Pick<Deliverable, 'status' | 'shoots'>): {
+  label: string
+  tone: (typeof deliverableStatuses)[DeliverableStatus]['tone']
+} {
+  if (deliverable.status === 'to_shoot' && deliverable.shoots === 0) {
+    return { label: 'Not scheduled', tone: 'info' }
+  }
+  return deliverableStatuses[deliverable.status]
+}
+
+// A shoot is already working on it (or has sent its content): the brand can't
+// remove it (docs/adr/0021). Planned but not started is still removable.
+export function deliverableInWork(deliverable: Pick<Deliverable, 'status'>): boolean {
+  return deliverable.status !== 'to_shoot'
+}
 
 // "2024-09-18" → "Sep 18, 2024"; read as a local date, not UTC midnight.
 export function formatDueDate(iso: string): string {

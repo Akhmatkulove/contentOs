@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VAvatar } from '@/shared/ui/avatar'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { VStatus } from '@/shared/ui/status'
 import { useProfile } from '../model/profile'
 
@@ -20,8 +20,7 @@ const { profile } = useProfile()
         <h1 class="text-h3 text-primary">My profile</h1>
         <p class="text-p2 font-medium text-secondary">Manage your personal info.</p>
       </div>
-      <!-- TODO(api): notifications — the dot is always on until they exist. -->
-      <VNotificationButton unread class="hidden lg:inline-flex" />
+      <NotificationBell class="hidden lg:inline-flex" />
     </header>
 
     <section

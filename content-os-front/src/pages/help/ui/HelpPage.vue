@@ -2,7 +2,7 @@
 import { VButton } from '@/shared/ui/button'
 import type { IconName } from '@/shared/ui/icon'
 import { VIcon } from '@/shared/ui/icon'
-import { VNotificationButton } from '@/shared/ui/notification-button'
+import { NotificationBell } from '@/widgets/notification-bell'
 import { VSearch } from '@/shared/ui/search'
 import { useHelp } from '../model/help'
 
@@ -32,8 +32,7 @@ const categories: { title: string; description: string; icon: IconName }[] = [
         <VIcon name="arrow-left-02-sharp" :size="18" />
         Back
       </VButton>
-      <!-- TODO(api): notifications — the dot is always on until they exist. -->
-      <VNotificationButton unread class="hidden lg:inline-flex" />
+      <NotificationBell class="hidden lg:inline-flex" />
     </div>
 
     <header class="flex flex-col gap-1.5">

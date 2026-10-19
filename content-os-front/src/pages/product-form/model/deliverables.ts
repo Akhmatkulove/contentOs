@@ -1,5 +1,5 @@
 import { computed, shallowRef } from 'vue'
-import type { Deliverable } from '@/entities/deliverable'
+import { deliverableInWork, type Deliverable } from '@/entities/deliverable'
 import { toast } from '@/shared/ui/toast'
 import { openAddDeliverable } from './add-deliverable'
 import type { DeliverableDraft } from './deliverable-draft'
@@ -18,7 +18,9 @@ export function useDeliverables(productName: () => string) {
     toast.success('Deliverable added')
   }
 
+  // One a shoot already works on stays: the server would refuse it (docs/adr/0021).
   function removeDeliverable(id: string) {
+    if (saved.value.some((item) => item.id === id && deliverableInWork(item))) return
     saved.value = saved.value.filter((item) => item.id !== id)
     drafts.value = drafts.value.filter((item) => item.id !== id)
     toast.success('Deliverable removed')

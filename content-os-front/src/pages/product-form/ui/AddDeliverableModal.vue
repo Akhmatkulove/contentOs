@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import { deliverableStatusOptions, deliverableTypeOptions } from '@/entities/deliverable'
+import { deliverableTypeOptions } from '@/entities/deliverable'
 import { VButton } from '@/shared/ui/button'
 import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
@@ -56,12 +56,6 @@ const formId = useId()
           required
           :error="errors.assigneeId"
           :placeholder="assigneesLoading ? 'Loading…' : 'Select art director'"
-        />
-        <VSelect
-          v-model="form.status"
-          :options="deliverableStatusOptions"
-          label="Status"
-          placeholder="Select status"
         />
         <!-- TODO(ui): VDatePicker — Figma shows a select with a chevron; native date input until then. -->
         <VInput v-model="form.dueDate" label="Due date" type="date" />

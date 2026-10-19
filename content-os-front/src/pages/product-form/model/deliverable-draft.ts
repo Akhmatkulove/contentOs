@@ -16,7 +16,6 @@ export function toRequest(draft: DeliverableDraft): Schemas['DeliverableDraft'] 
     name: draft.name,
     type: draft.type,
     assignee_id: draft.assignee.id,
-    status: draft.status,
     due_date: draft.dueDate || null,
     brief: draft.brief || null,
   }

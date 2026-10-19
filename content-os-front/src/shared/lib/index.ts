@@ -20,3 +20,4 @@ export {
   uploadAll,
 } from './uploads'
 export { useActiveTabInView } from './active-tab-in-view'
+export { badgeLabel } from './badge'
