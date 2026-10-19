@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, type HTMLAttributes } from 'vue'
+import { computed, type HTMLAttributes } from 'vue'
 import {
   DialogContent,
   DialogDescription,
@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { grabberGesture } from './grabber-gesture'
-import { modalContextKey } from './modal-stack'
+import { useHostedModal } from './modal-stack'
 
 // Figma "Modal / …" on desktop, "Sheet / …" (bottom sheet) on mobile. One
 // Reka Dialog, the look switches by breakpoint in CSS only: no second tree,
@@ -34,9 +34,7 @@ const {
   class?: HTMLAttributes['class']
 }>()
 
-const modal = inject(modalContextKey, null)
-if (!modal) throw new Error('VModal must be the root of a component opened with openModal().')
-const { open, dismiss } = modal
+const { open, dismiss } = useHostedModal()
 
 // Mobile first: a sheet glued to the bottom that slides up. From md: a centred
 // card that fades and scales in (the slide is reset to 0).

@@ -19,7 +19,10 @@ export function useFavorites() {
     // The list refetches with the saved state, then the local flip isn't needed.
     onSuccess: async (_data, { id, favorite }) => {
       toast.success(favorite ? 'Added to favorites' : 'Removed from favorites')
-      await queryCache.invalidateQueries({ key: referenceKeys.lists })
+      await Promise.all([
+        queryCache.invalidateQueries({ key: referenceKeys.lists }),
+        queryCache.invalidateQueries({ key: referenceKeys.detail(id) }),
+      ])
       pending.delete(id)
     },
   })

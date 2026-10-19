@@ -259,6 +259,7 @@ function setSort(value: string | undefined) {
         <li v-for="reference in references" :key="reference.id">
           <ReferenceCard
             :reference="reference"
+            :to="{ name: 'reference', params: { id: reference.id } }"
             :removable="canRemove(reference.id)"
             @toggle-favorite="toggleFavorite(reference)"
             @remove="removeReference(reference)"

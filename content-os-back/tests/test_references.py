@@ -348,6 +348,31 @@ async def test_only_visible_references_can_be_favorited(
     assert await favorite(client, str(uuid.uuid4())) == 404
 
 
+async def test_reference_page_shows_a_visible_reference(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await art_director(client, db_session, "odina@example.com", "Odina")
+    image = await upload(client, image_bytes())
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Walk", "tags": ["pose"], "file_ids": [image["id"]]}]
+    )
+    await log_in(client, "amina@example.com")
+    [walk] = (await listing(client))["items"]
+    assert await favorite(client, walk["id"]) == 204
+
+    response = await client.get(f"/api/references/{walk['id']}")
+    assert response.status_code == 200, response.text
+    page = response.json()
+    assert page == {**walk, "favorite": True, "files": page["files"]}
+    assert [file["id"] for file in page["files"]] == [image["id"]]
+
+    # Чужой и несуществующий отвечают одинаково.
+    await log_in(client, "odina@example.com")
+    assert (await client.get(f"/api/references/{walk['id']}")).status_code == 404
+    assert (await client.get(f"/api/references/{uuid.uuid4()}")).status_code == 404
+
+
 async def test_favorites_tab_lists_only_favorites_with_tab_counts(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:

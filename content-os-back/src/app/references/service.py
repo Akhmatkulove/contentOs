@@ -320,6 +320,19 @@ async def to_responses(
     ]
 
 
+async def get_reference(
+    db: AsyncSession, user: User, storage: Storage, reference_id: uuid.UUID
+) -> ReferenceResponse:
+    """Страница референса. Невидимый отвечает 404, как несуществующий."""
+    reference = await db.scalar(
+        select(Reference).where(Reference.id == reference_id, _visible(user))
+    )
+    if reference is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reference not found")
+    [response] = await to_responses(db, user, storage, [reference])
+    return response
+
+
 async def create_reference(
     db: AsyncSession, user: User, body: ReferenceCreate, storage: Storage
 ) -> ReferenceResponse:

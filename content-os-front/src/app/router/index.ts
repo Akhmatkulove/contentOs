@@ -98,6 +98,13 @@ export const router = createRouter({
           meta: { roles: team, title: 'References' },
         },
         {
+          path: 'references/:id',
+          name: 'reference',
+          component: () => import('@/pages/references').then((m) => m.ReferencePage),
+          props: true,
+          meta: { section: 'references', roles: team },
+        },
+        {
           path: 'activity',
           name: 'activity',
           component: () => import('@/pages/activity').then((m) => m.ActivityPage),

@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import type { Reference } from '../model/reference'
 import ReferenceCard from './ReferenceCard.vue'
 
@@ -77,5 +77,24 @@ describe('ReferenceCard', () => {
     })
     expect(wrapper.find('[aria-label="Remove"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label^="Favorite"]').exists()).toBe(false)
+  })
+
+  it('opens the reference page from its title when given a route', () => {
+    const to = { name: 'reference', params: { id: '1' } }
+    const wrapper = mount(ReferenceCard, {
+      props: { reference, to },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    const link = wrapper.getComponent(RouterLinkStub)
+    expect(link.props('to')).toEqual(to)
+    expect(link.text()).toBe('Linen texture details')
+  })
+
+  it('has no link without a route', () => {
+    const wrapper = mount(ReferenceCard, {
+      props: { reference },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false)
   })
 })

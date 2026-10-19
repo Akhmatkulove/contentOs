@@ -11,4 +11,7 @@ export const referenceKeys = {
   // Products, creators and tags of the pool: the references page and the
   // reference bank share the entry.
   filters: ['references', 'filters'] as const,
+  // The reference page. A star there refreshes `lists` as well; a star on a
+  // list refreshes the page's entry.
+  detail: (id: string) => ['references', 'detail', id] as const,
 }

@@ -15,4 +15,9 @@ describe('referenceKeys', () => {
     expect(under(referenceKeys.filters, referenceKeys.lists)).toBe(false)
     expect(under(referenceKeys.filters, referenceKeys.all)).toBe(true)
   })
+
+  it('keeps the reference page out of lists, under all', () => {
+    expect(under(referenceKeys.detail('r1'), referenceKeys.lists)).toBe(false)
+    expect(under(referenceKeys.detail('r1'), referenceKeys.all)).toBe(true)
+  })
 })

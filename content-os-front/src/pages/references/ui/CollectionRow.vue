@@ -77,6 +77,7 @@ const more = computed(() => total - references.length)
       >
         <ReferenceCard
           :reference="reference"
+          :to="{ name: 'reference', params: { id: reference.id } }"
           :removable="canRemove(reference.id)"
           @toggle-favorite="emit('toggleFavorite', reference)"
           @remove="emit('remove', reference)"

@@ -1,4 +1,5 @@
 import {
+  inject,
   markRaw,
   shallowReactive,
   type AllowedComponentProps,
@@ -28,6 +29,14 @@ export interface ModalContext {
 
 export const modalContextKey: InjectionKey<ModalContext> = Symbol('modal')
 
+// The open state and dismiss of the modal this component was opened as. VModal
+// uses it; a dialog with its own look (a fullscreen viewer) builds on it too.
+export function useHostedModal(): ModalContext {
+  const modal = inject(modalContextKey, null)
+  if (!modal) throw new Error('Only a component opened with openModal() is a hosted modal.')
+  return modal
+}
+
 // Long enough for the exit animation (300ms) before the modal unmounts.
 const REMOVE_DELAY_MS = 400
 
@@ -45,7 +54,8 @@ export type ModalResult<C> =
 
 type OpenProps<C> = Omit<PropsOf<C>, 'onClose' | keyof VNodeProps | keyof AllowedComponentProps>
 
-// The component's root is VModal; it emits close(result?) to finish. Pass a
+// The component's root is VModal (or, for a dialog with its own look, a Reka
+// Dialog on useHostedModal()); it emits close(result?) to finish. Pass a
 // defineAsyncComponent() to load the modal's code only when it opens.
 export function openModal<C extends Component>(
   component: C,

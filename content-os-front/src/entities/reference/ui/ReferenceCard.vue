@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 import { VButton } from '@/shared/ui/button'
 import { type IconName, VIcon } from '@/shared/ui/icon'
 import { formatDuration, referenceKindLabels, type Reference } from '../model/reference'
 
 const {
   reference,
+  to,
   favoriteToggle = true,
   removable = false,
 } = defineProps<{
   reference: Reference
+  // The reference page: the whole card opens it, the buttons stay their own.
+  to?: RouteLocationRaw
   // false: no favourite star (screens where the user can't star, like the product page).
   favoriteToggle?: boolean
   // true: a delete button next to the star (the references page, for the author).
@@ -49,7 +53,7 @@ const badges = computed(() => {
 -->
 <template>
   <article
-    class="flex min-w-0 flex-col gap-2 overflow-hidden rounded-xl border border-default bg-card p-2.5 md:gap-3 md:rounded-none md:border-0 md:bg-transparent md:p-0"
+    class="group/card relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-xl border border-default bg-card p-2.5 md:gap-3 md:rounded-none md:border-0 md:bg-transparent md:p-0"
   >
     <div class="relative aspect-[9/16] overflow-hidden rounded-lg bg-muted md:rounded-2xl">
       <img
@@ -57,9 +61,14 @@ const badges = computed(() => {
         :src="reference.previewUrl"
         alt=""
         loading="lazy"
-        class="size-full object-cover"
+        :class="[
+          'size-full object-cover',
+          to &&
+            'transition-transform duration-500 ease-out group-hover/card:scale-[1.03] motion-reduce:transition-none',
+        ]"
       />
-      <div class="absolute inset-x-2.5 top-2.5 flex items-center justify-between">
+      <!-- z-10: above the card-wide link of the title. -->
+      <div class="absolute inset-x-2.5 top-2.5 z-10 flex items-center justify-between">
         <span
           v-if="duration"
           class="flex items-center gap-1 rounded-md bg-overlay-media px-2 py-1 text-p4 font-medium text-inverse"
@@ -115,7 +124,15 @@ const badges = computed(() => {
 
     <div class="flex flex-col gap-2 md:gap-1.5">
       <h3 class="truncate text-p2 font-semibold text-primary md:text-p1">
-        {{ reference.title }}
+        <!-- Its ::after covers the card, so a tap anywhere but the buttons opens the page. -->
+        <RouterLink
+          v-if="to"
+          :to="to"
+          class="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-violet-300 md:after:rounded-2xl"
+        >
+          {{ reference.title }}
+        </RouterLink>
+        <template v-else>{{ reference.title }}</template>
       </h3>
       <p class="truncate text-p3 font-medium text-secondary">
         {{ referenceKindLabels[reference.kind] }} • {{ reference.author }}

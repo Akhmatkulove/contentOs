@@ -99,6 +99,14 @@ async def list_filters(
     return await service.list_filters(db, user, settings)
 
 
+@router.get("/{reference_id}")
+async def get_reference(
+    reference_id: uuid.UUID, user: ApprovedUser, db: SessionDep, storage: StorageDep
+) -> ReferenceResponse:
+    """Страница референса: видимый пользователю, иначе 404."""
+    return await service.get_reference(db, user, storage, reference_id)
+
+
 @router.put("/{reference_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
 async def add_favorite(reference_id: uuid.UUID, user: ApprovedUser, db: SessionDep) -> None:
     """Добавить в избранное; повторный вызов ничего не меняет."""
