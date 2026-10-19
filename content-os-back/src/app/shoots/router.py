@@ -8,8 +8,9 @@ from app.auth.models import Role, User
 from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep
-from app.shoots import notes, service
+from app.shoots import notes, product_deliverables, service
 from app.shoots.schemas import (
+    ProductDeliverableOption,
     ShootCreate,
     ShootList,
     ShootListItem,
@@ -59,6 +60,20 @@ async def create_shoot(
     shoot = await service.create_shoot(db, art_director, body)
     await db.commit()
     return await service.get_item(db, art_director, storage, settings, shoot.id)
+
+
+# До /{shoot_id}: иначе путь разберётся как id съёмки.
+@router.get("/product-deliverables")
+async def list_product_deliverables(
+    art_director: ArtDirectorUser,
+    db: SessionDep,
+    product_id: Annotated[list[uuid.UUID], Query(default_factory=list, max_length=50)],
+) -> list[ProductDeliverableOption]:
+    """Заказы бренда, назначенные на арт-директора, для Add deliverable (docs/adr/0017).
+
+    `product_id` — только этих продуктов (продукты съёмки); без него — все.
+    """
+    return await product_deliverables.list_options(db, art_director, product_id)
 
 
 @router.get("/{shoot_id}")

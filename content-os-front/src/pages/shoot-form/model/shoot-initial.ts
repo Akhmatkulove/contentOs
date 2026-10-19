@@ -54,6 +54,7 @@ export function fromShoot(shoot: ShootDetails): ShootFormInitial {
         name: deliverable.name,
         type: deliverable.type,
         product,
+        productDeliverable: deliverable.product_deliverable,
         references: deliverable.reference_ids.flatMap((id) => {
           const reference = byId.get(id)
           return reference

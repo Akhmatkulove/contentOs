@@ -30,6 +30,10 @@ class ShootDeliverableDraft(BaseModel):
     type: DeliverableType
     # Один из продуктов съёмки.
     product_id: uuid.UUID
+    # Deliverable этого продукта, назначенный на арт-директора: заказ бренда,
+    # который закрывает этот deliverable (docs/adr/0017). Обязателен; без него
+    # остаётся только сохранённый deliverable, чей заказ бренд убрал.
+    product_deliverable_id: uuid.UUID | None = None
     # Из команды съёмки: креаторы и мобилограф. Увидят deliverable в My tasks.
     assignee_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
     # Из референсов съёмки.
@@ -161,11 +165,20 @@ class ShootProductItem(BaseModel):
     deliverables: DeliverableCounts
 
 
+class LinkedProductDeliverable(BaseModel):
+    """Заказ бренда, который закрывает deliverable съёмки (docs/adr/0017)."""
+
+    id: uuid.UUID
+    name: str
+
+
 class ShootDeliverableResponse(BaseModel):
     id: uuid.UUID
     name: str
     type: DeliverableType
     product_id: uuid.UUID
+    # None: бренд убрал заказ из продукта.
+    product_deliverable: LinkedProductDeliverable | None
     assignees: list[TeamMember]
     # Из references съёмки, в порядке выбора.
     reference_ids: list[uuid.UUID]
@@ -191,6 +204,26 @@ class ShootResponse(BaseModel):
     deliverables: list[ShootDeliverableResponse]
     # Пользователь — автор съёмки: ему доступно редактирование.
     can_edit: bool
+
+
+class PlannedShoot(BaseModel):
+    id: uuid.UUID
+    name: str
+    date: dt.date
+
+
+class ProductDeliverableOption(BaseModel):
+    """Заказ бренда, назначенный на арт-директора: из них выбирается, что закрывает
+    deliverable съёмки (docs/adr/0017)."""
+
+    id: uuid.UUID
+    product_id: uuid.UUID
+    name: str
+    type: DeliverableType
+    brief: str | None
+    due_date: dt.date | None
+    # Съёмки арт-директора, где заказ уже закрывает deliverable, по дате.
+    shoots: list[PlannedShoot]
 
 
 NoteTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]

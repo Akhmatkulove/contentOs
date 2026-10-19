@@ -9,6 +9,7 @@ describe('shootKeys', () => {
     expect(under(shootKeys.list({ page: 1 }), shootKeys.lists)).toBe(true)
     expect(under(shootKeys.next, shootKeys.lists)).toBe(true)
     expect(under(shootKeys.overview('last_6_months'), shootKeys.lists)).toBe(true)
+    expect(under(shootKeys.productDeliverables(['p1']), shootKeys.lists)).toBe(true)
   })
 
   it('keeps a saved shoot and its notes out of lists', () => {

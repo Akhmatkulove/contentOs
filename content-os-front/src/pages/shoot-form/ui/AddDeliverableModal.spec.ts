@@ -1,6 +1,14 @@
+import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { closeAllModals, VModalHost } from '@/shared/ui/modal'
+import { fetchProductDeliverables } from '../api/shoots'
 import { openAddDeliverable, type DeliverableContext } from '../model/add-deliverable'
+
+vi.mock('../api/shoots', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/shoots')>()),
+  fetchProductDeliverables: vi.fn(),
+}))
 
 const context: DeliverableContext = {
   products: [
@@ -17,12 +25,39 @@ const context: DeliverableContext = {
   ],
 }
 
+// The brand's deliverables assigned to the art director in the shoot's products.
+beforeEach(() => {
+  vi.mocked(fetchProductDeliverables).mockResolvedValue([
+    {
+      id: 'pd1',
+      product_id: 'p1',
+      name: 'Hero walk',
+      type: 'video',
+      brief: null,
+      due_date: '2024-09-20',
+      shoots: [],
+    },
+    {
+      id: 'pd2',
+      product_id: 'p2',
+      name: 'Fabric detail',
+      type: 'image',
+      brief: null,
+      due_date: null,
+      shoots: [{ id: 's9', name: 'Shoot 04', date: '2024-09-10' }],
+    },
+  ])
+})
+
 let host: VueWrapper | undefined
 
 // Returns the pending result in an object: awaiting a bare promise here
 // would wait for the modal to close.
 async function open() {
-  host = mount(VModalHost, { attachTo: document.body })
+  host = mount(VModalHost, {
+    attachTo: document.body,
+    global: { plugins: [createPinia(), PiniaColada] },
+  })
   const result = openAddDeliverable(context)
   // The modal is an async component: let its chunk load and render.
   await vi.dynamicImportSettled()
@@ -52,6 +87,12 @@ async function click(el: HTMLElement) {
   await flushPromises()
 }
 
+// Opens the searchable select (a popover, opened by a click) and picks its option by text.
+async function choose(label: string, text: string) {
+  await click(field(label))
+  await click(option(text))
+}
+
 // Opens the select and picks its option by text.
 async function pick(label: string, text: string) {
   field(label).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
@@ -72,20 +113,44 @@ afterEach(() => {
 })
 
 describe('AddDeliverableModal (shoot)', () => {
-  it('asks for a name, a type and a product before adding', async () => {
+  it('asks for a product deliverable, a name and a type before adding', async () => {
     await open()
     await click(button('Add deliverable'))
     expect(document.body.textContent).toContain('Enter the deliverable.')
     expect(document.body.textContent).toContain('Select a type.')
-    expect(document.body.textContent).toContain('Select a product.')
+    expect(document.body.textContent).toContain('Select the product deliverable.')
     expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   })
 
-  it('offers the shoot products', async () => {
+  it("offers the brand's deliverables of the shoot products", async () => {
     await open()
-    field('Product').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    await flushPromises()
-    expect(options()).toEqual(['Black Abaya 042', 'Sand Abaya 017'])
+    expect(fetchProductDeliverables).toHaveBeenCalledWith(['p1', 'p2'])
+    await click(field('Product deliverable'))
+    expect(options()).toEqual([
+      'Black Abaya 042 · Hero walk',
+      'Sand Abaya 017 · Fabric detail · In Shoot 04',
+    ])
+  })
+
+  it("fills in the brand's name, type and due date, keeping what was typed", async () => {
+    const { result } = await open()
+    await choose('Product deliverable', 'Black Abaya 042 · Hero walk')
+    expect(field('Deliverable').value).toBe('Hero walk')
+
+    const name = field('Deliverable')
+    name.value = 'Hero walk, slow'
+    name.dispatchEvent(new Event('input'))
+    await choose('Product deliverable', 'Sand Abaya 017 · Fabric detail · In Shoot 04')
+
+    await click(button('Add deliverable'))
+    expect(await result).toMatchObject({
+      name: 'Hero walk, slow',
+      type: 'image',
+      // The first pick's date was not changed by hand, so the second pick's replaces it.
+      dueDate: '',
+      product: { id: 'p2' },
+      productDeliverable: { id: 'pd2', name: 'Fabric detail' },
+    })
   })
 
   it('offers the shoot team as assignees', async () => {
@@ -101,7 +166,7 @@ describe('AddDeliverableModal (shoot)', () => {
     name.value = 'Fabric close-up'
     name.dispatchEvent(new Event('input'))
     await pick('Type', 'Video')
-    await pick('Product', 'Sand Abaya 017')
+    await choose('Product deliverable', 'Sand Abaya 017 · Fabric detail · In Shoot 04')
 
     await click(button('Add deliverable'))
     expect((await result)?.references.map((reference) => reference.id)).toEqual(['r1', 'r2'])
@@ -119,7 +184,7 @@ describe('AddDeliverableModal (shoot)', () => {
     name.value = 'Walking transition'
     name.dispatchEvent(new Event('input'))
     await pick('Type', 'Video')
-    await pick('Product', 'Sand Abaya 017')
+    await choose('Product deliverable', 'Sand Abaya 017 · Fabric detail · In Shoot 04')
 
     await click(field('Assignee'))
     await click(option('AAmina'))
@@ -139,6 +204,7 @@ describe('AddDeliverableModal (shoot)', () => {
       name: 'Walking transition',
       type: 'video',
       product: { id: 'p2', name: 'Sand Abaya 017' },
+      productDeliverable: { id: 'pd2', name: 'Fabric detail' },
       assignees: [{ id: 'amina' }, { id: 'odina' }],
       references: [{ id: 'r2', title: 'Walk' }],
       dueDate: '',

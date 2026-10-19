@@ -9,6 +9,10 @@ export const shootKeys = {
   next: ['shoots', 'list', 'next'] as const,
   // Figma "Card / Shoot overview": counts for the period.
   overview: (period: string) => [...shootKeys.lists, 'overview', period] as const,
+  // Add deliverable: the brand's deliverables of these products assigned to the
+  // art director, with the shoots each is already in (docs/adr/0017).
+  productDeliverables: (productIds: string[]) =>
+    [...shootKeys.lists, 'product-deliverables', productIds] as const,
   // The shoot page and the edit form share the entry.
   detail: (id: string) => ['shoots', 'detail', id] as const,
   notes: (id: string) => [...shootKeys.detail(id), 'notes'] as const,

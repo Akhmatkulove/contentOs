@@ -9,7 +9,7 @@ import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
 import { selectChevronClass, selectTriggerClass, VSelect } from '@/shared/ui/select'
 import type { DeliverableContext } from '../model/add-deliverable'
-import { productOptions, statusOptions, useAddDeliverableForm } from '../model/add-deliverable-form'
+import { statusOptions, useAddDeliverableForm } from '../model/add-deliverable-form'
 import {
   firstAndMore,
   type DeliverableReference,
@@ -20,16 +20,27 @@ import { VListPicker } from '@/shared/ui/list-picker'
 import { VThumbnail } from '@/shared/ui/thumbnail'
 
 // Figma "Edit / Edit product" (Add deliverable) for a shoot. Everything is
-// picked from what the shoot has: its ticked products, its team (several
-// assignees) and its ticked references. References aren't in Figma yet: a field
-// in the same style under due date and status.
+// picked from what the shoot has: the brand's deliverables of its ticked
+// products, its team (several assignees) and its ticked references. The
+// product deliverable takes the place of Figma's Product field and comes first:
+// picking it fills in the name, type and due date (docs/adr/0017). References
+// aren't in Figma yet: a field in the same style under due date and status.
 const { context } = defineProps<{ context: DeliverableContext }>()
 
 // Closes with the new deliverable; nothing when cancelled.
 const emit = defineEmits<{ close: [deliverable?: ShootDeliverable] }>()
 
-const { form, errors, assignees, references, toggleAssignee, toggleReference, submit } =
-  useAddDeliverableForm(context)
+const {
+  form,
+  errors,
+  productDeliverables,
+  loadingProductDeliverables,
+  assignees,
+  references,
+  toggleAssignee,
+  toggleReference,
+  submit,
+} = useAddDeliverableForm(context)
 
 async function onSubmit() {
   const deliverable = await submit()
@@ -50,6 +61,22 @@ const referencesId = useId()
   <VModal title="Add deliverable" class="md:max-w-190 md:gap-5 md:rounded-[20px] md:p-7">
     <form :id="formId" class="flex flex-col gap-3.5 md:gap-5" @submit.prevent="onSubmit">
       <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-5">
+        <VSelect
+          v-model="form.productDeliverableId"
+          :options="productDeliverables"
+          label="Product deliverable"
+          required
+          searchable
+          search-placeholder="Search deliverables…"
+          :placeholder="loadingProductDeliverables ? 'Loading…' : 'Select'"
+          :empty-text="
+            context.products.length
+              ? 'No deliverables of the selected products are assigned to you.'
+              : 'Select a product of the shoot first.'
+          "
+          :error="errors.productDeliverableId"
+          class="md:col-span-2"
+        />
         <VInput
           v-model="form.name"
           label="Deliverable"
@@ -64,14 +91,6 @@ const referencesId = useId()
           required
           placeholder="Select"
           :error="errors.type"
-        />
-        <VSelect
-          v-model="form.productId"
-          :options="productOptions(context)"
-          label="Product"
-          required
-          placeholder="Select"
-          :error="errors.productId"
         />
 
         <div class="flex min-w-0 flex-col gap-2">

@@ -87,19 +87,24 @@ function pick(value: unknown) {
 
 <template>
   <PopoverRoot v-model:open="open">
-    <PopoverTrigger
-      v-bind="triggerAttrs"
-      :disabled="disabled"
-      aria-haspopup="listbox"
-      :class="triggerClass(invalid, variant)"
-    >
-      <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
-      <span :class="['min-w-0 flex-1 truncate', !selectedLabel && 'text-neutral-600']">
-        {{
-          prefix && selectedLabel ? `${prefix} ${selectedLabel}` : (selectedLabel ?? placeholder)
-        }}
-      </span>
-      <VIcon name="arrow-down-01-sharp" :size="16" :class="chevronClass" />
+    <!-- as-child: the button keeps the field's id (the label points at it) and
+         aria-haspopup; PopoverTrigger itself would put its own over them. -->
+    <PopoverTrigger as-child>
+      <button
+        v-bind="triggerAttrs"
+        type="button"
+        :disabled="disabled"
+        aria-haspopup="listbox"
+        :class="triggerClass(invalid, variant)"
+      >
+        <VIcon v-if="icon" :name="icon" :size="16" class="shrink-0 text-brand" />
+        <span :class="['min-w-0 flex-1 truncate', !selectedLabel && 'text-neutral-600']">
+          {{
+            prefix && selectedLabel ? `${prefix} ${selectedLabel}` : (selectedLabel ?? placeholder)
+          }}
+        </span>
+        <VIcon name="arrow-down-01-sharp" :size="16" :class="chevronClass" />
+      </button>
     </PopoverTrigger>
 
     <PopoverPortal>

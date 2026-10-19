@@ -585,6 +585,28 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/shoots/product-deliverables': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Product Deliverables
+     * @description Заказы бренда, назначенные на арт-директора, для Add deliverable (docs/adr/0017).
+     *
+     *     `product_id` — только этих продуктов (продукты съёмки); без него — все.
+     */
+    get: operations['list_product_deliverables_api_shoots_product_deliverables_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/shoots/{shoot_id}': {
     parameters: {
       query?: never
@@ -1127,6 +1149,19 @@ export interface components {
       /** Status */
       status: string
     }
+    /**
+     * LinkedProductDeliverable
+     * @description Заказ бренда, который закрывает deliverable съёмки (docs/adr/0017).
+     */
+    LinkedProductDeliverable: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
     /** LocationSuggestion */
     LocationSuggestion: {
       /** Title */
@@ -1209,6 +1244,21 @@ export interface components {
       /** Name */
       name?: string | null
     }
+    /** PlannedShoot */
+    PlannedShoot: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+    }
     /** ProductCreate */
     ProductCreate: {
       /** Name */
@@ -1233,6 +1283,32 @@ export interface components {
       references?: components['schemas']['ReferenceDraft'][]
       /** Deliverables */
       deliverables?: components['schemas']['DeliverableDraft'][]
+    }
+    /**
+     * ProductDeliverableOption
+     * @description Заказ бренда, назначенный на арт-директора: из них выбирается, что закрывает
+     *     deliverable съёмки (docs/adr/0017).
+     */
+    ProductDeliverableOption: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /**
+       * Product Id
+       * Format: uuid
+       */
+      product_id: string
+      /** Name */
+      name: string
+      type: components['schemas']['DeliverableType']
+      /** Brief */
+      brief: string | null
+      /** Due Date */
+      due_date: string | null
+      /** Shoots */
+      shoots: components['schemas']['PlannedShoot'][]
     }
     /**
      * ProductFilters
@@ -1604,6 +1680,8 @@ export interface components {
        * Format: uuid
        */
       product_id: string
+      /** Product Deliverable Id */
+      product_deliverable_id?: string | null
       /** Assignee Ids */
       assignee_ids?: string[]
       /** Reference Ids */
@@ -1627,6 +1705,7 @@ export interface components {
        * Format: uuid
        */
       product_id: string
+      product_deliverable: components['schemas']['LinkedProductDeliverable'] | null
       /** Assignees */
       assignees: components['schemas']['TeamMember'][]
       /** Reference Ids */
@@ -3405,6 +3484,39 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ShootListItem']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_product_deliverables_api_shoots_product_deliverables_get: {
+    parameters: {
+      query?: {
+        product_id?: string[]
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ProductDeliverableOption'][]
         }
       }
       /** @description Validation Error */

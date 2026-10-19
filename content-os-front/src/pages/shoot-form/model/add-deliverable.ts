@@ -7,6 +7,8 @@ const AddDeliverableModal = defineAsyncComponent(() => import('../ui/AddDelivera
 
 // What a new deliverable is picked from: what the shoot has at the moment.
 export interface DeliverableContext {
+  // The shoot being edited; a new one has none.
+  shootId?: string
   // The ticked products.
   products: ShootProduct[]
   // The shoot's team: creators and mobilographers.

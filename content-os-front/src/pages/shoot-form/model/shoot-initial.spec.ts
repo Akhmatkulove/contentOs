@@ -38,6 +38,7 @@ const shoot: ShootDetails = {
       name: 'Walk',
       type: 'video',
       product_id: 'p1',
+      product_deliverable: { id: 'pd1', name: 'Hero walk' },
       assignees: [member('lana')],
       reference_ids: ['gone'],
       due_date: null,
@@ -65,7 +66,13 @@ describe('fromShoot', () => {
 
   it('marks deliverables as saved, so they keep their ids', () => {
     const [walk] = fromShoot(shoot).deliverables
-    expect(walk).toMatchObject({ id: 'd1', saved: true, status: 'in_progress', dueDate: '' })
+    expect(walk).toMatchObject({
+      id: 'd1',
+      saved: true,
+      status: 'in_progress',
+      dueDate: '',
+      productDeliverable: { id: 'pd1', name: 'Hero walk' },
+    })
     // References no longer in the shoot are dropped.
     expect(walk?.references).toEqual([])
   })

@@ -78,8 +78,9 @@ class ShootReference(Base):
 class ShootDeliverable(Base):
     """Что снять на съёмке: продукт, исполнители из команды, референсы съёмки.
 
-    Отдельно от deliverables продукта (те назначают арт-директора, docs/adr/0004).
-    Исполнители увидят свои deliverables в My tasks.
+    Отдельно от deliverables продукта (те назначают арт-директора, docs/adr/0004),
+    но закрывает один из них (docs/adr/0017). Исполнители видят свои deliverables
+    в My tasks.
     """
 
     __tablename__ = "shoot_deliverables"
@@ -91,6 +92,11 @@ class ShootDeliverable(Base):
     position: Mapped[int]
     product_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"), index=True
+    )
+    # Deliverable продукта (заказ бренда), который закрывает этот deliverable.
+    # NULL: бренд убрал заказ из продукта (docs/adr/0017).
+    product_deliverable_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("deliverables.id", ondelete="SET NULL"), index=True
     )
     name: Mapped[str] = mapped_column(String(200))
     type: Mapped[DeliverableType] = mapped_column(

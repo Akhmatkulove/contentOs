@@ -134,6 +134,7 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
   // Picked from what the shoot has now.
   async function addDeliverable() {
     const deliverable = await openAddDeliverable({
+      shootId: editing?.id,
       products: tickedProducts.value,
       team: toValue(team.members),
       references: references.value

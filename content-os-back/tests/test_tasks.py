@@ -12,7 +12,7 @@ from app.shoots.models import ShootDeliverable, ShootDeliverableAssignee
 from tests.test_files import MP4, image_bytes, upload
 from tests.test_products import log_in, sign_up
 from tests.test_references import add_reference
-from tests.test_shoots import client, creators, post, products, shoot
+from tests.test_shoots import client, creators, post, product_deliverables, products, shoot
 
 __all__ = ["client"]
 
@@ -35,6 +35,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
     """Shoot 04: Walking (Lana) и Close-up (Lana, Odina); Shoot 05: Portrait (Odina)."""
     found = await products(client)
     abaya, dress = found["Abaya"], found["Dress"]
+    ordered = await product_deliverables(client)
     team = await creators(client)
     lana, odina = team["Lana"], team["Odina"]
     first = await post(
@@ -50,6 +51,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
                     "name": "Walking",
                     "type": "video",
                     "product_id": abaya,
+                    "product_deliverable_id": ordered["Abaya"],
                     "assignee_ids": [lana],
                     "due_date": LATER,
                 },
@@ -57,6 +59,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
                     "name": "Close-up",
                     "type": "video",
                     "product_id": dress,
+                    "product_deliverable_id": ordered["Dress"],
                     "assignee_ids": [lana, odina],
                     "due_date": SOON,
                     "status": "needs_review",
@@ -76,6 +79,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
                     "name": "Portrait",
                     "type": "video",
                     "product_id": abaya,
+                    "product_deliverable_id": ordered["Abaya"],
                     "assignee_ids": [odina],
                     "status": "needs_changes",
                 }
@@ -201,6 +205,7 @@ async def test_shows_the_first_references_and_how_many(client: AsyncClient) -> N
         for n in range(5)
     ]
     abaya = (await products(client))["Abaya"]
+    ordered = (await product_deliverables(client))["Abaya"]
     lana = (await creators(client))["Lana"]
     await post(
         client,
@@ -212,6 +217,7 @@ async def test_shows_the_first_references_and_how_many(client: AsyncClient) -> N
                     "name": "Walking",
                     "type": "video",
                     "product_id": abaya,
+                    "product_deliverable_id": ordered,
                     "assignee_ids": [lana],
                     "reference_ids": list(reversed(refs)),
                 }
@@ -623,6 +629,7 @@ async def edit_close_up(
                     "name": item["name"],
                     "type": item["type"],
                     "product_id": item["product_id"],
+                    "product_deliverable_id": item["product_deliverable"]["id"],
                     "assignee_ids": [a["id"] for a in item["assignees"]],
                     "due_date": item["due_date"],
                     **(changes if item["id"] == task_id else {}),
@@ -672,6 +679,7 @@ async def test_the_form_sets_the_status_of_new_deliverables_only(client: AsyncCl
                     "name": "Walking",
                     "type": "video",
                     "product_id": (await products(client))["Abaya"],
+                    "product_deliverable_id": (await product_deliverables(client))["Abaya"],
                     "status": "approved",
                 }
             ],

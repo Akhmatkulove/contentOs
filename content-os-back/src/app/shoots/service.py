@@ -35,6 +35,7 @@ from app.files.schemas import FileResponse
 from app.products.models import Product, ProductPhoto, ProductStatus
 from app.references import service as references
 from app.references.models import Reference
+from app.shoots import product_deliverables
 from app.shoots.models import (
     Shoot,
     ShootDeliverable,
@@ -47,6 +48,7 @@ from app.shoots.models import (
 )
 from app.shoots.schemas import (
     DeliverableCounts,
+    LinkedProductDeliverable,
     ShootCounts,
     ShootCreate,
     ShootDeliverableDraft,
@@ -179,6 +181,7 @@ async def _write_deliverables(
             db.add(deliverable)
         deliverable.position = index
         deliverable.product_id = draft.product_id
+        deliverable.product_deliverable_id = draft.product_deliverable_id
         deliverable.name = draft.name
         deliverable.type = draft.type
         deliverable.due_date = draft.due_date
@@ -210,6 +213,7 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
     if any(draft.id is not None for draft in body.deliverables):
         raise _unprocessable("Unknown deliverable")
     await _check(db, art_director, body)
+    await product_deliverables.require_linkable(db, art_director, body.deliverables, {})
     shoot = Shoot(art_director_id=art_director.id)
     _set_fields(shoot, body)
     db.add(shoot)
@@ -250,6 +254,7 @@ async def update_shoot(
     kept = {draft.id for draft in body.deliverables if draft.id is not None}
     if not kept <= set(existing):
         raise _unprocessable("Unknown deliverable")
+    await product_deliverables.require_linkable(db, art_director, body.deliverables, existing)
 
     for model in (ShootMember, ShootProduct, ShootReference):
         await db.execute(delete(model).where(model.shoot_id == shoot.id))
@@ -541,6 +546,17 @@ async def get_shoot(
         )
     )
     deliverable_ids = [deliverable.id for deliverable in deliverables]
+    product_deliverable_names = await product_deliverables.names(
+        db, (deliverable.product_deliverable_id for deliverable in deliverables)
+    )
+
+    def product_deliverable(deliverable: ShootDeliverable) -> LinkedProductDeliverable | None:
+        id_ = deliverable.product_deliverable_id
+        # Бренд мог удалить заказ между запросами: тогда его уже нет.
+        if id_ is None or id_ not in product_deliverable_names:
+            return None
+        return LinkedProductDeliverable(id=id_, name=product_deliverable_names[id_])
+
     assignees: dict[uuid.UUID, list[uuid.UUID]] = defaultdict(list)
     for row_ in await db.execute(
         select(ShootDeliverableAssignee.deliverable_id, ShootDeliverableAssignee.user_id)
@@ -626,6 +642,7 @@ async def get_shoot(
                 name=deliverable.name,
                 type=deliverable.type,
                 product_id=deliverable.product_id,
+                product_deliverable=product_deliverable(deliverable),
                 assignees=[member(user_id) for user_id in assignees[deliverable.id]],
                 reference_ids=deliverable_references[deliverable.id],
                 due_date=deliverable.due_date,

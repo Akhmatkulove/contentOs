@@ -23,6 +23,11 @@ export function toShootProduct(item: ProductListItem): ShootProduct {
   }
 }
 
+export interface LinkedProductDeliverable {
+  id: string
+  name: string
+}
+
 // A shoot reference as a deliverable shows it: a snapshot taken when the
 // deliverable was added.
 export interface DeliverableReference {
@@ -38,6 +43,9 @@ export interface ShootDeliverable {
   name: string
   type: DeliverableType
   product: ShootProduct
+  // The brand's deliverable of the product that this one closes (docs/adr/0017);
+  // null once the brand has removed it from the product.
+  productDeliverable: LinkedProductDeliverable | null
   // The shoot's references to follow; may be none.
   references: DeliverableReference[]
   // People of the shoot's team; may be none.

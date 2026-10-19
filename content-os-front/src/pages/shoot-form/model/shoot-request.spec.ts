@@ -8,6 +8,7 @@ const walk: ShootDeliverable = {
   name: 'Walking transition',
   type: 'video',
   product: { id: 'p1', name: 'Abaya', collection: '', photoUrl: null },
+  productDeliverable: { id: 'pd1', name: 'Hero walk' },
   references: [
     { id: 'r1', title: 'New', previewUrl: null },
     { id: 'r2', title: 'Unticked later', previewUrl: null },
@@ -52,6 +53,7 @@ describe('toShootCreate', () => {
         name: 'Walking transition',
         type: 'video',
         product_id: 'p1',
+        product_deliverable_id: 'pd1',
         assignee_ids: ['lana'],
         reference_ids: ['r1'],
         due_date: null,

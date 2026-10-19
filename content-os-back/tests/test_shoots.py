@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import AsyncIterator
 from datetime import date, timedelta
 from typing import Any
@@ -11,7 +12,7 @@ from app.auth.models import Role
 from app.core.config import Settings
 from app.core.db import get_session
 from app.core.storage import get_storage
-from app.deliverables.models import DeliverableStatus
+from app.deliverables.models import Deliverable, DeliverableStatus
 from app.main import create_app
 from app.shoots.models import Shoot, ShootDeliverable
 from tests.fakes import FakeStorage
@@ -20,6 +21,8 @@ from tests.test_products import (
     art_director,
     create,
     deliverable,
+    edit,
+    edit_body,
     log_in,
     product,
     sign_up,
@@ -62,6 +65,14 @@ async def products(client: AsyncClient) -> dict[str, str]:
     return {item["name"]: item["id"] for item in response.json()}
 
 
+async def product_deliverables(client: AsyncClient) -> dict[str, str]:
+    """Заказ Amina в каждом продукте: название продукта → id deliverable продукта."""
+    names = {id_: name for name, id_ in (await products(client)).items()}
+    response = await client.get("/api/shoots/product-deliverables")
+    assert response.status_code == 200, response.text
+    return {names[item["product_id"]]: item["id"] for item in response.json()}
+
+
 async def creators(client: AsyncClient) -> dict[str, str]:
     response = await client.get("/api/team/creators")
     assert response.status_code == 200
@@ -71,6 +82,7 @@ async def creators(client: AsyncClient) -> dict[str, str]:
 async def shoot(client: AsyncClient, **fields: Any) -> dict[str, Any]:
     """Тело запроса: Lana — креатор, Odina — мобилограф, один deliverable на Abaya для Lana."""
     abaya = (await products(client))["Abaya"]
+    ordered = (await product_deliverables(client))["Abaya"]
     team = await creators(client)
     return {
         "name": "Shoot 04 — Autumn Drop",
@@ -86,6 +98,7 @@ async def shoot(client: AsyncClient, **fields: Any) -> dict[str, Any]:
                 "name": "Walking transition",
                 "type": "video",
                 "product_id": abaya,
+                "product_deliverable_id": ordered,
                 "assignee_ids": [team["Lana"]],
             }
         ],
@@ -233,6 +246,7 @@ async def test_status_follows_date_and_deliverables(
 
 async def test_searches_filters_and_counts(client: AsyncClient) -> None:
     dress = (await products(client))["Dress"]
+    ordered = (await product_deliverables(client))["Dress"]
     await post(client, await shoot(client, name="Autumn", location="White Studio"))
     await post(
         client,
@@ -241,7 +255,14 @@ async def test_searches_filters_and_counts(client: AsyncClient) -> None:
             name="Summer",
             date=PAST,
             product_ids=[dress],
-            deliverables=[{"name": "Close-up", "type": "video", "product_id": dress}],
+            deliverables=[
+                {
+                    "name": "Close-up",
+                    "type": "video",
+                    "product_id": dress,
+                    "product_deliverable_id": ordered,
+                }
+            ],
         ),
     )
 
@@ -341,6 +362,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
     page = (await client.get(f"/api/shoots/{created['id']}")).json()
     walk = page["deliverables"][0]
     dress = (await products(client))["Dress"]
+    ordered = (await product_deliverables(client))["Dress"]
     team = await creators(client)
 
     response = await client.put(
@@ -356,6 +378,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
                     "name": "Close-up",
                     "type": "video",
                     "product_id": dress,
+                    "product_deliverable_id": ordered,
                     "assignee_ids": [team["Odina"]],
                 },
                 {
@@ -363,6 +386,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
                     "name": "Walk, renamed",
                     "type": "image",
                     "product_id": walk["product_id"],
+                    "product_deliverable_id": walk["product_deliverable"]["id"],
                     "assignee_ids": [team["Odina"]],
                 },
             ],
@@ -404,6 +428,109 @@ async def test_only_the_author_edits_and_only_its_deliverables(
     assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 404
     await log_in(client, "lana@example.com")
     assert (await client.put(f"/api/shoots/{first['id']}", json=body)).status_code == 403
+
+
+# --- Product deliverables (docs/adr/0017) ---
+
+
+async def test_a_deliverable_closes_a_product_deliverable_of_its_product(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    ordered = await product_deliverables(client)
+    # Another art director's product deliverable in the same brand's product.
+    await art_director(client, db_session, "ad2@example.com", "Risolat")
+    risolat = str(await user_id(db_session, "ad2@example.com"))
+    await log_in(client, "brand@example.com")
+    photo = await upload(client, image_bytes())
+    foreign = await create(
+        client, product([photo["id"]], name="Foreign", deliverables=[deliverable(risolat)])
+    )
+    foreign_ordered = (await client.get(f"/api/products/{foreign['id']}")).json()
+    await log_in(client, "amina@example.com")
+
+    body = await shoot(client)
+    walk = body["deliverables"][0]
+    for change, detail in (
+        ({"product_deliverable_id": None}, "Pick the product deliverable"),
+        ({"product_deliverable_id": str(uuid.uuid4())}, "Product deliverable not found"),
+        (
+            {"product_deliverable_id": foreign_ordered["deliverables"][0]["id"]},
+            "Product deliverable not found",
+        ),
+        (
+            {"product_deliverable_id": ordered["Dress"]},
+            "A deliverable's product deliverable is for another product",
+        ),
+    ):
+        response = await client.post(
+            "/api/shoots", json={**body, "deliverables": [{**walk, **change}]}
+        )
+        assert (response.status_code, response.json()["detail"]) == (422, detail), change
+
+    created = await post(client, body)
+    page = (await client.get(f"/api/shoots/{created['id']}")).json()
+    assert page["deliverables"][0]["product_deliverable"] == {
+        "id": ordered["Abaya"],
+        "name": "Walking transition",
+    }
+
+
+async def test_lists_product_deliverables_with_their_shoots(client: AsyncClient) -> None:
+    named = await products(client)
+    created = await post(client, await shoot(client))
+
+    response = await client.get(
+        "/api/shoots/product-deliverables", params={"product_id": [named["Abaya"]]}
+    )
+    assert response.status_code == 200, response.text
+    [abaya] = response.json()
+    assert (abaya["product_id"], abaya["name"], abaya["type"]) == (
+        named["Abaya"],
+        "Walking transition",
+        "video",
+    )
+    assert abaya["shoots"] == [
+        {"id": created["id"], "name": created["name"], "date": created["date"]}
+    ]
+    everything = (await client.get("/api/shoots/product-deliverables")).json()
+    assert sorted(item["product_id"] for item in everything) == sorted(named.values())
+    assert [item["shoots"] for item in everything if item["product_id"] == named["Dress"]] == [[]]
+
+    for email in ("lana@example.com", "brand@example.com"):
+        await log_in(client, email)
+        assert (await client.get("/api/shoots/product-deliverables")).status_code == 403
+
+
+async def test_a_saved_deliverable_keeps_its_product_deliverable(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    body = await shoot(client)
+    created = await post(client, body)
+    url = f"/api/shoots/{created['id']}"
+    walk = (await client.get(url)).json()["deliverables"][0]
+    saved = {**body["deliverables"][0], "id": walk["id"]}
+
+    # Unassigned from the product, Amina keeps what the shoot already closes,
+    # but can't take it into another shoot.
+    await db_session.execute(update(Deliverable).values(assignee_id=None))
+    assert (await client.put(url, json={**body, "deliverables": [saved]})).status_code == 200
+    assert (await client.post("/api/shoots", json=body)).status_code == 422
+    # A saved deliverable can't drop its product deliverable.
+    dropped = {**saved, "product_deliverable_id": None}
+    assert (await client.put(url, json={**body, "deliverables": [dropped]})).status_code == 422
+
+    # The brand removes the product deliverable: the shoot's deliverable stays without one.
+    await log_in(client, "brand@example.com")
+    abaya = (await client.get(f"/api/products/{body['product_ids'][0]}")).json()
+    await edit(client, abaya["id"], edit_body(abaya, deliverable_ids=[]))
+    await log_in(client, "amina@example.com")
+    assert (await client.get(url)).json()["deliverables"][0]["product_deliverable"] is None
+    response = await client.put(url, json={**body, "deliverables": [dropped]})
+    assert response.status_code == 200, response.text
+    # A new one still needs a product deliverable.
+    new = {**body["deliverables"][0], "product_deliverable_id": None}
+    response = await client.put(url, json={**body, "deliverables": [dropped, new]})
+    assert response.status_code == 422
 
 
 # --- Notes ---

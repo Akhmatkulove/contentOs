@@ -39,6 +39,7 @@ export function toShootCreate(data: ShootFormData): ShootCreate {
       name: deliverable.name,
       type: deliverable.type,
       product_id: deliverable.product.id,
+      product_deliverable_id: deliverable.productDeliverable?.id ?? null,
       assignee_ids: deliverable.assignees.map((member) => member.id).filter((id) => team.has(id)),
       reference_ids: deliverable.references
         .map((reference) => reference.id)

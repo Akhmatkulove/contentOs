@@ -16,10 +16,17 @@ const { deliverable } = defineProps<{ deliverable: ShootDeliverable }>()
 const emit = defineEmits<{ remove: [] }>()
 
 const media = computed(() => [
-  { label: 'Product', value: deliverable.product.name, src: deliverable.product.photoUrl },
+  {
+    label: 'Product',
+    value: deliverable.product.name,
+    // The brand's deliverable it closes (docs/adr/0017).
+    note: deliverable.productDeliverable && `Closes ${deliverable.productDeliverable.name}`,
+    src: deliverable.product.photoUrl,
+  },
   {
     label: 'Reference',
     value: firstAndMore(deliverable.references.map((reference) => reference.title)) || '—',
+    note: null,
     src: deliverable.references[0]?.previewUrl ?? null,
   },
 ])
@@ -59,6 +66,7 @@ const media = computed(() => [
         <div class="flex min-w-0 flex-col gap-1">
           <p class="text-p4 font-medium text-secondary">{{ row.label }}</p>
           <p class="truncate text-table font-medium text-primary">{{ row.value }}</p>
+          <p v-if="row.note" class="truncate text-p4 font-medium text-secondary">{{ row.note }}</p>
         </div>
       </div>
     </div>

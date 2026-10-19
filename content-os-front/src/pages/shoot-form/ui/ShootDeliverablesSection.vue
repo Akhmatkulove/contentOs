@@ -101,7 +101,13 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
                   :icon-size="14"
                   class="h-10 w-8 rounded-lg"
                 />
-                <span class="text-p3 font-medium text-primary">{{ item.product.name }}</span>
+                <div class="flex flex-col">
+                  <span class="text-p3 font-medium text-primary">{{ item.product.name }}</span>
+                  <!-- The brand's deliverable it closes (docs/adr/0017). -->
+                  <span v-if="item.productDeliverable" class="text-p4 font-medium text-secondary">
+                    Closes {{ item.productDeliverable.name }}
+                  </span>
+                </div>
               </div>
             </td>
             <td class="pr-3">
