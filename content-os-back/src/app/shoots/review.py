@@ -1,7 +1,8 @@
 """Проверка deliverable арт-директором (docs/adr/0015).
 
 У каждого исполнителя свои версии и свой статус. Арт-директор одобряет или
-возвращает на доработку последнюю версию каждого, а когда одобрены все —
+возвращает на доработку любую отправленную версию; одобренная — выбранная, у
+исполнителя она одна (docs/adr/0016). Когда одобрена работа всех, арт-директор
 отправляет deliverable бренду. Страница и действия — только арт-директору
 съёмки, остальным 404. Коммитит вызывающий.
 """
@@ -10,7 +11,7 @@ import uuid
 from collections import defaultdict
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
@@ -30,15 +31,10 @@ from app.shoots.schemas import (
     TaskVersionResponse,
     VersionReviewCreate,
 )
-from app.shoots.statuses import assignee_statuses, can_send, sync_status
+from app.shoots.statuses import assignee_statuses, can_send, sync_status, work_statuses
 from app.shoots.tasks import TaskRow, to_items
 from app.shoots.versions import task_row, version_responses
 from app.team.schemas import TeamMember
-
-_DECIDED = {
-    VersionReview.APPROVED: DeliverableStatus.APPROVED,
-    VersionReview.CHANGES_REQUESTED: DeliverableStatus.NEEDS_CHANGES,
-}
 
 
 async def _reviewed(
@@ -103,10 +99,10 @@ async def decide(
     version_id: uuid.UUID,
     body: VersionReviewCreate,
 ) -> None:
-    """Approve или Request changes по версии исполнителя.
+    """Approve или Request changes по любой отправленной версии исполнителя.
 
-    Решают по последней отправленной версии: прежние — история. Пока deliverable
-    не отправлен бренду, решение можно поменять.
+    Approve выбирает версию: прежняя выбранная того же исполнителя теряет
+    одобрение. Пока deliverable не отправлен бренду, решение можно поменять.
     """
     row = await _reviewed(db, user, task_id, lock=True)
     deliverable = row.ShootDeliverable
@@ -124,20 +120,25 @@ async def decide(
     if assignee is None:
         # Автора убрали из исполнителей: его работа больше не проверяется.
         raise HTTPException(status.HTTP_409_CONFLICT, "The author is no longer an assignee")
-    latest = await db.scalar(
-        select(func.max(TaskVersion.number)).where(
-            TaskVersion.deliverable_id == task_id,
-            TaskVersion.author_id == version.author_id,
-            TaskVersion.submitted_at.is_not(None),
+    if body.decision == VersionReview.APPROVED:
+        await db.execute(
+            update(TaskVersion)
+            .where(
+                TaskVersion.deliverable_id == task_id,
+                TaskVersion.author_id == version.author_id,
+                TaskVersion.id != version.id,
+                TaskVersion.review == VersionReview.APPROVED,
+            )
+            .values(review=None, reviewed_at=None)
         )
-    )
-    if version.number != latest:
-        raise HTTPException(status.HTTP_409_CONFLICT, "A newer version was submitted")
 
     version.review = body.decision
     version.reviewed_at = await db.scalar(select(func.now()))
     version.feedback = body.feedback or None
-    assignee.status = _DECIDED[body.decision]
+    await db.flush()
+    # Из всех версий автора: решение по старой не перекрывает выбранную и ждущую.
+    statuses = await work_statuses(db, [task_id])
+    assignee.status = statuses[(task_id, version.author_id)]
     await sync_status(db, deliverable)
     await db.flush()
 

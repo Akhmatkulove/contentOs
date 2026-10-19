@@ -24,6 +24,18 @@ export async function submitDraft(id: string, title: string): Promise<TaskDetail
   return (await http.post<TaskDetails>(`/tasks/${id}/draft/submit`, { title })).data
 }
 
+// Fixing a version with requested changes: its files from now on (kept ones and
+// new ones from /uploads, in order); it goes back to review (docs/adr/0016).
+export async function editVersion(
+  id: string,
+  versionId: string,
+  fileIds: string[],
+): Promise<TaskDetails> {
+  return (
+    await http.put<TaskDetails>(`/tasks/${id}/versions/${versionId}/files`, { file_ids: fileIds })
+  ).data
+}
+
 // Only from the draft; a draft left empty goes away.
 export async function removeDraftFile(id: string, fileId: string): Promise<TaskDetails> {
   return (await http.delete<TaskDetails>(`/tasks/${id}/draft/files/${fileId}`)).data

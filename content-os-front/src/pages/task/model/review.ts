@@ -5,6 +5,7 @@ import {
   uploadedLabel,
   versionLabel,
   versionStatus,
+  workWaits,
   type ContentFile,
   type DeliverableStatus,
   type VersionReview,
@@ -47,8 +48,6 @@ export interface ReviewVersion {
   status: VersionStatus | null
   review: VersionReview | null
   feedback: string | null
-  // Decisions go on the latest version only; the rest is history.
-  latest: boolean
 }
 
 // An assignee's work on the deliverable: one tab of the creator switcher.
@@ -65,21 +64,21 @@ export interface CreatorWork {
 const roles = { creator: 'Creator', mobilographer: 'Mobilographer' } as const
 
 function toWork(creator: ReviewCreator): CreatorWork {
+  const waits = workWaits(creator.versions)
   return {
     id: creator.member.id,
     name: creator.member.name ?? 'Unnamed',
     photoUrl: creator.member.photo_url,
     role: creator.role ? roles[creator.role] : null,
     status: creator.status,
-    versions: creator.versions.map((version, index) => ({
+    versions: creator.versions.map((version) => ({
       id: version.id,
       label: versionLabel(version),
       uploaded: uploadedLabel(version.submitted_at ?? version.created_at),
       files: version.files.map(toContentFile),
-      status: versionStatus(version.review, index === 0, 'Needs review'),
+      status: versionStatus(version.review, waits, 'Needs review'),
       review: version.review,
       feedback: version.feedback,
-      latest: index === 0,
     })),
   }
 }

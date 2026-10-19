@@ -1,4 +1,11 @@
-import { durationLabel, fileSizeLabel, toContentFile, versionLabel, versionStatus } from './content'
+import {
+  durationLabel,
+  fileSizeLabel,
+  toContentFile,
+  versionLabel,
+  versionStatus,
+  workWaits,
+} from './content'
 
 describe('fileSizeLabel', () => {
   it('shows megabytes with one decimal and small files in kilobytes', () => {
@@ -43,7 +50,7 @@ describe('versionLabel', () => {
 })
 
 describe('versionStatus', () => {
-  it('shows the decision on any version and the wait on the latest only', () => {
+  it('shows the decision on any version and the wait while the work waits', () => {
     expect(versionStatus('approved', false, 'On review')).toEqual({
       label: 'Approved',
       tone: 'success',
@@ -57,5 +64,16 @@ describe('versionStatus', () => {
       tone: 'warning',
     })
     expect(versionStatus(null, false, 'Needs review')).toBeNull()
+  })
+})
+
+describe('workWaits', () => {
+  it('waits while a version is undecided and nothing is picked', () => {
+    expect(workWaits([{ review: null }, { review: 'changes_requested' }])).toBe(true)
+    // A fixed earlier version waits too, whatever the latest got.
+    expect(workWaits([{ review: 'changes_requested' }, { review: null }])).toBe(true)
+    expect(workWaits([{ review: null }, { review: 'approved' }])).toBe(false)
+    expect(workWaits([{ review: 'changes_requested' }])).toBe(false)
+    expect(workWaits([])).toBe(false)
   })
 })

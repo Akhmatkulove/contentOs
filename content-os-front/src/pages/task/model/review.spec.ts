@@ -82,7 +82,7 @@ describe('decisionSchema', () => {
 })
 
 describe('toCreators', () => {
-  it('puts the decision on each version and the wait on the latest only', () => {
+  it('puts the decision on each version and the wait on the undecided ones', () => {
     const [lana] = toCreators(
       review([
         creator('Lana', 'needs_review', [
@@ -95,12 +95,10 @@ describe('toCreators', () => {
     const [latest, first] = lana!.versions
     expect(latest).toMatchObject({
       label: 'V1.01',
-      latest: true,
       status: { label: 'Needs review', tone: 'warning' },
     })
     expect(first).toMatchObject({
       label: 'V1',
-      latest: false,
       feedback: 'Closer',
       status: { label: 'Needs changes', tone: 'danger' },
     })

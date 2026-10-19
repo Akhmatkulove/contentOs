@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role
 from app.deliverables.models import DeliverableStatus
+from app.files.models import StoredFile
 from app.shoots.models import ShootDeliverable, ShootDeliverableAssignee
 from tests.test_files import MP4, image_bytes, upload
 from tests.test_products import log_in, sign_up
@@ -471,10 +472,9 @@ async def test_art_director_reviews_each_creator_then_sends(client: AsyncClient)
         "Start slightly closer",
     )
 
-    # V2 goes to review; V1 is history now.
+    # V2 goes to review.
     odina_v2 = (await submit_version(client, task_id, "odina@example.com"))["versions"][0]["id"]
     await log_in(client, "amina@example.com")
-    await decide(client, task_id, odina_v1, "approved", status=409)
     review = await decide(client, task_id, odina_v2, "approved")
     assert [v["number"] for v in by_name(review)["Odina"]["versions"]] == [2, 1]
     # Everyone approved: it still waits for the art director to send it.
@@ -485,6 +485,95 @@ async def test_art_director_reviews_each_creator_then_sends(client: AsyncClient)
     await send(client, task_id, status=409)
     await decide(client, task_id, odina_v2, "changes_requested", "More", status=409)
     assert names(await tasks(client, status="approved")) == ["Close-up"]
+
+
+async def test_art_director_picks_any_version(client: AsyncClient) -> None:
+    task_id = await close_up(client)
+    # Lana sends three variants without waiting for a decision.
+    for _ in range(3):
+        lana = await submit_version(client, task_id, "lana@example.com")
+    v3, v2, v1 = (version["id"] for version in lana["versions"])
+    await log_in(client, "amina@example.com")
+
+    def lana_of(review: dict[str, Any]) -> tuple[str, list[str | None]]:
+        work = by_name(review)["Lana"]
+        return work["status"], [version["review"] for version in work["versions"]]
+
+    # A word on an earlier variant: the latest still waits.
+    review = await decide(client, task_id, v1, "changes_requested", "Too dark")
+    assert lana_of(review) == ("needs_review", [None, None, "changes_requested"])
+
+    # The middle one is picked: the work is approved.
+    review = await decide(client, task_id, v2, "approved")
+    assert lana_of(review) == ("approved", [None, "approved", "changes_requested"])
+    # Changes on another variant don't undo the pick.
+    review = await decide(client, task_id, v3, "changes_requested", "No")
+    assert lana_of(review) == ("approved", ["changes_requested", "approved", "changes_requested"])
+
+    # Only one is picked: approving another moves the pick there.
+    review = await decide(client, task_id, v1, "approved")
+    assert lana_of(review) == ("approved", ["changes_requested", None, "approved"])
+
+    # The pick taken back: V2, unpicked, waits for a decision again.
+    review = await decide(client, task_id, v1, "changes_requested", "Neither")
+    assert lana_of(review) == ("needs_review", ["changes_requested", None, "changes_requested"])
+    await log_in(client, "lana@example.com")
+    assert (await task_page(client, task_id))["can_upload"] is True
+
+
+async def edit_version(
+    client: AsyncClient, task_id: str, version_id: str, file_ids: list[str], status: int = 200
+) -> dict[str, Any]:
+    response = await client.put(
+        f"/api/tasks/{task_id}/versions/{version_id}/files", json={"file_ids": file_ids}
+    )
+    assert response.status_code == status, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def test_creator_fixes_a_version_with_requested_changes(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    task_id = await close_up(client)
+    await log_in(client, "lana@example.com")
+    first, second = await upload(client, image_bytes()), await upload(client, image_bytes())
+    await add_files(client, task_id, [first["id"], second["id"]])
+    v1 = (await submit(client, task_id))["versions"][0]["id"]
+    v2 = (await submit_version(client, task_id, "lana@example.com"))["versions"][0]["id"]
+
+    # Not decided yet: nothing to fix.
+    await edit_version(client, task_id, v1, [first["id"]], status=409)
+
+    await log_in(client, "amina@example.com")
+    await decide(client, task_id, v1, "changes_requested", "Drop the second")
+    await decide(client, task_id, v2, "changes_requested", "Too dark")
+    # Only the author edits.
+    await edit_version(client, task_id, v1, [first["id"]], status=403)
+
+    await log_in(client, "lana@example.com")
+    assert (await task_page(client, task_id))["status"] == "needs_changes"
+    # Someone else's or a used file isn't taken.
+    await edit_version(client, task_id, v1, [first["id"], v2], status=422)
+    third = await upload(client, image_bytes())
+    page = await edit_version(client, task_id, v1, [third["id"], first["id"]])
+    fixed = next(version for version in page["versions"] if version["id"] == v1)
+    assert [file["id"] for file in fixed["files"]] == [third["id"], first["id"]]
+    assert (fixed["review"], fixed["feedback"]) == (None, "Drop the second")
+    # V2 still has changes requested, but the fixed V1 waits: the task goes to review.
+    assert page["status"] == "needs_review"
+    assert await db_session.get(StoredFile, second["id"]) is None
+    # Back on review: no more edits until the next decision.
+    await edit_version(client, task_id, v1, [first["id"]], status=409)
+
+    await log_in(client, "amina@example.com")
+    review = await review_page(client, task_id)
+    assert (by_name(review)["Lana"]["status"], review["status"]) == ("needs_review", "needs_review")
+
+    # Approved work is closed.
+    await decide(client, task_id, v1, "approved")
+    await log_in(client, "lana@example.com")
+    await edit_version(client, task_id, v2, [third["id"]], status=409)
 
 
 async def test_review_is_the_shoots_art_directors_only(

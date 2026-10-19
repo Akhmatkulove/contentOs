@@ -17,6 +17,7 @@ from app.shoots.schemas import (
     TaskFilters,
     TaskList,
     TaskResponse,
+    TaskVersionFiles,
     VersionReviewCreate,
 )
 
@@ -127,6 +128,27 @@ async def remove_draft_file(
     return await versions.get_task(db, user, storage, settings, task_id)
 
 
+@router.put("/{task_id}/versions/{version_id}/files")
+async def edit_version(
+    task_id: uuid.UUID,
+    version_id: uuid.UUID,
+    body: TaskVersionFiles,
+    user: TeamUser,
+    db: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> TaskResponse:
+    """Правка своей версии после Request changes: файлы целиком (оставленные и новые
+    из POST /api/uploads), версия снова на проверке (docs/adr/0016).
+
+    Версия без Request changes или работа уже одобрена — 409.
+    """
+    keys = await versions.edit_version(db, user, task_id, version_id, body)
+    await db.commit()
+    await delete_quietly(storage, *keys)
+    return await versions.get_task(db, user, storage, settings, task_id)
+
+
 @router.get("/{task_id}/review")
 async def get_review(
     task_id: uuid.UUID, user: TeamUser, db: SessionDep, storage: StorageDep, settings: SettingsDep
@@ -148,9 +170,10 @@ async def review_version(
     storage: StorageDep,
     settings: SettingsDep,
 ) -> DeliverableReviewResponse:
-    """Approve или Request changes по последней версии исполнителя.
+    """Approve или Request changes по любой отправленной версии исполнителя.
 
-    Не последняя версия или deliverable уже отправлен бренду — 409.
+    Approve выбирает версию: у исполнителя одобрена одна (docs/adr/0016).
+    Deliverable уже отправлен бренду или автор больше не исполнитель — 409.
     """
     await review.decide(db, user, task_id, version_id, body)
     await db.commit()

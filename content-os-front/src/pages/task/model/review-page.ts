@@ -6,6 +6,7 @@ import { shootKeys } from '@/entities/shoot'
 import { errorStatus, type ApiError } from '@/shared/api'
 import { queryParam, useQueryParams } from '@/shared/lib'
 import { confirmAction } from '@/shared/ui/confirm-modal'
+import { openMediaViewer } from '@/shared/ui/media-viewer'
 import { toast } from '@/shared/ui/toast'
 import { fetchReview, reviewVersion, sendToBrand, type DeliverableReview } from '../api/review'
 import {
@@ -22,9 +23,9 @@ import {
 type Decision = 'approved' | 'changes_requested'
 
 // The review of a deliverable (Figma "SCREEN:s_review Shoot / Review deliverable"):
-// the art director goes through each assignee's latest version, approves it or
-// asks for changes, and sends the deliverable to the brand once all are
-// approved (docs/adr/0015).
+// the art director goes through each assignee's versions, picks one by
+// approving it or asks for changes, and sends the deliverable to the brand once
+// everyone's work is approved (docs/adr/0015, 0016).
 export function useReviewPage(id: MaybeRefOrGetter<string>) {
   const queryCache = useQueryCache()
 
@@ -64,6 +65,18 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
     fileId.value = next
   }
 
+  // The picked file fullscreen; the viewer leafs through the rest of its version.
+  function openFile() {
+    const files = version.value?.files ?? []
+    const start = files.findIndex((item) => item.id === file.value?.id)
+    if (!review.value || !version.value || start < 0) return
+    openMediaViewer({
+      files: files.map(({ id, url, video }) => ({ id, url, kind: video ? 'video' : 'image' })),
+      start,
+      title: `${review.value.name} · ${version.value.label}`,
+    })
+  }
+
   watch(
     () => creator.value?.id,
     () => {
@@ -73,21 +86,23 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
   )
 
   const sent = computed(() => (review.value ? isSent(review.value) : false))
-  // Only the latest version gets a decision, and only before the deliverable is sent.
-  const canDecide = computed(() => !sent.value && version.value?.latest === true)
+  // Any version gets a decision, until the deliverable is sent.
+  const canDecide = computed(() => !sent.value && !!version.value)
+  // The creator's approved version: approving another one moves the pick there.
+  const picked = computed(
+    () => creator.value?.versions.find((item) => item.review === 'approved') ?? null,
+  )
 
-  // Feedback for creator: the one given before comes back, so a decision can be changed.
+  // Feedback for creator: a new note each time. The one given before shows on the
+  // version card; the field starts empty on every version and after a decision.
   const form = reactive({ decision: 'approved' as Decision, feedback: '' })
   const { r$ } = useRegleSchema(form, decisionSchema, { rewardEarly: true })
   const feedbackError = computed(() => r$.feedback.$errors[0] ?? '')
-  watch(
-    () => version.value?.id,
-    () => {
-      form.feedback = version.value?.feedback ?? ''
-      r$.$reset()
-    },
-    { immediate: true },
-  )
+  function clearFeedback() {
+    form.feedback = ''
+    r$.$reset()
+  }
+  watch(() => version.value?.id, clearFeedback)
 
   // A decision changes statuses everywhere: My tasks, the task page and the shoot.
   // The review itself comes back in the answer: no need to fetch it again.
@@ -101,7 +116,7 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
     queryCache.invalidateQueries({ key: shootKeys.all })
   }
 
-  // Someone else got there first (a newer version, already sent): show what is there now.
+  // Someone else got there first (already sent, author unassigned): show what is there now.
   function stale(failure: ApiError) {
     if (errorStatus(failure) === 409) {
       queryCache.invalidateQueries({ key: taskKeys.review(toValue(id)) })
@@ -120,6 +135,7 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
       }),
     onSuccess: (next, body) => {
       saved(next)
+      clearFeedback()
       toast.success(body.decision === 'approved' ? 'Approved' : 'Changes requested')
     },
     onError: stale,
@@ -202,8 +218,10 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
     selectVersion,
     file,
     selectFile,
+    openFile,
     sent,
     canDecide,
+    picked,
     form,
     feedbackError,
     decide,

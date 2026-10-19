@@ -3,6 +3,7 @@ import {
   uploadedLabel,
   versionLabel,
   versionStatus,
+  workWaits,
   type ContentFile as SavedFile,
   type ContentVersionResponse,
   type VersionStatus,
@@ -32,10 +33,12 @@ export interface ContentVersion {
   // "Uploaded Sep 18, 14:22".
   uploaded: string
   files: ContentFile[]
-  // The art director's decision; the latest version waits for it "On review".
+  // The art director's decision; undecided versions wait for it "On review".
   status: VersionStatus | null
   // What the art director asked to change (or said on approving).
   feedback: string | null
+  // Changes requested: the author may fix this version (docs/adr/0016).
+  needsChanges: boolean
 }
 
 // Sent share 0–1 → percent. The server still checks and converts the file
@@ -58,22 +61,24 @@ export function failedUploadsMessage(count: number): string {
 }
 
 // Submitted versions come newest first; they don't change any more. The
-// assignee sees their own; the art director everyone's, so each author's
-// latest waits on review and the card names whose it is.
+// assignee sees their own; the art director everyone's, so the wait for review
+// goes author by author and the card names whose it is.
 export function toVersions(versions: ContentVersionResponse[]): ContentVersion[] {
-  const authors = new Set(versions.map((version) => version.author.id))
-  const seen = new Set<string>()
+  const byAuthor = new Map<string, ContentVersionResponse[]>()
+  for (const version of versions) {
+    byAuthor.set(version.author.id, [...(byAuthor.get(version.author.id) ?? []), version])
+  }
   return versions.map((version) => {
-    const latest = !seen.has(version.author.id)
-    seen.add(version.author.id)
+    const waits = workWaits(byAuthor.get(version.author.id)!)
     return {
       id: version.id,
       label: versionLabel(version),
-      author: authors.size > 1 ? (version.author.name ?? 'Unnamed') : null,
+      author: byAuthor.size > 1 ? (version.author.name ?? 'Unnamed') : null,
       uploaded: uploadedLabel(version.submitted_at ?? version.created_at),
       files: version.files.map(toContentFile),
-      status: versionStatus(version.review, latest, 'On review'),
+      status: versionStatus(version.review, waits, 'On review'),
       feedback: version.feedback,
+      needsChanges: version.review === 'changes_requested',
     }
   })
 }

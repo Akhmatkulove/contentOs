@@ -8,6 +8,7 @@ import { VThumbnail } from '@/shared/ui/thumbnail'
 import { contentAccept, useTaskPage, VERSION_TITLE_MAX } from '../model/task-page'
 import ContentFileCard from './ContentFileCard.vue'
 import ContentVersionCard from './ContentVersionCard.vue'
+import VersionEditor from './VersionEditor.vue'
 
 // The route's :id.
 const { id } = defineProps<{ id: string }>()
@@ -35,6 +36,7 @@ const {
   save,
   submitting,
   submit,
+  edit,
 } = useTaskPage(() => id)
 </script>
 
@@ -182,7 +184,25 @@ const {
             :key="version.id"
             :version="version"
             :default-open="index === 0"
-          />
+            :editable="canUpload && version.needsChanges && edit.editing === null"
+            :editing="edit.editing === version.id"
+            @edit="edit.start(version)"
+          >
+            <VersionEditor
+              v-if="edit.editing === version.id"
+              :kept="edit.kept"
+              :added="edit.added"
+              :can-save="edit.canSave"
+              :saving="edit.saving"
+              @remove-kept="edit.removeKept"
+              @add="edit.addFiles"
+              @reject="rejectFiles"
+              @retry="edit.retry"
+              @discard="edit.discard"
+              @cancel="edit.cancel"
+              @save="edit.save"
+            />
+          </ContentVersionCard>
         </div>
 
         <!-- The draft of the next version: files gather here until Submit for

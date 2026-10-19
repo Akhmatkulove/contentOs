@@ -71,12 +71,14 @@ async def work_statuses(
 ) -> dict[tuple[uuid.UUID, uuid.UUID], DeliverableStatus]:
     """Статус работы каждого автора по его версиям: (deliverable_id, user_id) → статус.
 
-    Последняя отправленная версия — решение по ней (или ожидание проверки); только
-    черновик — в работе. Кого нет в ответе, тот ещё не начинал. Совпадает с тем, что
+    Выбранная (одобренная) версия — работа одобрена; иначе есть версия без решения —
+    ждёт проверки; иначе по всем просили изменения; только черновик — в работе
+    (docs/adr/0016). Кого нет в ответе, тот ещё не начинал. Совпадает с тем, что
     хранится у исполнителя, и годится, чтобы вернуть статус снятому и вновь
     назначенному исполнителю.
     """
-    # Одна строка на автора: отправленная с наибольшим номером, иначе черновик.
+    # Одна строка на автора: отправленная одобренная, иначе без решения, иначе
+    # с наибольшим номером; только черновик — сам черновик.
     rows = await db.execute(
         select(
             TaskVersion.deliverable_id,
@@ -90,6 +92,8 @@ async def work_statuses(
             TaskVersion.deliverable_id,
             TaskVersion.author_id,
             TaskVersion.submitted_at.is_(None),
+            TaskVersion.review.is_distinct_from(VersionReview.APPROVED),
+            TaskVersion.review.is_not(None),
             TaskVersion.number.desc(),
         )
     )

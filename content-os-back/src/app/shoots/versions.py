@@ -2,6 +2,7 @@
 
 Задачу видят те же, кто видит её в My tasks. Каждый исполнитель собирает свой
 черновик версии и отправляет его на проверку; после этого можно начинать следующую.
+Версию, по которой просили изменения, исполнитель правит и отправляет снова (0016).
 Коммитит вызывающий.
 """
 
@@ -24,15 +25,17 @@ from app.shoots.models import (
     ShootDeliverableAssignee,
     TaskVersion,
     TaskVersionFile,
+    VersionReview,
 )
 from app.shoots.schemas import (
     TaskDraftFiles,
     TaskDraftTitle,
     TaskFile,
     TaskResponse,
+    TaskVersionFiles,
     TaskVersionResponse,
 )
-from app.shoots.statuses import sync_status
+from app.shoots.statuses import sync_status, work_statuses
 from app.shoots.tasks import TaskRow, to_items, visible_tasks
 from app.team.schemas import TeamMember
 
@@ -278,3 +281,61 @@ async def remove_draft_file(
             await sync_status(db, row.ShootDeliverable)
     await db.flush()
     return key
+
+
+async def edit_version(
+    db: AsyncSession, user: User, task_id: uuid.UUID, version_id: uuid.UUID, body: TaskVersionFiles
+) -> list[str]:
+    """Правка своей версии, по которой арт-директор попросил изменения: её файлы
+    теперь `body.file_ids` (оставленные и новые), и она снова ждёт проверки.
+
+    Feedback остаётся: арт-директор видит, о чём просил. Возвращает ключи убранных
+    файлов: из хранилища их удаляет вызывающий после commit.
+    """
+    row = await task_row(db, user, task_id, lock=True)
+    assignee = await _require_assignee(db, user, task_id)
+    _require_open(row.ShootDeliverable, assignee)
+    version = await db.scalar(
+        select(TaskVersion).where(
+            TaskVersion.id == version_id,
+            TaskVersion.deliverable_id == task_id,
+            TaskVersion.author_id == user.id,
+            TaskVersion.submitted_at.is_not(None),
+        )
+    )
+    if version is None:
+        raise _not_found("Version")
+    if version.review != VersionReview.CHANGES_REQUESTED:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Only a version with requested changes is edited"
+        )
+
+    current = set(
+        await db.scalars(
+            select(TaskVersionFile.file_id).where(TaskVersionFile.version_id == version.id)
+        )
+    )
+    added = [file_id for file_id in body.file_ids if file_id not in current]
+    if added:
+        await claim_files(db, user, added)
+    keys = list(
+        await db.scalars(
+            delete(StoredFile)
+            .where(StoredFile.id.in_(current - set(body.file_ids)))
+            .returning(StoredFile.key)
+        )
+    )
+    await db.execute(delete(TaskVersionFile).where(TaskVersionFile.version_id == version.id))
+    db.add_all(
+        TaskVersionFile(version_id=version.id, file_id=file_id, position=index)
+        for index, file_id in enumerate(body.file_ids)
+    )
+
+    version.review = None
+    version.reviewed_at = None
+    version.submitted_at = await db.scalar(select(func.now()))
+    await db.flush()
+    assignee.status = (await work_statuses(db, [task_id]))[(task_id, user.id)]
+    await sync_status(db, row.ShootDeliverable)
+    await db.flush()
+    return keys

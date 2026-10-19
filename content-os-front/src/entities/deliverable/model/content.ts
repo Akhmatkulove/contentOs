@@ -57,16 +57,26 @@ export function versionLabel(version: Pick<ContentVersionResponse, 'title' | 'nu
   return version.title || `V${version.number}`
 }
 
-// The art director's decision on a submitted version. Only the latest one waits
-// for it: an older version left unchecked was replaced by a newer one.
+// An author's work waits for the art director while none of their versions is
+// picked (approved) and one has no decision yet (docs/adr/0016).
+// `versions` are one author's submitted ones.
+export function workWaits(versions: Pick<ContentVersionResponse, 'review'>[]): boolean {
+  return (
+    versions.some(({ review }) => review === null) &&
+    !versions.some(({ review }) => review === 'approved')
+  )
+}
+
+// The art director's decision on a submitted version. Undecided ones wait for
+// it while the author's work does (`waits`): any of them can be picked.
 // `waiting` names that wait: "On review" for the creator, "Needs review" for
 // the art director.
 export function versionStatus(
   review: VersionReview | null,
-  latest: boolean,
+  waits: boolean,
   waiting: string,
 ): VersionStatus | null {
   if (review === 'approved') return { label: 'Approved', tone: 'success' }
   if (review === 'changes_requested') return { label: 'Needs changes', tone: 'danger' }
-  return latest ? { label: waiting, tone: 'warning' } : null
+  return waits ? { label: waiting, tone: 'warning' } : null
 }

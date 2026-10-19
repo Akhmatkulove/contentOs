@@ -797,6 +797,29 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/tasks/{task_id}/versions/{version_id}/files': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Edit Version
+     * @description Правка своей версии после Request changes: файлы целиком (оставленные и новые
+     *     из POST /api/uploads), версия снова на проверке (docs/adr/0016).
+     *
+     *     Версия без Request changes или работа уже одобрена — 409.
+     */
+    put: operations['edit_version_api_tasks__task_id__versions__version_id__files_put']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/tasks/{task_id}/review': {
     parameters: {
       query?: never
@@ -830,9 +853,10 @@ export interface paths {
     put?: never
     /**
      * Review Version
-     * @description Approve или Request changes по последней версии исполнителя.
+     * @description Approve или Request changes по любой отправленной версии исполнителя.
      *
-     *     Не последняя версия или deliverable уже отправлен бренду — 409.
+     *     Approve выбирает версию: у исполнителя одобрена одна (docs/adr/0016).
+     *     Deliverable уже отправлен бренду или автор больше не исполнитель — 409.
      */
     post: operations['review_version_api_tasks__task_id__versions__version_id__review_post']
     delete?: never
@@ -1972,6 +1996,15 @@ export interface components {
      * @enum {string}
      */
     TaskSort: 'priority' | 'due_date' | 'name_asc'
+    /**
+     * TaskVersionFiles
+     * @description Файлы версии после правки по Request changes: оставленные и новые из
+     *     POST /api/uploads, по порядку (docs/adr/0016).
+     */
+    TaskVersionFiles: {
+      /** File Ids */
+      file_ids: string[]
+    }
     /** TaskVersionResponse */
     TaskVersionResponse: {
       /**
@@ -2088,7 +2121,7 @@ export interface components {
     VersionReview: 'approved' | 'changes_requested'
     /**
      * VersionReviewCreate
-     * @description Approve или Request changes по последней версии исполнителя (docs/adr/0015).
+     * @description Approve или Request changes по версии исполнителя (docs/adr/0015, 0016).
      */
     VersionReviewCreate: {
       decision: components['schemas']['VersionReview']
@@ -3860,6 +3893,44 @@ export interface operations {
       }
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  edit_version_api_tasks__task_id__versions__version_id__files_put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+        version_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TaskVersionFiles']
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {

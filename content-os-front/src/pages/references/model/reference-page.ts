@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-import { computed, defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
 import { useRouter, type RouteLocationRaw } from 'vue-router'
 import { referenceKeys } from '@/entities/reference'
 import { useSessionStore } from '@/entities/session'
 import { confirmAction } from '@/shared/ui/confirm-modal'
-import { openModal } from '@/shared/ui/modal'
+import { openMediaViewer } from '@/shared/ui/media-viewer'
 import { toast } from '@/shared/ui/toast'
 import {
   deleteReference,
@@ -13,8 +13,6 @@ import {
   type ReferenceDetails,
 } from '../api/references'
 import { linkIcon, referenceFacts, referenceTitle } from './reference'
-
-const ReferenceViewer = defineAsyncComponent(() => import('../ui/ReferenceViewer.vue'))
 
 // The in-app page the user came from: the references list with its tab,
 // filters and page, a shoot, a product. None after a direct link or a new tab.
@@ -111,7 +109,7 @@ export function useReferencePage(id: () => string) {
   }
 
   function openFile(index: number) {
-    void openModal(ReferenceViewer, { files: files.value, start: index, title: title.value })
+    openMediaViewer({ files: files.value, start: index, title: title.value })
   }
 
   // Nothing to show yet: the very first load.

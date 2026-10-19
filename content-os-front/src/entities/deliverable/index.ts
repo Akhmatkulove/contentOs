@@ -29,6 +29,7 @@ export {
   uploadedLabel,
   versionLabel,
   versionStatus,
+  workWaits,
 } from './model/content'
 export { taskKeys } from './model/task-keys'
 export { default as DeliverablesTable } from './ui/DeliverablesTable.vue'

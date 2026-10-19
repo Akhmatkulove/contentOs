@@ -63,10 +63,14 @@ describe('toVersions', () => {
     expect(latest!.files[0]!.video).toBe(true)
   })
 
-  it('shows each version’s decision; only the latest waits on review', () => {
+  it('shows each version’s decision; undecided ones wait while nothing is picked', () => {
     const [latest, first] = toVersions(versions)
     expect(latest!.status).toEqual({ label: 'On review', tone: 'warning' })
-    expect(first!.status).toBeNull()
+    expect(first!.status).toEqual({ label: 'On review', tone: 'warning' })
+
+    // One is picked: the rest no longer wait.
+    const picked = toVersions([version(2), version(1, { review: 'approved' })])
+    expect([picked[0]!.status, picked[1]!.status?.label]).toEqual([null, 'Approved'])
 
     const reviewed = toVersions([
       version(2),
@@ -75,22 +79,32 @@ describe('toVersions', () => {
     expect(reviewed[1]).toMatchObject({
       status: { label: 'Needs changes', tone: 'danger' },
       feedback: 'Start closer',
+      needsChanges: true,
     })
+    expect(reviewed[0]!.needsChanges).toBe(false)
   })
 
-  it('names the authors and keeps each one’s latest on review', () => {
+  it('names the authors and keeps the wait author by author', () => {
     const odina = { id: 'odina', name: 'Odina', photo_url: null }
     const [first, second, third] = toVersions([
       version(1, { id: 'o1', author: odina }),
       version(2),
-      version(1),
+      version(1, { review: 'changes_requested' }),
     ])
     expect([first!.author, second!.author]).toEqual(['Odina', 'Lana'])
-    expect([first!.status?.label, second!.status?.label, third!.status]).toEqual([
+    expect([first!.status?.label, second!.status?.label, third!.status?.label]).toEqual([
       'On review',
       'On review',
-      null,
+      'Needs changes',
     ])
+    // Odina's work is picked: her other undecided version doesn't wait; Lana's does.
+    const decided = toVersions([
+      version(2, { id: 'o2', author: odina }),
+      version(1, { id: 'o1', author: odina, review: 'approved' }),
+      version(2, { review: 'changes_requested' }),
+      version(1),
+    ])
+    expect([decided[0]!.status, decided[3]!.status?.label]).toEqual([null, 'On review'])
     expect(toVersions([version(1)])[0]!.author).toBeNull()
   })
 })

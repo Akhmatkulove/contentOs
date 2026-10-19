@@ -10,8 +10,8 @@ export async function fetchReview(id: string): Promise<DeliverableReview> {
   return (await http.get<DeliverableReview>(`/tasks/${id}/review`)).data
 }
 
-// Approve or Request changes on an assignee's latest version; 409 when a newer
-// one came in or the deliverable is already sent.
+// Approve or Request changes on any submitted version of an assignee; 409 when
+// the deliverable is already sent or the author is no longer an assignee.
 export async function reviewVersion(
   id: string,
   versionId: string,

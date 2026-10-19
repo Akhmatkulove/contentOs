@@ -31,8 +31,10 @@ const {
   selectVersion,
   file,
   selectFile,
+  openFile,
   sent,
   canDecide,
+  picked,
   form,
   feedbackError,
   decide,
@@ -183,7 +185,7 @@ const reference = computed(() => (review.value ? firstReference(review.value) : 
           aria-labelledby="review-feedback"
           class="flex flex-col gap-4 rounded-2xl bg-card p-4 md:p-7"
         >
-          <ReviewPreview v-if="file" :file="file" />
+          <ReviewPreview v-if="file" :file="file" @open="openFile" />
           <p
             v-else
             class="flex h-[200px] items-center justify-center rounded-xl bg-subtle p-6 text-center text-p2 font-medium text-secondary"
@@ -196,11 +198,11 @@ const reference = computed(() => (review.value ? firstReference(review.value) : 
               <h2 id="review-feedback" class="text-h6 text-brand">Feedback for creator</h2>
               <p class="text-p3 font-medium text-secondary">
                 {{
-                  canDecide
-                    ? 'Share your notes and requested changes. The creator will be notified.'
-                    : sent
-                      ? 'The deliverable is sent to the brand: decisions are final.'
-                      : 'This is an earlier version. Decisions go on the latest one.'
+                  !canDecide
+                    ? 'The deliverable is sent to the brand: decisions are final.'
+                    : picked && picked.id !== version.id
+                      ? `${picked.label} is approved. Approving this version picks it instead.`
+                      : 'Share your notes and requested changes. The creator will be notified.'
                 }}
               </p>
               <template v-if="canDecide">

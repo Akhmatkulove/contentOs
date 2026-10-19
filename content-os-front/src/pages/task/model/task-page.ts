@@ -3,24 +3,14 @@ import { computed, reactive, ref, toValue, watch, type MaybeRefOrGetter } from '
 import {
   deliverableStatuses,
   dueHint,
-  fileSizeLabel,
   formatDueDate,
   taskKeys,
   toContentFile,
 } from '@/entities/deliverable'
 import { useSessionStore } from '@/entities/session'
 import { shootKeys } from '@/entities/shoot'
-import { toApiError, uploadFile } from '@/shared/api'
-import {
-  IMAGE_ACCEPT,
-  isVideo,
-  tooLarge,
-  tooLargeMessage,
-  uploadAll,
-  usePickedFiles,
-  type PickedFile,
-  VIDEO_ACCEPT,
-} from '@/shared/lib'
+import { toApiError } from '@/shared/api'
+import { IMAGE_ACCEPT, uploadAll, type PickedFile, VIDEO_ACCEPT } from '@/shared/lib'
 import { toast } from '@/shared/ui/toast'
 import {
   addDraftFiles,
@@ -30,14 +20,9 @@ import {
   submitDraft,
   type TaskDetails,
 } from '../api/task'
-import {
-  failedUploadsMessage,
-  toVersions,
-  uploadFailure,
-  uploadPercent,
-  type ContentFile,
-  type UploadFailure,
-} from './task'
+import { useContentUploads } from './content-uploads'
+import { failedUploadsMessage, toVersions, uploadFailure } from './task'
+import { useVersionEdit } from './version-edit'
 
 export const contentAccept = `${IMAGE_ACCEPT},${VIDEO_ACCEPT}`
 
@@ -86,51 +71,9 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
     queryCache.invalidateQueries({ key: shootKeys.all })
   }
 
-  // Files being sent, after the draft's own until they land in it. Each goes on
-  // its own: a failed one stays with a reason (and Retry) and the rest carry on.
-  const { files: picked, add, remove: dropPicked } = usePickedFiles()
-  interface Sending {
-    // Sent share 0–1; `done` once the server has answered.
-    share: number
-    done: boolean
-    // Uploaded but not in the draft yet: Retry only adds it, without sending again.
-    fileId?: string
-    failed?: UploadFailure
-  }
-  const sending = reactive(new Map<string, Sending>())
-  const pending = computed<ContentFile[]>(() =>
-    picked.value.map((item) => {
-      const state = sending.get(item.id)
-      return {
-        id: item.id,
-        name: item.file.name,
-        size: fileSizeLabel(item.file.size),
-        url: item.url,
-        video: isVideo(item.file),
-        progress: state?.failed
-          ? undefined
-          : uploadPercent(state?.share ?? 0, state?.done ?? false),
-        failed: state?.failed,
-      }
-    }),
-  )
-
-  // The file's id, or null when it failed (the reason is kept in `sending`).
-  async function send(item: PickedFile): Promise<string | null> {
-    const known = sending.get(item.id)?.fileId
-    if (known) return known
-    sending.set(item.id, { share: 0, done: false })
-    try {
-      const file = await uploadFile(item.file, (share) =>
-        sending.set(item.id, { share, done: false }),
-      )
-      sending.set(item.id, { share: 1, done: true, fileId: file.id })
-      return file.id
-    } catch (error) {
-      sending.set(item.id, { share: 0, done: false, failed: uploadFailure(toApiError(error)) })
-      return null
-    }
-  }
+  // Files being sent, after the draft's own until they land in it. Uploaded but
+  // not in the draft yet, Retry only adds them, without sending again.
+  const { picked, sending, pending, send, pick, discard } = useContentUploads()
 
   const { mutate: upload, isLoading: uploading } = useMutation({
     // Never throws: failures stay on their files instead of a global toast.
@@ -160,12 +103,6 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
     },
   })
 
-  // Drops a file that is sent or given up on.
-  function discard(pickedId: string) {
-    sending.delete(pickedId)
-    dropPicked(pickedId)
-  }
-
   function retry(pickedId: string) {
     const item = picked.value.find((entry) => entry.id === pickedId)
     if (!item || submitting.value) return
@@ -177,14 +114,8 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
   // Files go into the draft until it is submitted; the first ones start V1.
   function addFiles(chosen: File[]) {
     if (submitting.value) return
-    const large = chosen.filter(tooLarge)
-    if (large.length) toast.error(tooLargeMessage(large.length))
-    const files = chosen.filter((file) => !tooLarge(file))
-    if (!files.length) return
-    const before = new Set(picked.value.map((item) => item.id))
-    add(files)
-    // The same file picked twice is skipped by `add`: send only what it took.
-    upload(picked.value.filter((item) => !before.has(item.id)))
+    const fresh = pick(chosen)
+    if (fresh.length) upload(fresh)
   }
 
   function rejectFiles(rejected: File[]) {
@@ -239,6 +170,15 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
     if (canSubmit.value && !saving.value && !submitting.value) submitNow()
   }
 
+  // A version with requested changes, fixed in place and sent back to review.
+  const edit = reactive(useVersionEdit(id, saved))
+  // The version can't be fixed any more (decided meanwhile, the work approved):
+  // the editor closes rather than fail on Save.
+  watch([versions, canUpload], () => {
+    const current = versions.value.find((version) => version.id === edit.editing)
+    if (edit.editing && (!canUpload.value || !current?.needsChanges)) edit.cancel()
+  })
+
   // Nothing to show yet: the very first load.
   const loading = computed(() => isLoading.value && task.value === undefined)
   const notFound = computed(() => error.value?.status === 404)
@@ -267,5 +207,6 @@ export function useTaskPage(id: MaybeRefOrGetter<string>) {
     save,
     submitting,
     submit,
+    edit,
   }
 }

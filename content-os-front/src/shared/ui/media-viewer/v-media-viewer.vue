@@ -5,7 +5,7 @@ import { computed, nextTick, onBeforeUnmount, ref, shallowRef, useTemplateRef, w
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { useHostedModal } from '@/shared/ui/modal'
-import type { ReferenceFile } from '../model/reference'
+import type { MediaFile } from './index'
 import {
   clampView,
   DOUBLE_TAP_MS,
@@ -20,13 +20,13 @@ import {
   type Point,
   type Size,
   type View,
-} from '../model/zoom'
+} from './zoom'
 
-// The files of a reference fullscreen, one at a time: arrows, keys, swipes and
+// Files fullscreen, one at a time: arrows, keys, swipes and
 // the strip of thumbnails leaf through them; images zoom with the wheel, a
 // pinch, a double tap or a click, and pan by dragging. A swipe down closes it.
 const { files, start, title } = defineProps<{
-  files: ReferenceFile[]
+  files: MediaFile[]
   start: number
   title: string
 }>()
@@ -356,7 +356,7 @@ const cursor = computed(() => {
 </script>
 
 <!--
-  Not in Figma: a dark fullscreen stage so the reference reads as it was shot.
+  Not in Figma: a dark fullscreen stage so a file reads as it was shot.
   Built on the hosted modal: opened with openModal(), closed by route changes,
   Esc, the × or a swipe down. Focus trap and scroll lock come from Reka.
 -->
@@ -518,7 +518,7 @@ const cursor = computed(() => {
           </template>
         </div>
 
-        <!-- Thumbnails: every file of the reference, the open one outlined. -->
+        <!-- Thumbnails: every file, the open one outlined. -->
         <nav
           v-if="files.length > 1"
           aria-label="Files"

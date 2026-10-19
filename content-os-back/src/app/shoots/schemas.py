@@ -310,6 +310,19 @@ class TaskDraftFiles(BaseModel):
         return self
 
 
+class TaskVersionFiles(BaseModel):
+    """Файлы версии после правки по Request changes: оставленные и новые из
+    POST /api/uploads, по порядку (docs/adr/0016)."""
+
+    file_ids: list[uuid.UUID] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def ids_unique(self) -> Self:
+        if not _unique(self.file_ids):
+            raise ValueError("Ids repeat")
+        return self
+
+
 class TaskDraftTitle(BaseModel):
     """Название черновика: Save draft сохраняет его, Submit for review — тоже."""
 
@@ -357,7 +370,7 @@ Feedback = Annotated[str, StringConstraints(strip_whitespace=True, max_length=FE
 
 
 class VersionReviewCreate(BaseModel):
-    """Approve или Request changes по последней версии исполнителя (docs/adr/0015)."""
+    """Approve или Request changes по версии исполнителя (docs/adr/0015, 0016)."""
 
     decision: VersionReview
     # Feedback for creator; для Request changes обязателен.
