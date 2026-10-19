@@ -6,16 +6,7 @@ import ShootProductCard from './ShootProductCard.vue'
 
 // Figma "Shoot / Products": search, sort and the products as cards.
 // TODO(ui): mobile filters sheet (Figma "CMS / Mobile / Filter button").
-const {
-  products,
-  total,
-  canOpenProducts = false,
-} = defineProps<{
-  products: ShootProduct[]
-  total: number
-  // The art director sees the products' pages; creators don't (docs/adr/0004).
-  canOpenProducts?: boolean
-}>()
+const { products, total } = defineProps<{ products: ShootProduct[]; total: number }>()
 
 const search = defineModel<string>('search', { required: true })
 const sort = defineModel<ProductSort>('sort', { required: true })
@@ -47,7 +38,7 @@ const sort = defineModel<ProductSort>('sort', { required: true })
       class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3"
     >
       <li v-for="product in products" :key="product.id" class="min-w-0">
-        <ShootProductCard :product="product" :can-open="canOpenProducts" />
+        <ShootProductCard :product="product" />
       </li>
     </ul>
     <p v-else class="rounded-2xl bg-card p-8 text-center text-p2 font-medium text-secondary">

@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, Status, User
@@ -15,7 +15,7 @@ from app.files.models import StoredFile
 from app.main import create_app
 from app.products.models import Product
 from app.references.models import Reference
-from app.team.models import BrandArtDirector
+from app.team.models import ArtDirectorCreator, BrandArtDirector
 from tests.fakes import FakeStorage
 from tests.test_files import MP4, image_bytes, upload
 
@@ -545,6 +545,48 @@ async def test_art_director_sees_only_their_deliverables(
     ]
     await log_in(client, "brand@example.com")
     assert len((await detail(client, product_id))["deliverables"]) == 3
+
+
+async def test_creator_sees_the_products_of_their_art_directors(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    photo = await upload(client, image_bytes())
+    abaya = await create(
+        client,
+        product(
+            [photo["id"]],
+            name="Abaya",
+            deliverables=[deliverable(amina, name="Walk"), deliverable(odina, name="Close-up")],
+        ),
+    )
+    hijab = await create(
+        client,
+        product([(await upload(client, image_bytes()))["id"]], deliverables=[deliverable(odina)]),
+    )
+    await sign_up(client, db_session, "creator@example.com", Role.CREATOR, "Kai")
+    db_session.add(
+        ArtDirectorCreator(
+            art_director_id=uuid.UUID(amina),
+            creator_id=await user_id(db_session, "creator@example.com"),
+        )
+    )
+    await db_session.flush()
+    await log_in(client, "creator@example.com")
+
+    # Всё, что видит арт-директор: его продукты и его deliverables в них (docs/adr/0024).
+    assert [item["id"] for item in (await listing(client))["items"]] == [abaya["id"]]
+    assert [o["name"] for o in (await client.get("/api/products/options")).json()] == ["Abaya"]
+    body = await detail(client, abaya["id"])
+    assert body["can_edit"] is False
+    assert [d["name"] for d in body["deliverables"]] == ["Walk"]
+    assert (await client.get(f"/api/products/{hijab['id']}")).status_code == 404
+
+    # Снятие креатора из команды убирает и продукты арт-директора.
+    await db_session.execute(delete(ArtDirectorCreator))
+    assert await listing(client) == {"items": [], "total": 0}
+    assert (await client.get(f"/api/products/{abaya['id']}")).status_code == 404
 
 
 async def test_product_is_hidden_from_everyone_else(

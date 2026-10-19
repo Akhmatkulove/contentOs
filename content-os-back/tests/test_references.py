@@ -547,6 +547,34 @@ async def test_product_must_be_assigned_to_the_author(
         assert response.json()["detail"] == "Product not found"
 
 
+async def test_creator_adds_own_reference_to_their_art_directors_product(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    await product_with_references(client, "Abaya", [amina], [])
+    await product_with_references(client, "Hijab", [odina], [])
+    await log_in(client, "odina@example.com")
+    hijab = (await product_options(client))["Hijab"]
+    await sign_up(client, db_session, "creator@example.com", Role.CREATOR, "Kai")
+    await add_creator(db_session, "amina@example.com", "creator@example.com")
+    await log_in(client, "creator@example.com")
+
+    # Продукт выбирается из тех, что креатор видит: продуктов его арт-директоров.
+    abaya = (await product_options(client))["Abaya"]
+    created = await add_reference(client, link="https://example.com/k", product_id=abaya)
+    assert created["product_id"] == abaya
+    response = await client.post(
+        "/api/references", json={"link": "https://example.com/", "product_id": hijab}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Product not found"
+
+    # Референс продукта виден арт-директору, который на нём работает.
+    await log_in(client, "amina@example.com")
+    assert [i["id"] for i in (await listing(client))["items"]] == [created["id"]]
+
+
 async def test_own_reference_needs_own_unused_files_or_a_link(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:

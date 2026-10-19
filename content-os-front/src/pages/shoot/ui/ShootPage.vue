@@ -209,7 +209,6 @@ const {
             v-model:sort="productSort"
             :products="foundProducts"
             :total="products.length"
-            :can-open-products="canEdit"
           />
         </TabsContent>
 

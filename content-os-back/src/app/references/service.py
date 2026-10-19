@@ -76,7 +76,14 @@ class ReferenceQuery:
 
 
 def _assigned(user: User, product_id: Any) -> ColumnElement[bool]:
-    """На пользователя назначен deliverable продукта."""
+    """Продукт пользователя: deliverable назначен на него, а креатору — на арт-директора
+    его команды. Это продукты, которые он видит (docs/adr/0004, 0024).
+    """
+    if user.role == Role.CREATOR:
+        return exists().where(
+            Deliverable.product_id == product_id,
+            Deliverable.assignee_id.in_(team.art_directors_of_creator(user.id)),
+        )
     return exists().where(Deliverable.product_id == product_id, Deliverable.assignee_id == user.id)
 
 
@@ -90,14 +97,10 @@ def _visible(user: User) -> ColumnElement[bool]:
     if user.role == Role.ART_DIRECTOR:
         return or_(Reference.owner_id == user.id, _assigned(user, Reference.product_id))
     if user.role == Role.CREATOR:
-        art_directors = team.art_directors_of_creator(user.id)
         return or_(
             Reference.owner_id == user.id,
-            Reference.owner_id.in_(art_directors),
-            exists().where(
-                Deliverable.product_id == Reference.product_id,
-                Deliverable.assignee_id.in_(art_directors),
-            ),
+            Reference.owner_id.in_(team.art_directors_of_creator(user.id)),
+            _assigned(user, Reference.product_id),
         )
     return false()
 
@@ -338,8 +341,8 @@ async def create_reference(
 ) -> ReferenceResponse:
     """Свой референс в пуле. Коммитит вызывающий.
 
-    Продукт — только из тех, где на автора назначен deliverable; иначе 422,
-    как у несуществующего.
+    Продукт — только из тех, что автор видит (_assigned); иначе 422, как у
+    несуществующего.
     """
     if body.product_id is not None and not await db.scalar(
         select(_assigned(user, body.product_id))

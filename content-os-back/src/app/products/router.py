@@ -76,7 +76,8 @@ async def get_product(
     storage: StorageDep,
     settings: SettingsDep,
 ) -> ProductResponse:
-    """Страница продукта: бренду-владельцу и арт-директорам с его deliverables (docs/adr/0005)."""
+    """Страница продукта: бренду-владельцу, арт-директорам с его deliverables (docs/adr/0005)
+    и их креаторам (docs/adr/0024)."""
     return await service.get_product(db, user, storage, settings, product_id)
 
 

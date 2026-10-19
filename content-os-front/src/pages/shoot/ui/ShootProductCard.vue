@@ -8,7 +8,7 @@ import ProgressBar from './ProgressBar.vue'
 
 // Figma "Card / <product>" of the Products tab: photo, progress and a count per
 // status (Figma "CMS / Shared / Status icon").
-const { product, canOpen = false } = defineProps<{ product: ShootProduct; canOpen?: boolean }>()
+const { product } = defineProps<{ product: ShootProduct }>()
 
 const rows: {
   status: DeliverableStatus
@@ -88,7 +88,6 @@ const done = computed(() => `${product.counts.approved} / ${product.counts.total
         </li>
       </ul>
       <RouterLink
-        v-if="canOpen"
         :to="{ name: 'product', params: { id: product.id } }"
         class="flex items-center gap-1.5 self-start text-p3 font-medium text-secondary transition-colors hover:text-brand"
       >

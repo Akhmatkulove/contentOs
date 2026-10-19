@@ -288,8 +288,9 @@ async def product_response(
 ) -> ProductResponse:
     """Продукт со всем, что показывает его страница: фото, референсы, deliverables.
 
-    Референсы продукта видит каждый, кто видит продукт: бренд-владелец и назначенные
-    арт-директора (docs/adr/0004); deliverables арт-директору — только его.
+    Референсы продукта видит каждый, кто видит продукт: бренд-владелец, назначенные
+    арт-директора (docs/adr/0004) и их креаторы (docs/adr/0024); deliverables
+    арт-директору — только его, креатору — его арт-директоров.
     Число запросов не зависит от размера продукта.
     """
     photos = list(
@@ -307,10 +308,15 @@ async def product_response(
             .order_by(Reference.created_at.desc(), Reference.id.desc())
         )
     )
-    # Арт-директор видит только свои deliverables, бренд — все (docs/adr/0005).
+    # Арт-директор видит только свои deliverables, креатор — своих арт-директоров,
+    # бренд — все (docs/adr/0005, 0024).
     deliverable_query = select(Deliverable).where(Deliverable.product_id == product.id)
     if user.role == Role.ART_DIRECTOR:
         deliverable_query = deliverable_query.where(Deliverable.assignee_id == user.id)
+    elif user.role == Role.CREATOR:
+        deliverable_query = deliverable_query.where(
+            Deliverable.assignee_id.in_(team.art_directors_of_creator(user.id))
+        )
     deliverables = list(
         await db.scalars(deliverable_query.order_by(Deliverable.position, Deliverable.id))
     )
@@ -356,13 +362,18 @@ def _visible(user: User) -> ColumnElement[bool]:
     """Продукты, которые видит пользователь.
 
     Бренд видит свои, арт-директор — те, где на него назначен хотя бы один deliverable
-    (docs/adr/0004). Креатор увидит продукты по съёмкам; их пока нет.
+    (docs/adr/0004), креатор — всё, что видят арт-директора его команд (docs/adr/0024).
     """
     if user.role == Role.BRAND:
         return Product.brand_id == user.id
     if user.role == Role.ART_DIRECTOR:
         return exists().where(
             Deliverable.product_id == Product.id, Deliverable.assignee_id == user.id
+        )
+    if user.role == Role.CREATOR:
+        return exists().where(
+            Deliverable.product_id == Product.id,
+            Deliverable.assignee_id.in_(team.art_directors_of_creator(user.id)),
         )
     return false()
 
