@@ -47,7 +47,7 @@ async def client(
         yield client
 
 
-EMPTY = {"items": [], "total": 0, "counts": {"all": 0, "mine": 0, "favorites": 0}}
+EMPTY = {"items": [], "total": 0, "counts": {"all": 0, "mine": 0, "favorites": 0, "collections": 0}}
 
 
 async def product_with_references(
@@ -260,7 +260,7 @@ async def test_creator_sees_the_pool_of_their_art_directors(
     # Всё, что видит арт-директор: его референсы и референсы его продуктов.
     body = await listing(client)
     assert {item["title"] for item in body["items"]} == {"Amina", "Brand"}
-    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 0}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 0, "collections": 1}
     filters = (await client.get("/api/references/filters")).json()
     assert {author["name"] for author in filters["authors"]} == {"Acme", "Amina"}
 
@@ -371,21 +371,21 @@ async def test_favorites_tab_lists_only_favorites_with_tab_counts(
     assert {i["title"] for i in body["items"]} == {"Walk", "Drape"}
     assert all(i["favorite"] for i in body["items"])
     assert body["total"] == 2
-    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 2}
+    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 2, "collections": 1}
 
     # Поиск и фильтры общие у обеих вкладок, счётчики тоже под ними.
     body = await listing(client, scope="favorites", tag="street")
     assert [i["title"] for i in body["items"]] == ["Walk"]
-    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1, "collections": 1}
     body = await listing(client, tag="street", per_page=1)
     assert body["total"] == 2
-    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1}
+    assert body["counts"] == {"all": 2, "mine": 0, "favorites": 1, "collections": 1}
 
     # Избранное своё: у другого арт-директора вкладка пуста.
     await log_in(client, "odina@example.com")
     body = await listing(client, scope="favorites")
     assert body["items"] == []
-    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 0}
+    assert body["counts"] == {"all": 3, "mine": 0, "favorites": 0, "collections": 1}
 
 
 async def test_lost_access_hides_favorites(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -400,7 +400,7 @@ async def test_lost_access_hides_favorites(client: AsyncClient, db_session: Asyn
     await db_session.execute(update(Deliverable).values(assignee_id=None))
     body = await listing(client, scope="favorites")
     assert body["items"] == []
-    assert body["counts"] == {"all": 0, "mine": 0, "favorites": 0}
+    assert body["counts"] == {"all": 0, "mine": 0, "favorites": 0, "collections": 0}
 
 
 async def test_list_rejects_unknown_scope(client: AsyncClient) -> None:
@@ -475,12 +475,12 @@ async def test_mine_tab_lists_only_own_references_with_tab_counts(
     body = await listing(client, scope="mine")
     assert {i["title"] for i in body["items"]} == {"Walk", "Drape"}
     assert body["total"] == 2
-    assert body["counts"] == {"all": 3, "mine": 2, "favorites": 0}
+    assert body["counts"] == {"all": 3, "mine": 2, "favorites": 0, "collections": 1}
 
     # Поиск и фильтры общие со всеми вкладками.
     body = await listing(client, scope="mine", tag="street")
     assert [i["title"] for i in body["items"]] == ["Walk"]
-    assert body["counts"] == {"all": 1, "mine": 1, "favorites": 0}
+    assert body["counts"] == {"all": 1, "mine": 1, "favorites": 0, "collections": 0}
 
 
 async def test_reference_without_product_is_visible_only_to_its_author(
@@ -604,3 +604,66 @@ async def test_only_the_author_deletes_a_reference(
 
     await log_in(client, "amina@example.com")
     assert {i["title"] for i in (await listing(client))["items"]} == {"Walk", "Brand"}
+
+
+# --- Вкладка Collections ---
+
+
+async def collections_tab(client: AsyncClient, **params: Any) -> dict[str, Any]:
+    response = await client.get("/api/references/collections", params=params)
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+async def test_collections_tab_groups_references_by_collection(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await product_with_references(
+        client,
+        "Abaya",
+        [amina],
+        [{"title": t, "link": f"https://example.com/{t}"} for t in ("Brand A", "Brand B")],
+    )
+    await log_in(client, "amina@example.com")
+    # «summer 26» выбирает коллекцию бренда, «Autumn» — новая своя.
+    await add_reference(client, title="Own", link="https://example.com/o", collection="summer 26")
+    await add_reference(client, title="Leaf", link="https://example.com/l", collection="Autumn")
+    await add_reference(client, title="Loose", link="https://example.com/x", tags=["street"])
+
+    body = await collections_tab(client, preview=2)
+    assert body["total"] == 2
+    assert body["counts"] == {"all": 5, "mine": 3, "favorites": 0, "collections": 2}
+    # По алфавиту; в коллекции — сколько подходит и первые в выбранной сортировке.
+    assert [(c["name"], c["total"]) for c in body["items"]] == [("Autumn", 1), ("Summer 26", 3)]
+    assert [i["title"] for i in body["items"][1]["items"]] == ["Own", "Brand B"]
+    oldest = await collections_tab(client, preview=2, sort="oldest")
+    assert [i["title"] for i in oldest["items"][1]["items"]] == ["Brand A", "Brand B"]
+
+    # Поиск и фильтры общие с остальными вкладками; без коллекции не попадает.
+    body = await collections_tab(client, search="leaf")
+    assert [c["name"] for c in body["items"]] == ["Autumn"]
+    assert body["counts"]["collections"] == 1
+    assert (await collections_tab(client, tag="street"))["items"] == []
+
+    # Страницы — по коллекциям.
+    second = await collections_tab(client, per_page=1, page=2)
+    assert [c["name"] for c in second["items"]] == ["Summer 26"]
+    assert second["total"] == 2
+
+
+async def test_list_opens_one_collection(client: AsyncClient, db_session: AsyncSession) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    await product_with_references(
+        client, "Abaya", [amina], [{"title": "Brand", "link": "https://example.com/b"}]
+    )
+    await log_in(client, "amina@example.com")
+    await add_reference(client, title="Leaf", link="https://example.com/l", collection="Autumn")
+
+    body = await listing(client, collection="SUMMER 26")
+    assert [i["title"] for i in body["items"]] == ["Brand"]
+    assert body["total"] == 1
+    # Счётчики вкладок — без учёта открытой коллекции.
+    assert body["counts"] == {"all": 2, "mine": 1, "favorites": 0, "collections": 2}
+    assert (await listing(client, collection="Autumn", scope="favorites"))["total"] == 0

@@ -2,8 +2,10 @@ import { ALL, type ReferenceFilters } from '@/entities/reference'
 import { queryParam, type QueryParams } from '@/shared/lib'
 
 // The pool's state in the URL: /references?tab=favorites&type=video&product=…&page=2.
+// On the Collections tab `collection` is the opened one: ?tab=collections&collection=Summer+26.
 export const referenceQueryParams = {
-  scope: queryParam.oneOf(['all', 'mine', 'favorites'], 'all', 'tab'),
+  scope: queryParam.oneOf(['all', 'mine', 'favorites', 'collections'], 'all', 'tab'),
+  collection: queryParam.text(),
   search: queryParam.text(),
   type: queryParam.oneOf([ALL, 'video', 'image', 'moodboard'], ALL),
   productId: queryParam.text(ALL, 'product'),
@@ -38,7 +40,8 @@ export function isFiltered(filters: ReferenceFilters): boolean {
   )
 }
 
-// "3 references" above the list while something narrows it.
-export function foundLabel(count: number): string {
-  return `${count} ${count === 1 ? 'reference' : 'references'}`
+// "3 references" above the list while something narrows it; "2 collections"
+// on the Collections tab.
+export function foundLabel(count: number, noun: 'reference' | 'collection' = 'reference'): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
 }

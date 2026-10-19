@@ -10,18 +10,20 @@
 а файлы лежат в хранилище под `files/demo/`.
 
 Набор: 5 продуктов бренда brand1@example.com (deliverables назначены на
-ad1@example.com), 5 референсов ad1 и 8 его съёмок (все статусы съёмок) с креаторами creator1–3 —
-с разными датами и статусами deliverables. Пользователи и связки должны уже быть.
+ad1@example.com), 5 референсов ad1 в съёмках и ещё ~40 в пуле по коллекциям (бренда
+и двум своим ad1, несколько без коллекции), 8 его съёмок (все статусы съёмок)
+с креаторами creator1–3 — с разными датами и статусами deliverables.
+Пользователи и связки должны уже быть.
 """
 
 import asyncio
 import io
 import sys
 import uuid
-from datetime import date, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from PIL import Image, ImageDraw
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -71,6 +73,91 @@ REFERENCES = [
     ("Autumn moodboard", ReferenceType.MOODBOARD, None, 3),
     ("Fabric close-ups", ReferenceType.IMAGE, 2, 1),
     ("Street look", ReferenceType.MOODBOARD, 3, 2),
+]
+
+# More pool references for the Collections tab: collection (None — without one),
+# colour of the generated images, then (title, type, number of images).
+VID, IMG, MOOD = ReferenceType.VIDEO, ReferenceType.IMAGE, ReferenceType.MOODBOARD
+POOL: list[tuple[str | None, tuple[int, int, int], list[tuple[str, ReferenceType, int]]]] = [
+    (
+        "Autumn Drop",
+        (124, 92, 70),
+        [
+            ("Coat swing in the wind", VID, 1),
+            ("Layered knits", IMG, 1),
+            ("Golden hour park", MOOD, 4),
+            ("Leaf texture flatlay", IMG, 1),
+            ("Collar detail", IMG, 2),
+            ("Rain on wool", VID, 1),
+            ("Warm tones palette", MOOD, 3),
+            ("Boots on cobblestone", IMG, 1),
+            ("Scarf wrap tutorial", VID, 1),
+        ],
+    ),
+    (
+        "Summer 26",
+        (226, 196, 150),
+        [
+            ("Linen in the breeze", VID, 1),
+            ("Beach light", IMG, 1),
+            ("Sand and shadows", MOOD, 3),
+            ("Straw hat close-up", IMG, 1),
+            ("Pool side lounge", IMG, 2),
+            ("Sunset twirl", VID, 1),
+            ("Bright pastel set", MOOD, 2),
+            ("Barefoot walk", VID, 1),
+        ],
+    ),
+    (
+        "Everyday",
+        (110, 118, 90),
+        [
+            ("Coffee run", VID, 1),
+            ("Desk to dinner", MOOD, 3),
+            ("Mirror check", IMG, 1),
+            ("Metro commute", VID, 1),
+            ("Neutral layers", IMG, 2),
+            ("Grocery tote", IMG, 1),
+        ],
+    ),
+    (
+        "Street Mood",
+        (60, 62, 80),
+        [
+            ("Crosswalk stride", VID, 1),
+            ("Graffiti wall", IMG, 1),
+            ("Night neon", MOOD, 4),
+            ("Bazaar colours", MOOD, 3),
+            ("Rooftop wind", VID, 1),
+            ("Underpass echo", IMG, 1),
+            ("Bus stop wait", IMG, 1),
+            ("Skate park", VID, 1),
+            ("Old city arches", IMG, 2),
+            ("Market crowd", VID, 1),
+            ("Shadow play", IMG, 1),
+            ("Tram window", IMG, 1),
+        ],
+    ),
+    (
+        "Studio Light",
+        (200, 200, 210),
+        [
+            ("Single softbox", IMG, 1),
+            ("Hard light profile", IMG, 1),
+            ("Seamless white jump", VID, 1),
+            ("Gel colour wash", MOOD, 3),
+            ("Backlit silhouette", IMG, 1),
+        ],
+    ),
+    (
+        None,
+        (150, 130, 160),
+        [
+            ("Random inspo", IMG, 1),
+            ("Saved from Pinterest", MOOD, 2),
+            ("Hand gestures", VID, 1),
+        ],
+    ),
 ]
 
 # name, days from today, start, minutes, location, creators (indexes), mobilographer,
@@ -278,7 +365,8 @@ async def delete_files(db: AsyncSession, storage: Storage, *where: object) -> No
 async def clear(db: AsyncSession, storage: Storage) -> None:
     """Только демо-набор: по его id и файлам под files/demo/."""
     await db.execute(delete(Shoot).where(Shoot.id.in_([demo_id(s[0]) for s in SHOOTS])))
-    await db.execute(delete(Reference).where(Reference.id.in_([demo_id(r[0]) for r in REFERENCES])))
+    titles = [r[0] for r in REFERENCES] + _pool_titles()
+    await db.execute(delete(Reference).where(Reference.id.in_([demo_id(t) for t in titles])))
     await db.execute(delete(Product).where(Product.id.in_([demo_id(p[0]) for p in PRODUCTS])))
     await db.execute(delete(Collection).where(Collection.id.in_(_collection_ids())))
     await delete_files(db, storage, StoredFile.key.like("files/demo/%"))
@@ -299,8 +387,17 @@ def _collection_id(name: str) -> uuid.UUID:
     return demo_id(f"collection:{name}")
 
 
+# The art director's own collections: the brand doesn't see them.
+ART_DIRECTOR_COLLECTIONS = ("Street Mood", "Studio Light")
+
+
 def _collection_ids() -> list[uuid.UUID]:
-    return [_collection_id(name) for name in {p[1] for p in PRODUCTS}]
+    names = {p[1] for p in PRODUCTS} | set(ART_DIRECTOR_COLLECTIONS)
+    return [_collection_id(name) for name in names]
+
+
+def _pool_titles() -> list[str]:
+    return [title for _, _, items in POOL for title, _, _ in items]
 
 
 async def seed(db: AsyncSession, storage: Storage) -> None:
@@ -310,10 +407,20 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
     today = date.today()
 
     # The brand's collections are seen by its art director and their creators.
-    db.add_all(
-        Collection(id=_collection_id(name), owner_id=brand.id, name=name)
-        for name in dict.fromkeys(p[1] for p in PRODUCTS)
-    )
+    # One the owner already has under that name (from the migration) is reused:
+    # a second would break the unique name per owner.
+    collection_ids: dict[str, uuid.UUID] = {}
+    owners = [(name, brand) for name in dict.fromkeys(p[1] for p in PRODUCTS)]
+    owners += [(name, art_director) for name in ART_DIRECTOR_COLLECTIONS]
+    for name, owner in owners:
+        existing = await db.scalar(
+            select(Collection.id).where(
+                Collection.owner_id == owner.id, func.lower(Collection.name) == name.lower()
+            )
+        )
+        if existing is None:
+            db.add(Collection(id=_collection_id(name), owner_id=owner.id, name=name))
+        collection_ids[name] = existing or _collection_id(name)
     await db.flush()
 
     products: list[Product] = []
@@ -323,7 +430,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
             brand_id=brand.id,
             name=name,
             about=f"{name}: demo product for the {collection} collection.",
-            collection_id=_collection_id(collection),
+            collection_id=collection_ids[collection],
             category=category,
             sku=f"DEMO-{index + 1:03}",
             tags=[TAG, category.lower()],
@@ -358,7 +465,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
             product_id=products[product_index].id if product_index is not None else None,
             title=title,
             type=kind,
-            collection_id=_collection_id(REFERENCE_COLLECTION),
+            collection_id=collection_ids[REFERENCE_COLLECTION],
             notes="Demo reference.",
             tags=[TAG, kind.value],
         )
@@ -371,6 +478,29 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
             )
             db.add(ReferenceFile(reference_id=reference.id, position=position, file_id=file.id))
         references.append(reference)
+
+    # Pool-only references, older than the five above, one minute apart.
+    minute = 0
+    for group, colour, items in POOL:
+        for title, kind, images in items:
+            minute += 1
+            reference = Reference(
+                id=demo_id(title),
+                owner_id=art_director.id,
+                title=title,
+                type=kind,
+                collection_id=collection_ids[group] if group else None,
+                notes="Demo reference.",
+                tags=[TAG, kind.value],
+                created_at=datetime.now(UTC) - timedelta(days=1, minutes=minute),
+            )
+            db.add(reference)
+            await db.flush()
+            for position in range(images):
+                file = await add_file(
+                    db, storage, art_director, f"{title}:{position}", photo(colour, title, position)
+                )
+                db.add(ReferenceFile(reference_id=reference.id, position=position, file_id=file.id))
 
     for (
         name,

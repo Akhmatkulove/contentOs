@@ -4,6 +4,8 @@ export const referenceKeys = {
   all: ['references'] as const,
   lists: ['references', 'list'] as const,
   list: (query: object) => [...referenceKeys.lists, query] as const,
+  // The Collections tab of the references page.
+  collections: (query: object) => [...referenceKeys.lists, 'collections', query] as const,
   // "Browse reference bank" of the shoot form.
   picker: (query: object) => [...referenceKeys.lists, 'picker', query] as const,
   // Products, creators and tags of the pool: the references page and the

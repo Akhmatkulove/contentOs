@@ -22,9 +22,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.auth.models import Role, User
 from app.collections import service as collections
+from app.collections.models import Collection as CollectionModel
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
@@ -35,6 +37,8 @@ from app.products.models import Product
 from app.references.models import Reference, ReferenceFavorite, ReferenceFile, ReferenceType
 from app.references.schemas import (
     FilterProduct,
+    ReferenceCollection,
+    ReferenceCollectionList,
     ReferenceCounts,
     ReferenceCreate,
     ReferenceFilters,
@@ -149,16 +153,8 @@ _ORDER: dict[ReferenceSort, tuple[UnaryExpression[Any], ...]] = {
 }
 
 
-async def list_references(
-    db: AsyncSession,
-    user: User,
-    storage: Storage,
-    params: ReferenceQuery,
-    page: int,
-    per_page: int,
-) -> ReferenceList:
-    query = _filtered(user, params)
-    # Счётчики всех вкладок одним проходом: поиск и фильтры у них общие.
+async def _counts(db: AsyncSession, user: User, query: Select[Reference]) -> ReferenceCounts:
+    """Размеры всех вкладок одним проходом: поиск и фильтры у них общие."""
     matched = query.subquery()
     sizes = (
         await db.execute(
@@ -166,10 +162,32 @@ async def list_references(
                 func.count().label("all"),
                 func.count().filter(matched.c.owner_id == user.id).label("mine"),
                 func.count().filter(_favorite(user, matched.c.id)).label("favorites"),
+                # Одно имя без учёта регистра — одна коллекция, как в поле Collection.
+                func.count(func.lower(matched.c.collection).distinct()).label("collections"),
             ).select_from(matched)
         )
     ).one()
-    counts = ReferenceCounts(all=sizes.all, mine=sizes.mine, favorites=sizes.favorites)
+    return ReferenceCounts(
+        all=sizes.all,
+        mine=sizes.mine,
+        favorites=sizes.favorites,
+        collections=sizes.collections,
+    )
+
+
+async def list_references(
+    db: AsyncSession,
+    user: User,
+    storage: Storage,
+    params: ReferenceQuery,
+    page: int,
+    per_page: int,
+    collection: str | None = None,
+) -> ReferenceList:
+    """Страница вкладки; `collection` — только эта коллекция (открытая на вкладке
+    Collections), без учёта регистра. На счётчики вкладок она не влияет."""
+    query = _filtered(user, params)
+    counts = await _counts(db, user, query)
     total = counts.all
     if params.scope == ReferenceScope.MINE:
         query = query.where(Reference.owner_id == user.id)
@@ -177,6 +195,9 @@ async def list_references(
     elif params.scope == ReferenceScope.FAVORITES:
         query = query.where(_favorite(user, Reference.id))
         total = counts.favorites
+    if collection is not None:
+        query = query.where(func.lower(Reference.collection) == func.lower(collection))
+        total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
     references = list(
         await db.scalars(
             query.order_by(*_ORDER[params.sort]).offset((page - 1) * per_page).limit(per_page)
@@ -185,6 +206,72 @@ async def list_references(
 
     return ReferenceList(
         items=await to_responses(db, user, storage, references), total=total, counts=counts
+    )
+
+
+async def list_collections(
+    db: AsyncSession,
+    user: User,
+    storage: Storage,
+    params: ReferenceQuery,
+    page: int,
+    per_page: int,
+    preview: int,
+) -> ReferenceCollectionList:
+    """Вкладка Collections: коллекции с подходящими референсами по алфавиту, в каждой —
+    сколько подходит и первые `preview` в выбранной сортировке.
+
+    Референсы без коллекции сюда не попадают. Одно имя без учёта регистра у разных
+    владельцев — одна коллекция. Шесть запросов на страницу при любом числе коллекций.
+    """
+    query = _filtered(user, params)
+    counts = await _counts(db, user, query)
+    # Псевдоним: иначе подзапрос Reference.collection скоррелирует с этим join.
+    collection = aliased(CollectionModel)
+    key = func.lower(collection.name)
+    grouped = query.join(collection, collection.id == Reference.collection_id)
+
+    keyed = grouped.add_columns(key.label("key"), collection.name.label("name")).subquery()
+    groups = (
+        await db.execute(
+            select(keyed.c.key, func.min(keyed.c.name).label("name"), func.count().label("total"))
+            .group_by(keyed.c.key)
+            .order_by(keyed.c.key)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+        )
+    ).all()
+    if not groups:
+        return ReferenceCollectionList(items=[], total=counts.collections, counts=counts)
+
+    ranked = (
+        grouped.add_columns(
+            key.label("key"),
+            func.row_number().over(partition_by=key, order_by=_ORDER[params.sort]).label("rank"),
+        )
+        .where(key.in_([group.key for group in groups]))
+        .subquery()
+    )
+    rows = (
+        await db.execute(
+            select(Reference, ranked.c.key)
+            .join(ranked, ranked.c.id == Reference.id)
+            .where(ranked.c.rank <= preview)
+            .order_by(ranked.c.key, ranked.c.rank)
+        )
+    ).all()
+    responses = await to_responses(db, user, storage, [row.Reference for row in rows])
+    by_key: dict[str, list[ReferenceResponse]] = defaultdict(list)
+    for row, response in zip(rows, responses, strict=True):
+        by_key[row.key].append(response)
+
+    return ReferenceCollectionList(
+        items=[
+            ReferenceCollection(name=group.name, total=group.total, items=by_key[group.key])
+            for group in groups
+        ],
+        total=counts.collections,
+        counts=counts,
     )
 
 

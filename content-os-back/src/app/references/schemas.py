@@ -93,11 +93,28 @@ class ReferenceCounts(BaseModel):
     # Созданные пользователем.
     mine: int
     favorites: int
+    # Коллекции, в которых что-то подходит: вкладка Collections.
+    collections: int
 
 
 class ReferenceList(BaseModel):
     items: list[ReferenceResponse]
     # Сколько всего подходит под поиск на выбранной вкладке: для пагинации.
+    total: int
+    counts: ReferenceCounts
+
+
+class ReferenceCollection(BaseModel):
+    """Коллекция на вкладке Collections: сколько в ней подходит и первые из них."""
+
+    name: str
+    total: int
+    items: list[ReferenceResponse]
+
+
+class ReferenceCollectionList(BaseModel):
+    items: list[ReferenceCollection]
+    # Сколько всего коллекций подходит: для пагинации.
     total: int
     counts: ReferenceCounts
 

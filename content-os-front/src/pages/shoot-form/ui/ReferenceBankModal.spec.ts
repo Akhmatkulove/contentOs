@@ -31,7 +31,7 @@ function item(id: string, title: string): Schemas['ReferenceResponse'] {
 }
 
 function page(items: Schemas['ReferenceResponse'][], total = items.length) {
-  return { items, total, counts: { all: total, mine: 0, favorites: 0 } }
+  return { items, total, counts: { all: total, mine: 0, favorites: 0, collections: 0 } }
 }
 
 let host: VueWrapper | undefined

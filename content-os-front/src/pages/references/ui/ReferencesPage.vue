@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TabsIndicator, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
-import { useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import {
   ReferenceCard,
   sortOptions,
@@ -16,7 +16,12 @@ import { VSearch } from '@/shared/ui/search'
 import { VSelect } from '@/shared/ui/select'
 import { useAddReference } from '../model/add-reference'
 import { foundLabel } from '../model/reference-filters'
-import { REFERENCES_PER_PAGE, useReferencesList } from '../model/references-list'
+import {
+  COLLECTIONS_PER_PAGE,
+  REFERENCES_PER_PAGE,
+  useReferencesList,
+} from '../model/references-list'
+import CollectionRow from './CollectionRow.vue'
 
 const {
   scope,
@@ -24,7 +29,12 @@ const {
   search,
   filters,
   options,
+  grouped,
+  collection,
+  openCollection,
+  closeCollection,
   references,
+  collections,
   total,
   loading,
   refreshing,
@@ -42,6 +52,9 @@ const {
 const { addReference } = useAddReference()
 useActiveTabInView(useTemplateRef('tabList'), scope)
 
+// Pages count references, or collections on the Collections tab.
+const perPage = computed(() => (grouped.value ? COLLECTIONS_PER_PAGE : REFERENCES_PER_PAGE))
+
 function setSort(value: string | undefined) {
   if (value) filters.sort = value as ReferenceFilters['sort']
 }
@@ -49,8 +62,9 @@ function setSort(value: string | undefined) {
 
 <!--
   Figma "References" (desktop) and its mobile screen.
-  TODO(ui): tabs Recent, Collections and the "…" menu — no data
-  for them yet (collections).
+  TODO(ui): tab Recent and the "…" menu — no data for them yet.
+  The Collections tab isn't in Figma: a row per collection, built from the same
+  cards, buttons and type as the rest of the page.
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
@@ -167,18 +181,61 @@ function setSort(value: string | undefined) {
       Add reference
     </VButton>
 
+    <!-- An opened collection: its name and the way back to all of them. -->
+    <!-- min-h-9: as tall as a collection's header on the tab, so the cards stay put. -->
+    <div v-if="collection" class="flex min-h-9 min-w-0 items-center gap-3">
+      <VButton
+        variant="secondary"
+        size="icon-32"
+        aria-label="All collections"
+        @click="closeCollection"
+      >
+        <VIcon name="arrow-left-01-sharp" :size="16" />
+      </VButton>
+      <h2 class="flex min-w-0 items-baseline gap-2">
+        <span class="truncate text-h6 text-primary">{{ collection }}</span>
+        <!-- Hidden while another tab's cards stand in. -->
+        <span v-if="!loading && !refreshing" class="shrink-0 text-p2 font-medium text-tertiary">
+          {{ total }}<span class="sr-only"> {{ total === 1 ? 'reference' : 'references' }}</span>
+        </span>
+      </h2>
+    </div>
+
     <!-- Only while something narrows the list: how much is left and the way back. -->
     <div v-if="activeFilters && !loading" class="flex items-center gap-3">
-      <p class="text-p2 font-medium text-secondary">{{ foundLabel(total) }}</p>
+      <p class="text-p2 font-medium text-secondary">
+        {{ foundLabel(total, grouped ? 'collection' : 'reference') }}
+      </p>
       <VClearFilters :count="activeFilters" @clear="clearFilters" />
     </div>
 
     <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
 
-    <template v-else-if="references.length">
-      <!-- Desktop: Figma card width (≈230px) per column, so one card doesn't stretch.
-           Old cards stay dimmed while the next page or filter loads. -->
+    <template v-else-if="grouped ? collections.length : references.length">
+      <!-- Old cards stay dimmed while the next page or filter loads. -->
+      <div
+        v-if="grouped"
+        :aria-busy="refreshing"
+        :class="[
+          'flex flex-col gap-8 transition-opacity duration-200 md:gap-10',
+          refreshing && 'pointer-events-none opacity-60',
+        ]"
+      >
+        <CollectionRow
+          v-for="group in collections"
+          :key="group.name"
+          :name="group.name"
+          :total="group.total"
+          :references="group.references"
+          :can-remove="canRemove"
+          @open="openCollection(group.name)"
+          @toggle-favorite="toggleFavorite"
+          @remove="removeReference"
+        />
+      </div>
+      <!-- Desktop: Figma card width (≈230px) per column, so one card doesn't stretch. -->
       <ul
+        v-else
         :aria-busy="refreshing"
         :class="[
           'grid grid-cols-2 gap-3 transition-opacity duration-200 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-x-5 md:gap-y-6',
@@ -195,10 +252,10 @@ function setSort(value: string | undefined) {
         </li>
       </ul>
       <VPagination
-        v-if="total > REFERENCES_PER_PAGE"
+        v-if="total > perPage"
         v-model:page="page"
         :total="total"
-        :items-per-page="REFERENCES_PER_PAGE"
+        :items-per-page="perPage"
         class="self-center md:self-end"
       />
     </template>
@@ -210,6 +267,12 @@ function setSort(value: string | undefined) {
       </p>
       <VClearFilters :count="activeFilters" @clear="clearFilters" />
     </div>
+    <p v-else-if="collection" class="py-10 text-center text-p2 font-medium text-secondary">
+      This collection has no references yet.
+    </p>
+    <p v-else-if="grouped" class="py-10 text-center text-p2 font-medium text-secondary">
+      Pick a collection when you add a reference, and it shows up here.
+    </p>
     <p v-else-if="scope === 'mine'" class="py-10 text-center text-p2 font-medium text-secondary">
       References you add show up here.
     </p>

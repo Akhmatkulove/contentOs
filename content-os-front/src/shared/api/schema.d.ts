@@ -453,7 +453,8 @@ export interface paths {
      * @description Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
      *
      *     `scope=mine` — только созданные пользователем, `scope=favorites` — его избранное;
-     *     `counts` — размеры всех вкладок.
+     *     `collection` — только эта коллекция (без учёта регистра); `counts` — размеры всех
+     *     вкладок, коллекция на них не влияет.
      */
     get: operations['list_references_api_references_get']
     put?: never
@@ -462,6 +463,27 @@ export interface paths {
      * @description Свой референс: файлы (уже загруженные, POST /api/uploads) или ссылка.
      */
     post: operations['create_reference_api_references_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/references/collections': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Collections
+     * @description Вкладка Collections: коллекции по алфавиту, в каждой — сколько референсов
+     *     подходит под поиск и фильтры и первые `preview` из них.
+     */
+    get: operations['list_collections_api_references_collections_get']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -1231,6 +1253,26 @@ export interface components {
       deliverable_ids?: string[]
     }
     /**
+     * ReferenceCollection
+     * @description Коллекция на вкладке Collections: сколько в ней подходит и первые из них.
+     */
+    ReferenceCollection: {
+      /** Name */
+      name: string
+      /** Total */
+      total: number
+      /** Items */
+      items: components['schemas']['ReferenceResponse'][]
+    }
+    /** ReferenceCollectionList */
+    ReferenceCollectionList: {
+      /** Items */
+      items: components['schemas']['ReferenceCollection'][]
+      /** Total */
+      total: number
+      counts: components['schemas']['ReferenceCounts']
+    }
+    /**
      * ReferenceCounts
      * @description Сколько референсов на каждой вкладке под текущими поиском и фильтрами.
      */
@@ -1241,6 +1283,8 @@ export interface components {
       mine: number
       /** Favorites */
       favorites: number
+      /** Collections */
+      collections: number
     }
     /**
      * ReferenceCreate
@@ -2862,15 +2906,16 @@ export interface operations {
   list_references_api_references_get: {
     parameters: {
       query?: {
+        scope?: components['schemas']['ReferenceScope']
+        collection?: string | null
+        page?: number
+        per_page?: number
         search?: string
         type?: components['schemas']['ReferenceType'] | null
         product_id?: string | null
         author_id?: string | null
         tag?: string | null
         sort?: components['schemas']['ReferenceSort']
-        scope?: components['schemas']['ReferenceScope']
-        page?: number
-        per_page?: number
       }
       header?: never
       path?: never
@@ -2922,6 +2967,47 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ReferenceResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_collections_api_references_collections_get: {
+    parameters: {
+      query?: {
+        page?: number
+        per_page?: number
+        preview?: number
+        search?: string
+        type?: components['schemas']['ReferenceType'] | null
+        product_id?: string | null
+        author_id?: string | null
+        tag?: string | null
+        sort?: components['schemas']['ReferenceSort']
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReferenceCollectionList']
         }
       }
       /** @description Validation Error */

@@ -3,8 +3,11 @@ export { formatDuration, linkHost, referenceKindLabels, toReference } from './mo
 export { referenceKeys } from './model/reference-keys'
 export { default as ReferenceCard } from './ui/ReferenceCard.vue'
 export {
+  fetchReferenceCollections,
   fetchReferenceFilters,
   fetchReferences,
+  type CollectionsQuery,
+  type ReferenceCollectionList,
   type ReferenceFilterOptions,
   type ReferenceList,
   type ReferenceScope,

@@ -3,12 +3,17 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { defineComponent } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { fetchReferenceFilters, fetchReferences } from '@/entities/reference'
+import {
+  fetchReferenceCollections,
+  fetchReferenceFilters,
+  fetchReferences,
+} from '@/entities/reference'
 import { useReferencesList } from './references-list'
 
 vi.mock('@/entities/reference', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/entities/reference')>()),
   fetchReferences: vi.fn(),
+  fetchReferenceCollections: vi.fn(),
   fetchReferenceFilters: vi.fn(),
 }))
 vi.mock('../api/references', () => ({ setFavorite: vi.fn() }))
@@ -38,7 +43,7 @@ describe('useReferencesList tabs', () => {
     vi.mocked(fetchReferences).mockResolvedValue({
       items: [],
       total: 0,
-      counts: { all: 12, mine: 5, favorites: 3 },
+      counts: { all: 12, mine: 5, favorites: 3, collections: 0 },
     })
     vi.mocked(fetchReferenceFilters).mockResolvedValue({ products: [], authors: [], tags: [] })
   })
@@ -51,6 +56,7 @@ describe('useReferencesList tabs', () => {
       'All references (12)',
       'My references (5)',
       'Favorites (3)',
+      'Collections (0)',
     ])
   })
 
@@ -98,5 +104,60 @@ describe('useReferencesList tabs', () => {
     await flushPromises()
     expect(list.loading.value).toBe(false)
     expect(list.refreshing.value).toBe(true)
+  })
+})
+
+describe('useReferencesList collections tab', () => {
+  const counts = { all: 12, mine: 5, favorites: 3, collections: 2 }
+  beforeEach(() => {
+    vi.mocked(fetchReferences).mockResolvedValue({ items: [], total: 4, counts })
+    vi.mocked(fetchReferenceCollections).mockResolvedValue({ items: [], total: 2, counts })
+    vi.mocked(fetchReferenceFilters).mockResolvedValue({ products: [], authors: [], tags: [] })
+  })
+  afterEach(() => {
+    vi.mocked(fetchReferences).mockReset()
+    vi.mocked(fetchReferenceCollections).mockReset()
+  })
+
+  it('loads the collections with the search and filters, not the list', async () => {
+    const { list } = await setup('/references?tab=collections&type=video&search=linen')
+    expect(list.grouped.value).toBe(true)
+    expect(fetchReferences).not.toHaveBeenCalled()
+    expect(fetchReferenceCollections).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ search: 'linen', type: 'video', page: 1 }),
+    )
+    expect(list.total.value).toBe(2)
+    expect(list.tabs.value.at(-1)).toEqual({ value: 'collections', label: 'Collections', count: 2 })
+  })
+
+  it('opens a collection as a list of the whole pool and closes it with another tab', async () => {
+    const { list, router } = await setup('/references?tab=collections&page=2')
+    list.openCollection('Summer 26')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ tab: 'collections', collection: 'Summer 26' })
+    expect(list.grouped.value).toBe(false)
+    expect(fetchReferences).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ scope: 'all', collection: 'Summer 26', page: 1 }),
+    )
+
+    // Back to the page of collections it was opened from.
+    list.closeCollection()
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ tab: 'collections', page: '2' })
+
+    list.openCollection('Summer 26')
+    await flushPromises()
+    list.scope.value = 'mine'
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ tab: 'mine' })
+    expect(list.collection.value).toBe('')
+  })
+
+  it('ignores a collection in the URL on other tabs', async () => {
+    const { list } = await setup('/references?tab=mine&collection=Summer')
+    expect(list.collection.value).toBe('')
+    expect(fetchReferences).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: 'mine', collection: undefined }),
+    )
   })
 })

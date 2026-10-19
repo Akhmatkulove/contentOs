@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import replace
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -11,6 +12,7 @@ from app.core.storage import StorageDep, delete_quietly
 from app.references import service
 from app.references.models import ReferenceType
 from app.references.schemas import (
+    ReferenceCollectionList,
     ReferenceCreate,
     ReferenceFilters,
     ReferenceList,
@@ -24,28 +26,59 @@ router = APIRouter(prefix="/references", tags=["references"])
 TeamUser = Annotated[User, Depends(require_role(Role.ART_DIRECTOR, Role.CREATOR))]
 
 
-@router.get("")
-async def list_references(
-    user: ApprovedUser,
-    db: SessionDep,
-    storage: StorageDep,
+def _query(
     search: Annotated[str, Query(max_length=100)] = "",
     type: ReferenceType | None = None,  # noqa: A002 — имя параметра в API
     product_id: uuid.UUID | None = None,
     author_id: uuid.UUID | None = None,
     tag: Annotated[str | None, Query(max_length=50)] = None,
     sort: ReferenceSort = ReferenceSort.NEWEST,
+) -> ReferenceQuery:
+    """Поиск, фильтры и сортировка пула: общие у списка и вкладки Collections."""
+    return ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort)
+
+
+QueryDep = Annotated[ReferenceQuery, Depends(_query)]
+
+
+@router.get("")
+async def list_references(
+    user: ApprovedUser,
+    db: SessionDep,
+    storage: StorageDep,
+    params: QueryDep,
     scope: ReferenceScope = ReferenceScope.ALL,
+    collection: Annotated[str | None, Query(max_length=100)] = None,
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> ReferenceList:
     """Поиск по названию, описанию, тегам и коллекции, без учёта регистра.
 
     `scope=mine` — только созданные пользователем, `scope=favorites` — его избранное;
-    `counts` — размеры всех вкладок.
+    `collection` — только эта коллекция (без учёта регистра); `counts` — размеры всех
+    вкладок, коллекция на них не влияет.
     """
-    params = ReferenceQuery(search.strip(), type, product_id, author_id, tag, sort, scope)
-    return await service.list_references(db, user, storage, params, page, per_page)
+    params = replace(params, scope=scope)
+    # Пустое имя — без коллекции, а не пустая коллекция.
+    collection = collection.strip() if collection else None
+    return await service.list_references(
+        db, user, storage, params, page, per_page, collection or None
+    )
+
+
+@router.get("/collections")
+async def list_collections(
+    user: ApprovedUser,
+    db: SessionDep,
+    storage: StorageDep,
+    params: QueryDep,
+    page: Annotated[int, Query(ge=1, le=10_000)] = 1,
+    per_page: Annotated[int, Query(ge=1, le=20)] = 6,
+    preview: Annotated[int, Query(ge=1, le=20)] = 10,
+) -> ReferenceCollectionList:
+    """Вкладка Collections: коллекции по алфавиту, в каждой — сколько референсов
+    подходит под поиск и фильтры и первые `preview` из них."""
+    return await service.list_collections(db, user, storage, params, page, per_page, preview)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
