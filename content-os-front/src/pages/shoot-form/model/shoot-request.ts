@@ -11,7 +11,7 @@ export interface ShootFormData {
     duration: string
   }
   creatorIds: string[]
-  mobilographerId: string | undefined
+  mobilographerIds: string[]
   productIds: string[]
   // The ticked references, new ones already saved to the pool.
   referenceIds: string[]
@@ -25,10 +25,7 @@ export function toShootCreate(
   data: ShootFormData,
   savedId: (id: string) => string = (id) => id,
 ): ShootCreate {
-  const team = new Set([
-    ...data.creatorIds,
-    ...(data.mobilographerId ? [data.mobilographerId] : []),
-  ])
+  const team = new Set([...data.creatorIds, ...data.mobilographerIds])
   const references = new Set(data.referenceIds)
   return {
     name: data.details.name,
@@ -37,7 +34,7 @@ export function toShootCreate(
     duration_minutes: Number(data.details.duration),
     location: data.details.location,
     creator_ids: data.creatorIds,
-    mobilographer_id: data.mobilographerId ?? null,
+    mobilographer_ids: data.mobilographerIds,
     product_ids: data.productIds,
     reference_ids: data.referenceIds,
     deliverables: data.deliverables.map((deliverable) => ({

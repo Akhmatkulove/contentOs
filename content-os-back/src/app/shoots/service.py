@@ -141,8 +141,7 @@ def _set_fields(shoot: Shoot, body: ShootCreate) -> None:
 def _add_links(db: AsyncSession, shoot: Shoot, body: ShootCreate) -> None:
     """Команда, продукты и референсы съёмки в порядке запроса."""
     roles = [(user_id, ShootRole.CREATOR) for user_id in body.creator_ids]
-    if body.mobilographer_id:
-        roles.append((body.mobilographer_id, ShootRole.MOBILOGRAPHER))
+    roles += [(user_id, ShootRole.MOBILOGRAPHER) for user_id in body.mobilographer_ids]
     db.add_all(
         ShootMember(shoot_id=shoot.id, user_id=user_id, role=role, position=index)
         for index, (user_id, role) in enumerate(roles)
@@ -598,7 +597,6 @@ async def get_shoot(
         )
     )
 
-    mobilographer = next((m.user_id for m in members if m.role == ShootRole.MOBILOGRAPHER), None)
     return ShootResponse(
         id=shoot.id,
         name=shoot.name,
@@ -609,7 +607,7 @@ async def get_shoot(
         status=ShootStatus(row.status),
         art_director=member(shoot.art_director_id),
         creators=[member(m.user_id) for m in members if m.role == ShootRole.CREATOR],
-        mobilographer=member(mobilographer) if mobilographer else None,
+        mobilographers=[member(m.user_id) for m in members if m.role == ShootRole.MOBILOGRAPHER],
         products=[
             ShootProductItem(
                 id=product.id,

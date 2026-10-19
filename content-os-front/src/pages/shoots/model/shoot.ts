@@ -19,7 +19,7 @@ export interface Shoot {
   approved: number
   // Approved out of all deliverables, 0–100.
   percent: number
-  // The art director first, then creators and the mobilographer.
+  // The art director first, then creators and mobilographers.
   team: TeamMember[]
 }
 

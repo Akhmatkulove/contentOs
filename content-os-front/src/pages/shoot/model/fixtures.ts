@@ -22,7 +22,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
     status: 'in_progress',
     art_director: member('ad', 'Risolat'),
     creators: [member('amina', 'Amina')],
-    mobilographer: member('odina', 'Odina'),
+    mobilographers: [member('odina', 'Odina')],
     products: [
       {
         id: 'p1',

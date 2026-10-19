@@ -55,10 +55,10 @@ export const shootSchema = v.pipe(
 
 // Who is on the shoot, from useShootTeam().
 export interface ShootFormTeam {
-  // Creators and the mobilographer: the assignees to pick from.
+  // Creators and mobilographers: the assignees to pick from.
   members: MaybeRefOrGetter<TeamMember[]>
   creatorIds: Ref<string[]>
-  mobilographerId: Ref<string | undefined>
+  mobilographerIds: Ref<string[]>
 }
 
 // The form being saved: a new shoot, or an existing one with its id.
@@ -165,7 +165,7 @@ export function useShootForm(team: ShootFormTeam, editing?: ShootFormTarget) {
         {
           details: validated.details,
           creatorIds: team.creatorIds.value,
-          mobilographerId: team.mobilographerId.value,
+          mobilographerIds: team.mobilographerIds.value,
           productIds: selectedProducts.value,
           referenceIds: selectedReferences.value,
           deliverables: deliverables.value,

@@ -73,7 +73,7 @@ export function teamSummary(shoot: ShootDetails) {
     creators: shoot.creators.length,
     // Deliverables someone is assigned to.
     tasks: shoot.deliverables.filter((deliverable) => deliverable.assignees.length).length,
-    mobilographers: shoot.mobilographer ? 1 : 0,
+    mobilographers: shoot.mobilographers.length,
   }
 }
 

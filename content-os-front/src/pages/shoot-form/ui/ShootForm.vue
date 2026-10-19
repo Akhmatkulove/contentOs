@@ -23,8 +23,8 @@ const {
   creatorIds,
   creators,
   creatorOptions,
-  mobilographerId,
-  mobilographer,
+  mobilographerIds,
+  mobilographers,
   mobilographerOptions,
 } = useShootTeam(editing?.initial)
 const {
@@ -44,7 +44,7 @@ const {
   submit,
   saving,
   saveDraft,
-} = useShootForm({ members, creatorIds, mobilographerId }, editing)
+} = useShootForm({ members, creatorIds, mobilographerIds }, editing)
 
 const formElement = useTemplateRef('formElement')
 
@@ -111,11 +111,11 @@ async function onSubmit() {
 
     <ShootTeamSection
       v-model:creator-ids="creatorIds"
-      v-model:mobilographer-id="mobilographerId"
+      v-model:mobilographer-ids="mobilographerIds"
       :art-director="artDirector"
       :creators="creators"
       :creator-options="creatorOptions"
-      :mobilographer="mobilographer"
+      :mobilographers="mobilographers"
       :mobilographer-options="mobilographerOptions"
       :loading="teamLoading"
     />

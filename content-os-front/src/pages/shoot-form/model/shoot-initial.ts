@@ -14,7 +14,7 @@ export interface ShootFormInitial {
     duration: string
   }
   creatorIds: string[]
-  mobilographerId: string | undefined
+  mobilographerIds: string[]
   // The team as saved: kept even if an admin has since unlinked someone.
   members: TeamMember[]
   products: ShootProduct[]
@@ -41,8 +41,8 @@ export function fromShoot(shoot: ShootDetails): ShootFormInitial {
       duration: String(shoot.duration_minutes),
     },
     creatorIds: shoot.creators.map((member) => member.id),
-    mobilographerId: shoot.mobilographer?.id,
-    members: [...shoot.creators, ...(shoot.mobilographer ? [shoot.mobilographer] : [])],
+    mobilographerIds: shoot.mobilographers.map((member) => member.id),
+    members: [...shoot.creators, ...shoot.mobilographers],
     products,
     references,
     deliverables: shoot.deliverables.flatMap((deliverable) => {

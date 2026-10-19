@@ -17,14 +17,12 @@ export interface ShootPerson {
   role: ShootRoleLabel
 }
 
-// The art director first, then creators and the mobilographer.
+// The art director first, then creators and mobilographers.
 export function shootPeople(shoot: ShootDetails): ShootPerson[] {
   return [
     { member: shoot.art_director, role: 'Art Director' },
     ...shoot.creators.map((member) => ({ member, role: 'Creator' as const })),
-    ...(shoot.mobilographer
-      ? [{ member: shoot.mobilographer, role: 'Mobilographer' as const }]
-      : []),
+    ...shoot.mobilographers.map((member) => ({ member, role: 'Mobilographer' as const })),
   ]
 }
 

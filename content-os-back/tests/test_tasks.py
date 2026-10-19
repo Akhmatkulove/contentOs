@@ -43,7 +43,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
             client,
             name="Shoot 04",
             creator_ids=[lana, odina],
-            mobilographer_id=None,
+            mobilographer_ids=[],
             product_ids=[abaya, dress],
             deliverables=[
                 {
@@ -70,7 +70,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
             client,
             name="Shoot 05",
             creator_ids=[odina],
-            mobilographer_id=None,
+            mobilographer_ids=[],
             deliverables=[
                 {
                     "name": "Portrait",

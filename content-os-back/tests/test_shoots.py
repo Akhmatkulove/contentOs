@@ -79,7 +79,7 @@ async def shoot(client: AsyncClient, **fields: Any) -> dict[str, Any]:
         "duration_minutes": 120,
         "location": "Tashkent Studio",
         "creator_ids": [team["Lana"]],
-        "mobilographer_id": team["Odina"],
+        "mobilographer_ids": [team["Odina"]],
         "product_ids": [abaya],
         "deliverables": [
             {
@@ -183,6 +183,7 @@ async def test_rejects_what_the_art_director_does_not_have(
     fields: dict[str, Any]
     for fields in (
         {"creator_ids": [stranger]},
+        {"mobilographer_ids": [stranger]},
         {"product_ids": [*body["product_ids"], foreign]},
         {"reference_ids": ["00000000-0000-0000-0000-000000000000"]},
     ):
@@ -281,7 +282,7 @@ async def test_shoot_page_shows_team_products_and_deliverables(
     assert page["can_edit"] is True
     assert page["art_director"]["name"] == "Amina"
     assert [m["name"] for m in page["creators"]] == ["Lana"]
-    assert page["mobilographer"]["name"] == "Odina"
+    assert [m["name"] for m in page["mobilographers"]] == ["Odina"]
     [abaya] = page["products"]
     assert abaya["name"] == "Abaya"
     assert abaya["photo"]["url"]
@@ -307,6 +308,33 @@ async def test_shoot_page_shows_team_products_and_deliverables(
     assert (await client.get(f"/api/shoots/{created['id']}")).status_code == 404
 
 
+async def test_a_shoot_takes_several_mobilographers(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await sign_up(client, db_session, "dilya@example.com", Role.CREATOR, "Dilya")
+    await add_creator(db_session, "amina@example.com", "dilya@example.com")
+    await log_in(client, "amina@example.com")
+    team = await creators(client)
+    body = await shoot(client, mobilographer_ids=[team["Dilya"], team["Odina"]])
+    walk = body["deliverables"][0]
+    body["deliverables"] = [{**walk, "assignee_ids": [team["Odina"], team["Dilya"]]}]
+
+    created = await post(client, body)
+    page = (await client.get(f"/api/shoots/{created['id']}")).json()
+    assert [m["name"] for m in page["mobilographers"]] == ["Dilya", "Odina"]
+    # Every mobilographer is in the team and sees the shoot.
+    await log_in(client, "dilya@example.com")
+    assert (await client.get(f"/api/shoots/{created['id']}")).status_code == 200
+
+    # One role per person: not a creator and a mobilographer, not a mobilographer twice.
+    await log_in(client, "amina@example.com")
+    for mobilographers in ([team["Lana"]], [team["Odina"], team["Odina"]]):
+        # The deliverable is Lana's alone, so only the team itself is wrong.
+        wrong = {**body, "mobilographer_ids": mobilographers, "deliverables": [walk]}
+        response = await client.post("/api/shoots", json=wrong)
+        assert response.status_code == 422, mobilographers
+
+
 async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> None:
     body = await shoot(client)
     created = await post(client, body)
@@ -321,7 +349,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
             **body,
             "name": "Renamed",
             "creator_ids": [team["Lana"], team["Odina"]],
-            "mobilographer_id": None,
+            "mobilographer_ids": [],
             "product_ids": [*body["product_ids"], dress],
             "deliverables": [
                 {
@@ -344,7 +372,7 @@ async def test_edits_the_shoot_keeping_deliverable_ids(client: AsyncClient) -> N
     edited = response.json()
     assert edited["name"] == "Renamed"
     assert [m["name"] for m in edited["creators"]] == ["Lana", "Odina"]
-    assert edited["mobilographer"] is None
+    assert edited["mobilographers"] == []
     assert [d["name"] for d in edited["deliverables"]] == ["Close-up", "Walk, renamed"]
     kept = edited["deliverables"][1]
     assert (kept["id"], kept["type"], kept["status"]) == (walk["id"], "image", "to_shoot")

@@ -13,7 +13,7 @@ const shoot: ShootDetails = {
   status: 'upcoming',
   art_director: member('ad'),
   creators: [member('lana')],
-  mobilographer: member('odina'),
+  mobilographers: [member('odina'), member('dilya')],
   products: [
     {
       id: 'p1',
@@ -58,8 +58,8 @@ describe('fromShoot', () => {
       duration: '90',
     })
     expect(initial.creatorIds).toEqual(['lana'])
-    expect(initial.mobilographerId).toBe('odina')
-    expect(initial.members.map((m) => m.id)).toEqual(['lana', 'odina'])
+    expect(initial.mobilographerIds).toEqual(['odina', 'dilya'])
+    expect(initial.members.map((m) => m.id)).toEqual(['lana', 'odina', 'dilya'])
     expect(initial.products).toEqual([{ id: 'p1', name: 'Abaya', collection: '', photoUrl: null }])
   })
 

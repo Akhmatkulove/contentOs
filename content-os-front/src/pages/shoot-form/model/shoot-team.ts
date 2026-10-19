@@ -15,13 +15,13 @@ export function pickable(pool: TeamMember[], taken: string[]): TeamMember[] {
 }
 
 // The shoot's team. The art director is whoever creates the shoot; creators
-// (any number) and the mobilographer (at most one) come from the art director's
-// own creators.
+// and mobilographers (any number of each) come from the art director's own
+// creators.
 // `initial`: the saved team when editing. Its people stay pickable even if an
 // admin has since unlinked them from the art director.
 export function useShootTeam(initial?: {
   creatorIds: string[]
-  mobilographerId: string | undefined
+  mobilographerIds: string[]
   members: TeamMember[]
 }) {
   const session = useSessionStore()
@@ -41,22 +41,16 @@ export function useShootTeam(initial?: {
   })
 
   const creatorIds = ref<string[]>(initial?.creatorIds ?? [])
-  const mobilographerId = ref<string | undefined>(initial?.mobilographerId)
+  const mobilographerIds = ref<string[]>(initial?.mobilographerIds ?? [])
 
   const creators = computed(() => membersByIds(pool.value, creatorIds.value))
-  const mobilographer = computed(
-    () => membersByIds(pool.value, mobilographerId.value ? [mobilographerId.value] : [])[0] ?? null,
-  )
+  const mobilographers = computed(() => membersByIds(pool.value, mobilographerIds.value))
 
-  const creatorOptions = computed(() =>
-    pickable(pool.value, mobilographerId.value ? [mobilographerId.value] : []),
-  )
+  const creatorOptions = computed(() => pickable(pool.value, mobilographerIds.value))
   const mobilographerOptions = computed(() => pickable(pool.value, creatorIds.value))
 
   // Who can be assigned to the shoot's deliverables.
-  const members = computed(() =>
-    mobilographer.value ? [...creators.value, mobilographer.value] : creators.value,
-  )
+  const members = computed(() => [...creators.value, ...mobilographers.value])
 
   return {
     artDirector,
@@ -65,8 +59,8 @@ export function useShootTeam(initial?: {
     creatorIds,
     creators,
     creatorOptions,
-    mobilographerId,
-    mobilographer,
+    mobilographerIds,
+    mobilographers,
     mobilographerOptions,
   }
 }

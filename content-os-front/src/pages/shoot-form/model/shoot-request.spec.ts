@@ -26,7 +26,7 @@ const data: ShootFormData = {
     duration: '90',
   },
   creatorIds: ['lana'],
-  mobilographerId: 'odina',
+  mobilographerIds: ['odina'],
   productIds: ['p1'],
   referenceIds: ['r1'],
   deliverables: [walk],
@@ -41,7 +41,7 @@ describe('toShootCreate', () => {
       start_time: '10:00',
       duration_minutes: 90,
       creator_ids: ['lana'],
-      mobilographer_id: 'odina',
+      mobilographer_ids: ['odina'],
       product_ids: ['p1'],
       reference_ids: ['r1'],
     })
@@ -69,7 +69,13 @@ describe('toShootCreate', () => {
     expect(body.deliverables[0]).toMatchObject({ id: 'd1', status: null })
   })
 
-  it('sends no mobilographer as null', () => {
-    expect(toShootCreate({ ...data, mobilographerId: undefined }).mobilographer_id).toBeNull()
+  it('keeps every mobilographer, and their deliverables', () => {
+    const body = toShootCreate({
+      ...data,
+      mobilographerIds: ['odina', 'dilya'],
+      deliverables: [{ ...walk, assignees: [member('dilya'), member('odina')] }],
+    })
+    expect(body.mobilographer_ids).toEqual(['odina', 'dilya'])
+    expect(body.deliverables[0]!.assignee_ids).toEqual(['dilya', 'odina'])
   })
 })

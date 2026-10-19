@@ -9,7 +9,7 @@ const AddDeliverableModal = defineAsyncComponent(() => import('../ui/AddDelivera
 export interface DeliverableContext {
   // The ticked products.
   products: ShootProduct[]
-  // The shoot's team: creators and the mobilographer.
+  // The shoot's team: creators and mobilographers.
   team: TeamMember[]
   // The ticked references, new ones included.
   references: DeliverableReference[]

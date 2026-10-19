@@ -62,15 +62,14 @@ class ShootCreate(BaseModel):
     duration_minutes: int = Field(ge=30, le=720)
     location: Location = ""
     creator_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
-    mobilographer_id: uuid.UUID | None = None
+    mobilographer_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
     product_ids: list[uuid.UUID] = Field(min_length=1, max_length=50)
     # Референсы из пула; новые фронт сохраняет в пул заранее (docs/adr/0007).
     reference_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
     deliverables: list[ShootDeliverableDraft] = Field(min_length=1, max_length=MAX_DELIVERABLES)
 
     def team_ids(self) -> list[uuid.UUID]:
-        mobilographer = [self.mobilographer_id] if self.mobilographer_id else []
-        return [*self.creator_ids, *mobilographer]
+        return [*self.creator_ids, *self.mobilographer_ids]
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
@@ -186,7 +185,7 @@ class ShootResponse(BaseModel):
     status: ShootStatus
     art_director: TeamMember
     creators: list[TeamMember]
-    mobilographer: TeamMember | None
+    mobilographers: list[TeamMember]
     products: list[ShootProductItem]
     references: list[ReferenceResponse]
     deliverables: list[ShootDeliverableResponse]

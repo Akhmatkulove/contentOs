@@ -1580,8 +1580,8 @@ export interface components {
       location: string
       /** Creator Ids */
       creator_ids?: string[]
-      /** Mobilographer Id */
-      mobilographer_id?: string | null
+      /** Mobilographer Ids */
+      mobilographer_ids?: string[]
       /** Product Ids */
       product_ids: string[]
       /** Reference Ids */
@@ -1784,7 +1784,8 @@ export interface components {
       art_director: components['schemas']['TeamMember']
       /** Creators */
       creators: components['schemas']['TeamMember'][]
-      mobilographer: components['schemas']['TeamMember'] | null
+      /** Mobilographers */
+      mobilographers: components['schemas']['TeamMember'][]
       /** Products */
       products: components['schemas']['ShootProductItem'][]
       /** References */

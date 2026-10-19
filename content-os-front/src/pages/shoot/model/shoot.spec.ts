@@ -6,13 +6,20 @@ import { toTasks } from './tasks-tab'
 const shoot = shootDetails()
 
 describe('shootPeople', () => {
-  it('lists the art director, creators and the mobilographer with roles', () => {
+  it('lists the art director, creators and mobilographers with roles', () => {
     expect(shootPeople(shoot).map((p) => `${p.member.name}: ${p.role}`)).toEqual([
       'Risolat: Art Director',
       'Amina: Creator',
       'Odina: Mobilographer',
     ])
-    expect(shootPeople(shootDetails({ mobilographer: null }))).toHaveLength(2)
+    expect(shootPeople(shootDetails({ mobilographers: [] }))).toHaveLength(2)
+    const two = shootDetails({ mobilographers: [shoot.mobilographers[0]!, shoot.creators[0]!] })
+    expect(shootPeople(two).map((p) => p.role)).toEqual([
+      'Art Director',
+      'Creator',
+      'Mobilographer',
+      'Mobilographer',
+    ])
   })
 })
 

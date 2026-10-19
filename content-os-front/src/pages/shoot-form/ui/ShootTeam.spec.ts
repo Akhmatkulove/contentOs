@@ -91,7 +91,7 @@ describe('Shoot team', () => {
     const artDirector = [...document.body.querySelectorAll('[role="group"]')][0]!
     expect(artDirector.querySelector('button')).toBeNull()
     expect(chips()).toEqual([])
-    expect(groupText('Mobilographer')).toContain('Select mobilographer')
+    expect(groupText('Mobilographers')).toContain('Add mobilographer')
     wrapper.unmount()
   })
 
@@ -112,28 +112,35 @@ describe('Shoot team', () => {
     wrapper.unmount()
   })
 
-  it('takes one mobilographer who is then not offered as a creator', async () => {
+  it('takes several mobilographers who are then not offered as creators', async () => {
     const wrapper = await mountForm()
 
-    await click(button('Select mobilographer'))
+    await click(button('Add mobilographer'))
     await click(option('OOdina'))
-    expect(groupText('Mobilographer')).toContain('Odina')
-    // One pick closes the list.
-    expect(options()).toEqual([])
+    await click(option('LLana'))
+    expect(option('OOdina').getAttribute('aria-selected')).toBe('true')
+    expect(chips()).toEqual(['Odina', 'Lana'])
+    await click(document.body.querySelector<HTMLElement>('[aria-label="Remove Odina"]')!)
+    expect(chips()).toEqual(['Lana'])
 
     await click(button('Add creator'))
-    expect(options()).toEqual(['AAmina', 'LLana'])
+    expect(options()).toEqual(['AAmina', 'OOdina'])
     wrapper.unmount()
   })
 
-  it('clears the mobilographer', async () => {
+  it('does not offer a creator as a mobilographer', async () => {
     const wrapper = await mountForm()
-    await click(button('Select mobilographer'))
-    await click(option('OOdina'))
+    await click(button('Add creator'))
+    await click(option('AAmina'))
+    // Close the creators list, as a user would.
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    )
+    await flushPromises()
+    expect(options()).toEqual([])
 
-    await click(document.body.querySelector<HTMLElement>('[aria-label="Remove Odina"]')!)
-
-    expect(groupText('Mobilographer')).toContain('Select mobilographer')
+    await click(button('Add mobilographer'))
+    expect(options()).toEqual(['LLana', 'OOdina'])
     wrapper.unmount()
   })
 })
