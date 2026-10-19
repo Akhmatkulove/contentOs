@@ -6,6 +6,7 @@ import {
   type RouteMeta,
   type Router,
 } from 'vue-router'
+import { useTasksBadge } from '@/entities/deliverable'
 import { useSessionStore, type Me } from '@/entities/session'
 import type { IconName } from '@/shared/ui/icon'
 import { canOpen } from '../router/access'
@@ -14,7 +15,8 @@ export interface NavItem {
   label: string
   icon: IconName
   to: RouteLocationRaw
-  badge?: number
+  // "3", "99+"; none when there's nothing to count.
+  badge?: string
 }
 
 export const sidebarNav: NavItem[] = [
@@ -31,10 +33,17 @@ export const sidebarNav: NavItem[] = [
 const TABBAR_LIMIT = 4
 const tabbarPicks = ['Home', 'My tasks', 'Shoots', 'Content']
 
+export function badgeLabel(count: number): string | undefined {
+  if (count <= 0) return undefined
+  return count > 99 ? '99+' : String(count)
+}
+
 // A section is listed only if its route lets the user in, so the menu and the
-// access guard can't disagree.
-export function navFor(router: Router, me: Me | null) {
-  const sidebar = sidebarNav.filter((item) => canOpen(router.resolve(item.to), me))
+// access guard can't disagree. `badges` are counts by section label.
+export function navFor(router: Router, me: Me | null, badges: Record<string, number> = {}) {
+  const sidebar = sidebarNav
+    .filter((item) => canOpen(router.resolve(item.to), me))
+    .map((item) => ({ ...item, badge: badgeLabel(badges[item.label] ?? 0) }))
   const tabbar =
     sidebar.length <= TABBAR_LIMIT
       ? sidebar
@@ -56,5 +65,7 @@ export function isNavItemActive(
 export function useNav() {
   const router = useRouter()
   const session = useSessionStore()
-  return computed(() => navFor(router, session.me))
+  // My tasks counts what waits for the user (docs/adr/0015).
+  const tasks = useTasksBadge(() => session.me)
+  return computed(() => navFor(router, session.me, { 'My tasks': tasks.value }))
 }

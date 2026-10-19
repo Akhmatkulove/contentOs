@@ -85,9 +85,11 @@ describe('useVersionEdit', () => {
     expect(edit.canSave.value).toBe(false)
 
     edit.discard(edit.added.value[0]!.id)
+    // Back to the files it had: nothing to send.
+    expect(edit.canSave.value).toBe(false)
+    edit.removeKept('f2')
     expect(edit.canSave.value).toBe(true)
     edit.removeKept('f1')
-    edit.removeKept('f2')
     expect(edit.canSave.value).toBe(false)
   })
 })

@@ -288,6 +288,7 @@ async def edit_version(
 ) -> list[str]:
     """Правка своей версии, по которой арт-директор попросил изменения: её файлы
     теперь `body.file_ids` (оставленные и новые), и она снова ждёт проверки.
+    Те же файлы в том же порядке — 422: без правки решение остаётся.
 
     Feedback остаётся: арт-директор видит, о чём просил. Возвращает ключи убранных
     файлов: из хранилища их удаляет вызывающий после commit.
@@ -310,11 +311,19 @@ async def edit_version(
             status.HTTP_409_CONFLICT, "Only a version with requested changes is edited"
         )
 
-    current = set(
+    ordered = list(
         await db.scalars(
-            select(TaskVersionFile.file_id).where(TaskVersionFile.version_id == version.id)
+            select(TaskVersionFile.file_id)
+            .where(TaskVersionFile.version_id == version.id)
+            .order_by(TaskVersionFile.position)
         )
     )
+    # Без правки версия на проверку не возвращается: решение по ней остаётся.
+    if ordered == body.file_ids:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Nothing changed: remove or add files"
+        )
+    current = set(ordered)
     added = [file_id for file_id in body.file_ids if file_id not in current]
     if added:
         await claim_files(db, user, added)

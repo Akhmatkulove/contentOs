@@ -34,7 +34,7 @@ const tabClass =
             <VIcon :name="item.icon" :size="22" />
             <span
               v-if="item.badge"
-              class="absolute -top-[3px] left-3 flex size-3.5 items-center justify-center rounded-full bg-pink-200 text-[7px]/[9px] font-semibold tracking-normal text-violet-500"
+              class="absolute -top-[3px] left-3 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-pink-200 px-[3px] text-[7px]/[9px] font-semibold tracking-normal text-violet-500 tabular-nums"
             >
               {{ item.badge }}
             </span>

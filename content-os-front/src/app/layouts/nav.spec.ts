@@ -1,6 +1,6 @@
 import type { Me, Role } from '@/entities/session'
 import { router } from '../router'
-import { isNavItemActive, navFor, sidebarNav } from './nav'
+import { badgeLabel, isNavItemActive, navFor, sidebarNav } from './nav'
 
 function approved(role: Role): Me {
   return {
@@ -43,5 +43,18 @@ describe('navFor', () => {
     expect(isNavItemActive(router, products, createProduct)).toBe(true)
     expect(isNavItemActive(router, home, createProduct)).toBe(false)
     expect(isNavItemActive(router, products, router.resolve({ name: 'products' }))).toBe(true)
+  })
+})
+
+describe('badges', () => {
+  it('puts the count on its section in the sidebar and the tab bar', () => {
+    const { sidebar, tabbar } = navFor(router, approved('creator'), { 'My tasks': 3 })
+    const tasks = (items: typeof sidebar) => items.find((item) => item.label === 'My tasks')
+    expect([tasks(sidebar)?.badge, tasks(tabbar)?.badge]).toEqual(['3', '3'])
+    expect(sidebar.find((item) => item.label === 'Home')?.badge).toBeUndefined()
+  })
+
+  it('hides zero and caps big numbers', () => {
+    expect([badgeLabel(0), badgeLabel(7), badgeLabel(100)]).toEqual([undefined, '7', '99+'])
   })
 })

@@ -553,6 +553,8 @@ async def test_creator_fixes_a_version_with_requested_changes(
 
     await log_in(client, "lana@example.com")
     assert (await task_page(client, task_id))["status"] == "needs_changes"
+    # Nothing changed: the decision stays.
+    await edit_version(client, task_id, v1, [first["id"], second["id"]], status=422)
     # Someone else's or a used file isn't taken.
     await edit_version(client, task_id, v1, [first["id"], v2], status=422)
     third = await upload(client, image_bytes())

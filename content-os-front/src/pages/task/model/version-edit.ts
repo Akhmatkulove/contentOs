@@ -19,12 +19,15 @@ export function useVersionEdit(
   // The version being fixed.
   const editing = ref<string | null>(null)
   const kept = shallowRef<ContentFile[]>([])
+  // The version's files as they were: unchanged, it doesn't go back to review.
+  const original = shallowRef<string[]>([])
   const { picked, sending, pending: added, send, pick, discard, clear } = useContentUploads()
 
   function start(version: ContentVersion) {
     cancel()
     editing.value = version.id
     kept.value = version.files
+    original.value = version.files.map((file) => file.id)
   }
 
   function cancel() {
@@ -61,11 +64,15 @@ export function useVersionEdit(
     ...kept.value.map((file) => file.id),
     ...picked.value.flatMap((item) => sending.get(item.id)?.fileId ?? []),
   ])
-  // Every new file is uploaded (a failed one is retried or removed first) and
-  // something is left in the version.
+  // Something changed, every new file is uploaded (a failed one is retried or
+  // removed first) and something is left in the version.
+  const changed = computed(
+    () => fileIds.value.join() !== original.value.join() || added.value.length > 0,
+  )
   const canSave = computed(
     () =>
       editing.value !== null &&
+      changed.value &&
       fileIds.value.length > 0 &&
       added.value.every((file) => file.progress === 100 && !file.failed),
   )

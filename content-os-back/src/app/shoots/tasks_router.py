@@ -141,7 +141,7 @@ async def edit_version(
     """Правка своей версии после Request changes: файлы целиком (оставленные и новые
     из POST /api/uploads), версия снова на проверке (docs/adr/0016).
 
-    Версия без Request changes или работа уже одобрена — 409.
+    Версия без Request changes или работа уже одобрена — 409; файлы не изменились — 422.
     """
     keys = await versions.edit_version(db, user, task_id, version_id, body)
     await db.commit()

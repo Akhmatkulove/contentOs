@@ -810,7 +810,7 @@ export interface paths {
      * @description Правка своей версии после Request changes: файлы целиком (оставленные и новые
      *     из POST /api/uploads), версия снова на проверке (docs/adr/0016).
      *
-     *     Версия без Request changes или работа уже одобрена — 409.
+     *     Версия без Request changes или работа уже одобрена — 409; файлы не изменились — 422.
      */
     put: operations['edit_version_api_tasks__task_id__versions__version_id__files_put']
     post?: never

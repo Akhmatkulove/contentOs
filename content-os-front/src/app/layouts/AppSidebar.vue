@@ -44,7 +44,7 @@ const initial = computed(() => name.value.charAt(0).toUpperCase())
         <span class="flex-1">{{ item.label }}</span>
         <span
           v-if="item.badge"
-          class="flex size-[22px] items-center justify-center rounded-full bg-pink-200 text-[11px]/[14px] font-semibold text-violet-500"
+          class="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-pink-200 px-1.5 text-[11px]/[14px] font-semibold text-violet-500 tabular-nums"
         >
           {{ item.badge }}
         </span>
