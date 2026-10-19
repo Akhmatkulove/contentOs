@@ -8,6 +8,11 @@ export async function fetchTask(id: string): Promise<TaskDetails> {
   return (await http.get<TaskDetails>(`/tasks/${id}`)).data
 }
 
+// All the task's references in order; the page shows the first ones until "+N".
+export async function fetchTaskReferences(id: string): Promise<Schemas['ReferenceResponse'][]> {
+  return (await http.get<Schemas['ReferenceResponse'][]>(`/tasks/${id}/references`)).data
+}
+
 // Files already sent to /uploads go into the draft of the next version (V1,
 // V2, …); the first ones create it. The assignees' only.
 export async function addDraftFiles(id: string, fileIds: string[]): Promise<TaskDetails> {

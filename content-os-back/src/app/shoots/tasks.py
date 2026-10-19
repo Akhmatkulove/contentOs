@@ -56,6 +56,8 @@ from app.team.schemas import TeamMember
 
 # Сколько референсов задачи показывает строка; остальные — числом «+N».
 SHOWN_REFERENCES = 3
+# Страница задачи показывает больше; остальные — по GET /api/tasks/{id}/references.
+TASK_PAGE_REFERENCES = 5
 
 
 class TaskSort(enum.StrEnum):
@@ -228,6 +230,7 @@ async def to_items(
     storage: Storage,
     settings: Settings,
     rows: Sequence[TaskRow],
+    shown_references: int = SHOWN_REFERENCES,
 ) -> list[TaskItem]:
     """Фото продуктов, исполнители и референсы: число запросов не зависит от страницы."""
     if not rows:
@@ -255,7 +258,7 @@ async def to_items(
     ):
         assignees[row.deliverable_id].append(TeamMember.of(row.User, settings))
 
-    # Первые SHOWN_REFERENCES референсов каждой задачи и их общее число.
+    # Первые shown_references референсов каждой задачи и их общее число.
     numbered = (
         select(
             ShootDeliverableReference.deliverable_id,
@@ -275,7 +278,7 @@ async def to_items(
     reference_totals: dict[uuid.UUID, int] = {}
     for row in await db.execute(
         select(numbered)
-        .where(numbered.c.number <= SHOWN_REFERENCES)
+        .where(numbered.c.number <= shown_references)
         .order_by(numbered.c.deliverable_id, numbered.c.number)
     ):
         shown[row.deliverable_id].append(row.reference_id)

@@ -6,8 +6,10 @@ import { VInput } from '@/shared/ui/input'
 import { VStatus } from '@/shared/ui/status'
 import { VThumbnail } from '@/shared/ui/thumbnail'
 import { contentAccept, useTaskPage, VERSION_TITLE_MAX } from '../model/task-page'
+import { useTaskReferences } from '../model/task-references'
 import ContentFileCard from './ContentFileCard.vue'
 import ContentVersionCard from './ContentVersionCard.vue'
+import TaskReferences from './TaskReferences.vue'
 import VersionEditor from './VersionEditor.vue'
 
 // The route's :id.
@@ -38,13 +40,22 @@ const {
   submit,
   edit,
 } = useTaskPage(() => id)
+
+const {
+  references,
+  more: moreReferences,
+  loadingMore,
+  loadMore,
+} = useTaskReferences(
+  () => id,
+  () => task.value,
+)
 </script>
 
 <!--
   Figma "My tasks / Creator / View task" and "… / on review". The art director
   gets the same page without uploads (docs/adr/0012).
   TODO(api): format badges ("Reel", "15–30s") — a task has no format yet.
-  TODO(ui): the references block under Ready content.
 -->
 <template>
   <div class="flex flex-col gap-4 md:gap-5">
@@ -251,6 +262,14 @@ const {
           </ul>
         </div>
       </section>
+
+      <TaskReferences
+        v-if="references.length || moreReferences"
+        :references="references"
+        :more="moreReferences"
+        :loading="loadingMore"
+        @load-more="loadMore"
+      />
 
       <!-- Figma "Actions": Save draft keeps the next version's title; its files
            are in the draft as soon as they upload. -->

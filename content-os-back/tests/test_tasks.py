@@ -231,6 +231,32 @@ async def test_shows_the_first_references_and_how_many(client: AsyncClient) -> N
     assert item["references_total"] == 5
 
 
+async def test_task_page_shows_five_references_and_loads_the_rest(client: AsyncClient) -> None:
+    refs = [
+        (await add_reference(client, link=f"https://example.com/{n}", title=f"Ref {n}"))["id"]
+        for n in range(7)
+    ]
+    lana = (await creators(client))["Lana"]
+    body = await shoot(client, reference_ids=refs)
+    body["deliverables"][0] |= {"assignee_ids": [lana], "reference_ids": list(reversed(refs))}
+    await post(client, body)
+
+    await log_in(client, "lana@example.com")
+    task_id = (await tasks(client))["items"][0]["id"]
+    page = await task_page(client, task_id)
+    assert [ref["title"] for ref in page["references"]] == [f"Ref {n}" for n in (6, 5, 4, 3, 2)]
+    assert page["references_total"] == 7
+
+    response = await client.get(f"/api/tasks/{task_id}/references")
+    assert response.status_code == 200, response.text
+    assert [ref["title"] for ref in response.json()] == [f"Ref {n}" for n in range(6, -1, -1)]
+
+    # Not the assignee: the task isn't there.
+    await log_in(client, "odina@example.com")
+    response = await client.get(f"/api/tasks/{task_id}/references")
+    assert response.status_code == 404
+
+
 async def task_page(client: AsyncClient, task_id: str, status: int = 200) -> dict[str, Any]:
     response = await client.get(f"/api/tasks/{task_id}")
     assert response.status_code == status, response.text

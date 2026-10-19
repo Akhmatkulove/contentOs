@@ -305,7 +305,8 @@ class TaskItem(BaseModel):
     shoot: TaskShoot
     product: TaskProduct
     assignees: list[TeamMember]
-    # Первые три референса deliverable по порядку; всего — references_total.
+    # Первые референсы deliverable по порядку (в строке три, на странице задачи
+    # пять); всего — references_total.
     references: list[ReferenceResponse]
     references_total: int
 

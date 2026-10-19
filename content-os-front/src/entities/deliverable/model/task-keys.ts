@@ -15,6 +15,8 @@ export const taskKeys = {
   brandCounts: (userId: string) => ['tasks', 'list', 'brand-counts', userId] as const,
   // The task page: the row plus its content versions (docs/adr/0012).
   detail: (id: string) => ['tasks', 'detail', id] as const,
+  // All the task's references, once its page asks for the rest ("+N").
+  references: (id: string) => ['tasks', 'detail', id, 'references'] as const,
   // The art director's review of the deliverable: every assignee's work (docs/adr/0015).
   review: (id: string) => ['tasks', 'review', id] as const,
 }

@@ -14,7 +14,7 @@ const selected = defineModel<boolean>('selected', { required: true })
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-2">
+  <div class="relative flex flex-col gap-2 h-full">
     <ReferenceCard :reference="reference">
       <template #action>
         <VCheckbox
@@ -37,7 +37,7 @@ const selected = defineModel<boolean>('selected', { required: true })
       as-child
       variant="soft"
       size="28"
-      class="relative z-10 gap-1 self-start [&>svg]:size-3.5"
+      class="relative z-10 gap-1 self-start [&>svg]:size-3.5 mt-auto"
     >
       <RouterLink
         :to="{ name: 'reference', params: { id: reference.id } }"

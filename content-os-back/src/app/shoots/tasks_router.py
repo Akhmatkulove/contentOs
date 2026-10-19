@@ -9,6 +9,7 @@ from app.core.config import SettingsDep
 from app.core.db import SessionDep
 from app.core.storage import StorageDep, delete_quietly
 from app.deliverables.models import DeliverableStatus
+from app.references.schemas import ReferenceResponse
 from app.shoots import backlog, review, tasks, versions
 from app.shoots.schemas import (
     BrandDeliverableFilters,
@@ -100,6 +101,15 @@ async def get_task(
 ) -> TaskResponse:
     """Страница задачи с версиями готового контента; кому задача не видна в My tasks — 404."""
     return await versions.get_task(db, user, storage, settings, task_id)
+
+
+@router.get("/{task_id}/references")
+async def list_task_references(
+    task_id: uuid.UUID, user: TeamUser, db: SessionDep, storage: StorageDep
+) -> list[ReferenceResponse]:
+    """Все референсы задачи по порядку; страница задачи показывает первые пять, «+N»
+    догружает остальные. Кому задача не видна — 404."""
+    return await versions.list_references(db, user, storage, task_id)
 
 
 @router.post("/{task_id}/draft/files")

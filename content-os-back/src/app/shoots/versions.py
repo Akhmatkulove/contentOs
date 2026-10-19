@@ -20,9 +20,13 @@ from app.deliverables.models import DeliverableStatus
 from app.files.models import StoredFile
 from app.files.schemas import FileResponse
 from app.files.service import claim_files
+from app.references import service as references
+from app.references.models import Reference
+from app.references.schemas import ReferenceResponse
 from app.shoots.models import (
     ShootDeliverable,
     ShootDeliverableAssignee,
+    ShootDeliverableReference,
     TaskVersion,
     TaskVersionFile,
     VersionReview,
@@ -36,7 +40,7 @@ from app.shoots.schemas import (
     TaskVersionResponse,
 )
 from app.shoots.statuses import sync_status, work_statuses
-from app.shoots.tasks import TaskRow, to_items, visible_tasks
+from app.shoots.tasks import TASK_PAGE_REFERENCES, TaskRow, to_items, visible_tasks
 from app.team.schemas import TeamMember
 
 
@@ -141,7 +145,7 @@ async def get_task(
     db: AsyncSession, user: User, storage: Storage, settings: Settings, task_id: uuid.UUID
 ) -> TaskResponse:
     row = await task_row(db, user, task_id)
-    [item] = await to_items(db, user, storage, settings, [row])
+    [item] = await to_items(db, user, storage, settings, [row], TASK_PAGE_REFERENCES)
     assignee = await _assignee(db, user, task_id)
     # Исполнитель видит свою работу вместе с черновиком; арт-директор — все
     # отправленные версии, черновики — нет.
@@ -159,6 +163,22 @@ async def get_task(
         draft=next((version for version in responses if version.submitted_at is None), None),
         can_upload=assignee is not None and _is_open(row.ShootDeliverable, assignee),
     )
+
+
+async def list_references(
+    db: AsyncSession, user: User, storage: Storage, task_id: uuid.UUID
+) -> list[ReferenceResponse]:
+    """Все референсы задачи по порядку: «+N» страницы задачи догружает остальные."""
+    await task_row(db, user, task_id)
+    loaded = list(
+        await db.scalars(
+            select(Reference)
+            .join(ShootDeliverableReference, ShootDeliverableReference.reference_id == Reference.id)
+            .where(ShootDeliverableReference.deliverable_id == task_id)
+            .order_by(ShootDeliverableReference.position)
+        )
+    )
+    return await references.to_responses(db, user, storage, loaded)
 
 
 def _is_open(deliverable: ShootDeliverable, assignee: ShootDeliverableAssignee) -> bool:

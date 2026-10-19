@@ -860,6 +860,27 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/tasks/{task_id}/references': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Task References
+     * @description Все референсы задачи по порядку; страница задачи показывает первые пять, «+N»
+     *     догружает остальные. Кому задача не видна — 404.
+     */
+    get: operations['list_task_references_api_tasks__task_id__references_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/tasks/{task_id}/draft/files': {
     parameters: {
       query?: never
@@ -4333,6 +4354,39 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['TaskResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_task_references_api_tasks__task_id__references_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        task_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReferenceResponse'][]
         }
       }
       /** @description Validation Error */
