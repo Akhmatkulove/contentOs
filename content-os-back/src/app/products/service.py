@@ -289,7 +289,8 @@ async def product_response(
     """Продукт со всем, что показывает его страница: фото, референсы, deliverables.
 
     Референсы продукта видит каждый, кто видит продукт: бренд-владелец и назначенные
-    арт-директора (docs/adr/0004). Число запросов не зависит от размера продукта.
+    арт-директора (docs/adr/0004); deliverables арт-директору — только его.
+    Число запросов не зависит от размера продукта.
     """
     photos = list(
         await db.scalars(
@@ -306,12 +307,12 @@ async def product_response(
             .order_by(Reference.created_at.desc(), Reference.id.desc())
         )
     )
+    # Арт-директор видит только свои deliverables, бренд — все (docs/adr/0005).
+    deliverable_query = select(Deliverable).where(Deliverable.product_id == product.id)
+    if user.role == Role.ART_DIRECTOR:
+        deliverable_query = deliverable_query.where(Deliverable.assignee_id == user.id)
     deliverables = list(
-        await db.scalars(
-            select(Deliverable)
-            .where(Deliverable.product_id == product.id)
-            .order_by(Deliverable.position, Deliverable.id)
-        )
+        await db.scalars(deliverable_query.order_by(Deliverable.position, Deliverable.id))
     )
     assignee_ids = {d.assignee_id for d in deliverables if d.assignee_id is not None}
     assignees = (

@@ -525,6 +525,28 @@ async def test_assigned_art_director_sees_product_but_cannot_edit(
     assert (await client.put(f"/api/products/{product_id}", json={})).status_code == 403
 
 
+async def test_art_director_sees_only_their_deliverables(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
+    odina = await art_director(client, db_session, "odina@example.com", "Odina")
+    photo = await upload(client, image_bytes())
+    deliverables = [
+        deliverable(amina, name="Walk"),
+        deliverable(odina, name="Close-up"),
+        deliverable(amina, name="Detail"),
+    ]
+    product_id = (await create(client, product([photo["id"]], deliverables=deliverables)))["id"]
+
+    await log_in(client, "amina@example.com")
+    assert [d["name"] for d in (await detail(client, product_id))["deliverables"]] == [
+        "Walk",
+        "Detail",
+    ]
+    await log_in(client, "brand@example.com")
+    assert len((await detail(client, product_id))["deliverables"]) == 3
+
+
 async def test_product_is_hidden_from_everyone_else(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
