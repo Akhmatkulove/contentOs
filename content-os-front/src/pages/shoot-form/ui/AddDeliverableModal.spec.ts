@@ -52,10 +52,11 @@ async function click(el: HTMLElement) {
   await flushPromises()
 }
 
-async function pickProduct() {
-  field('Product').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+// Opens the select and picks its option by text.
+async function pick(label: string, text: string) {
+  field(label).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
   await flushPromises()
-  option('Sand Abaya 017').dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
+  option(text).dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
   await flushPromises()
 }
 
@@ -71,10 +72,11 @@ afterEach(() => {
 })
 
 describe('AddDeliverableModal (shoot)', () => {
-  it('asks for a name and a product before adding', async () => {
+  it('asks for a name, a type and a product before adding', async () => {
     await open()
     await click(button('Add deliverable'))
     expect(document.body.textContent).toContain('Enter the deliverable.')
+    expect(document.body.textContent).toContain('Select a type.')
     expect(document.body.textContent).toContain('Select a product.')
     expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   })
@@ -98,7 +100,8 @@ describe('AddDeliverableModal (shoot)', () => {
     const name = field('Deliverable')
     name.value = 'Fabric close-up'
     name.dispatchEvent(new Event('input'))
-    await pickProduct()
+    await pick('Type', 'Video')
+    await pick('Product', 'Sand Abaya 017')
 
     await click(button('Add deliverable'))
     expect((await result)?.references.map((reference) => reference.id)).toEqual(['r1', 'r2'])
@@ -115,7 +118,8 @@ describe('AddDeliverableModal (shoot)', () => {
     const name = field('Deliverable')
     name.value = 'Walking transition'
     name.dispatchEvent(new Event('input'))
-    await pickProduct()
+    await pick('Type', 'Video')
+    await pick('Product', 'Sand Abaya 017')
 
     await click(field('Assignee'))
     await click(option('AAmina'))
@@ -133,6 +137,7 @@ describe('AddDeliverableModal (shoot)', () => {
     await click(button('Add deliverable'))
     expect(await result).toMatchObject({
       name: 'Walking transition',
+      type: 'video',
       product: { id: 'p2', name: 'Sand Abaya 017' },
       assignees: [{ id: 'amina' }, { id: 'odina' }],
       references: [{ id: 'r2', title: 'Walk' }],

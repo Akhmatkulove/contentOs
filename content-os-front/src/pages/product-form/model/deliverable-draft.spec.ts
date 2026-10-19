@@ -6,6 +6,7 @@ describe('toRequest', () => {
       toRequest({
         id: 'd',
         name: 'Walk',
+        type: 'video',
         assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
         status: 'approved',
         dueDate: '',
@@ -13,6 +14,7 @@ describe('toRequest', () => {
       }),
     ).toEqual({
       name: 'Walk',
+      type: 'video',
       assignee_id: 'ad-1',
       status: 'approved',
       due_date: null,

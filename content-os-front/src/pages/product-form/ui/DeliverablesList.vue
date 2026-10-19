@@ -2,6 +2,7 @@
 import {
   deliverableStatuses,
   DeliverablesTable,
+  deliverableTypes,
   formatDueDate,
   type Deliverable,
 } from '@/entities/deliverable'
@@ -34,9 +35,14 @@ const emit = defineEmits<{ remove: [id: string] }>()
           <p v-if="item.brief" class="w-full text-p3 font-medium text-secondary">
             {{ item.brief }}
           </p>
-          <VStatus :tone="deliverableStatuses[item.status].tone" :size="24">
-            {{ deliverableStatuses[item.status].label }}
-          </VStatus>
+          <div class="flex items-center gap-2">
+            <VStatus :tone="deliverableStatuses[item.status].tone" :size="24">
+              {{ deliverableStatuses[item.status].label }}
+            </VStatus>
+            <span class="text-p4 font-medium text-secondary">{{
+              deliverableTypes[item.type]
+            }}</span>
+          </div>
         </div>
         <VButton
           variant="ghost"

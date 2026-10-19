@@ -874,6 +874,7 @@ export interface components {
     DeliverableDraft: {
       /** Name */
       name: string
+      type: components['schemas']['DeliverableType']
       /**
        * Assignee Id
        * Format: uuid
@@ -895,6 +896,7 @@ export interface components {
       id: string
       /** Name */
       name: string
+      type: components['schemas']['DeliverableType']
       assignee: components['schemas']['TeamMember'] | null
       status: components['schemas']['DeliverableStatus']
       /** Due Date */
@@ -907,6 +909,11 @@ export interface components {
      * @enum {string}
      */
     DeliverableStatus: 'to_shoot' | 'in_progress' | 'needs_review' | 'needs_changes' | 'approved'
+    /**
+     * DeliverableType
+     * @enum {string}
+     */
+    DeliverableType: 'video' | 'image'
     /**
      * FileKind
      * @enum {string}
@@ -1383,6 +1390,7 @@ export interface components {
       id?: string | null
       /** Name */
       name: string
+      type: components['schemas']['DeliverableType']
       /**
        * Product Id
        * Format: uuid
@@ -1406,6 +1414,7 @@ export interface components {
       id: string
       /** Name */
       name: string
+      type: components['schemas']['DeliverableType']
       /**
        * Product Id
        * Format: uuid

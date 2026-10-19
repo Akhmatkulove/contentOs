@@ -17,6 +17,11 @@ class DeliverableStatus(enum.StrEnum):
     APPROVED = "approved"
 
 
+class DeliverableType(enum.StrEnum):
+    VIDEO = "video"
+    IMAGE = "image"
+
+
 class Deliverable(Base):
     """Единица контента, которую нужно снять для продукта.
 
@@ -35,6 +40,7 @@ class Deliverable(Base):
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
     name: Mapped[str] = mapped_column(String(200))
+    type: Mapped[DeliverableType] = mapped_column(string_enum(DeliverableType, "deliverable_type"))
     brief: Mapped[str | None] = mapped_column(Text)
     status: Mapped[DeliverableStatus] = mapped_column(
         string_enum(DeliverableStatus, "deliverable_status"), default=DeliverableStatus.TO_SHOOT

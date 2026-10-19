@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
@@ -72,6 +72,7 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
           <tr class="h-10">
             <th scope="col" :class="[headCell, 'w-8']">#</th>
             <th scope="col" :class="[headCell, 'min-w-48']">Deliverable</th>
+            <th scope="col" :class="[headCell, 'min-w-16']">Type</th>
             <th scope="col" :class="[headCell, 'min-w-44']">Product</th>
             <th scope="col" :class="[headCell, 'min-w-48']">Reference</th>
             <th scope="col" :class="[headCell, 'min-w-[162px]']">Assignee(s)</th>
@@ -90,6 +91,9 @@ const headCell = 'pr-3 text-left text-p4 font-medium text-secondary'
             <th scope="row" class="py-2 pr-3 text-left text-p2 font-medium text-primary">
               <div class="max-w-80 whitespace-normal break-words">{{ item.name }}</div>
             </th>
+            <td class="pr-3 text-p3 font-medium text-secondary">
+              {{ deliverableTypes[item.type] }}
+            </td>
             <td class="pr-3">
               <div class="flex items-center gap-2">
                 <VThumbnail

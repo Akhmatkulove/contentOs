@@ -1,5 +1,9 @@
 import { computed, ref } from 'vue'
-import { deliverableStatusOptions, type DeliverableStatus } from '@/entities/deliverable'
+import {
+  deliverableStatusOptions,
+  type DeliverableStatus,
+  type DeliverableType,
+} from '@/entities/deliverable'
 import { toReference, type ReferenceKind } from '@/entities/reference'
 import type { ShootDetails } from '@/entities/shoot'
 import type { SelectOption } from '@/shared/ui/select'
@@ -20,6 +24,7 @@ export interface ShootTask {
   // Its number in the shoot, from 1, as added.
   number: number
   name: string
+  type: DeliverableType
   product: { id: string; name: string; photoUrl: string | null }
   references: TaskReference[]
   assignees: TeamMember[]
@@ -45,6 +50,7 @@ export function toTasks(shoot: ShootDetails): ShootTask[] {
       id: deliverable.id,
       number: index + 1,
       name: deliverable.name,
+      type: deliverable.type,
       product: {
         id: deliverable.product_id,
         name: product?.name ?? '',

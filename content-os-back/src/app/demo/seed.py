@@ -28,7 +28,7 @@ from app.auth.models import User
 from app.core.config import get_settings
 from app.core.db import create_engine, create_sessionmaker
 from app.core.storage import Storage, build_storage
-from app.deliverables.models import Deliverable, DeliverableStatus
+from app.deliverables.models import Deliverable, DeliverableStatus, DeliverableType
 from app.files.models import FileKind, StoredFile
 from app.products.models import Product, ProductPhoto
 from app.references.models import Reference, ReferenceFile, ReferenceType
@@ -51,6 +51,8 @@ ART_DIRECTOR = "ad1@example.com"
 CREATORS = ("creator1@example.com", "creator2@example.com", "creator3@example.com")
 
 S = DeliverableStatus
+# Deliverables whose name says motion are videos, the rest are images.
+MOTION = ("reel", "clip", "story", "transition", "movement", "walk", "twirl")
 
 # name, collection, category, colour of the generated photos
 PRODUCTS = [
@@ -219,6 +221,11 @@ def demo_id(name: str) -> uuid.UUID:
     return uuid.uuid5(DEMO, name)
 
 
+def demo_type(name: str) -> DeliverableType:
+    lower = name.lower()
+    return DeliverableType.VIDEO if any(word in lower for word in MOTION) else DeliverableType.IMAGE
+
+
 def photo(colour: tuple[int, int, int], label: str, variant: int) -> bytes:
     """A 4:5 WebP: a vertical gradient of the colour with the label on it."""
     width, height = 640, 800
@@ -315,6 +322,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
                     position=position,
                     assignee_id=art_director.id,
                     name=["Lookbook photos", "Reels", "Detail shots"][position],
+                    type=DeliverableType.VIDEO if position == 1 else DeliverableType.IMAGE,
                     status=status,
                     due_date=today + timedelta(days=7 * (position + 1)),
                 )
@@ -389,6 +397,7 @@ async def seed(db: AsyncSession, storage: Storage) -> None:
                 position=position,
                 product_id=products[product_index].id,
                 name=task,
+                type=demo_type(task),
                 status=status,
                 due_date=today + timedelta(days=due),
             )

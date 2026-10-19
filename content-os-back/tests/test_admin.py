@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.admin.models import AdminAction, AdminActionType
 from app.admin.service import NotAnAdminError, create_or_reset_admin
 from app.auth.models import Role, Status, User, UserSession
-from app.deliverables.models import Deliverable
+from app.deliverables.models import Deliverable, DeliverableType
 from app.products.models import Product
 
 ADMIN_EMAIL = "admin@example.com"
@@ -222,7 +222,13 @@ async def test_unassigned_art_director_leaves_the_brands_deliverables(
         db_session.add(product)
         await db_session.flush()
         db_session.add(
-            Deliverable(product_id=product.id, position=0, assignee_id=director, name="Walk")
+            Deliverable(
+                product_id=product.id,
+                position=0,
+                assignee_id=director,
+                name="Walk",
+                type=DeliverableType.VIDEO,
+            )
         )
     await db_session.flush()
 

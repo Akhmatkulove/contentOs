@@ -165,6 +165,7 @@ async def _write_deliverables(
         deliverable.position = index
         deliverable.product_id = draft.product_id
         deliverable.name = draft.name
+        deliverable.type = draft.type
         deliverable.status = draft.status
         deliverable.due_date = draft.due_date
         await db.flush()
@@ -594,6 +595,7 @@ async def get_shoot(
             ShootDeliverableResponse(
                 id=deliverable.id,
                 name=deliverable.name,
+                type=deliverable.type,
                 product_id=deliverable.product_id,
                 assignees=[member(user_id) for user_id in assignees[deliverable.id]],
                 reference_ids=deliverable_references[deliverable.id],

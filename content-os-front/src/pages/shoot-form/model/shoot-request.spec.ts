@@ -6,6 +6,7 @@ const member = (id: string) => ({ id, name: id, photo_url: null })
 const walk: ShootDeliverable = {
   id: 'd1',
   name: 'Walking transition',
+  type: 'video',
   product: { id: 'p1', name: 'Abaya', collection: '', photoUrl: null },
   references: [
     { id: 'draft-1', title: 'New', previewUrl: null },
@@ -50,6 +51,7 @@ describe('toShootCreate', () => {
       {
         id: null,
         name: 'Walking transition',
+        type: 'video',
         product_id: 'p1',
         assignee_ids: ['lana'],
         reference_ids: ['r1'],

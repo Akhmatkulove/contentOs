@@ -102,6 +102,7 @@ describe('ProductCreatePage', () => {
     vi.mocked(openAddDeliverable).mockResolvedValueOnce({
       id: 'draft-1',
       name: 'Walking transition',
+      type: 'video',
       assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
       status: 'to_shoot',
       dueDate: '2024-09-18',
@@ -128,6 +129,7 @@ describe('ProductCreatePage', () => {
       deliverables: [
         {
           name: 'Walking transition',
+          type: 'video',
           assignee_id: 'ad-1',
           status: 'to_shoot',
           due_date: '2024-09-18',
@@ -155,8 +157,24 @@ describe('ProductCreatePage', () => {
         { id: 'theirs', author_id: 'ad-1', title: 'Theirs', files: [], tags: [] },
       ],
       deliverables: [
-        { id: 'd1', name: 'Walk', assignee: null, status: 'to_shoot', due_date: null, brief: null },
-        { id: 'd2', name: 'Turn', assignee: null, status: 'approved', due_date: null, brief: null },
+        {
+          id: 'd1',
+          name: 'Walk',
+          type: 'video',
+          assignee: null,
+          status: 'to_shoot',
+          due_date: null,
+          brief: null,
+        },
+        {
+          id: 'd2',
+          name: 'Turn',
+          type: 'image',
+          assignee: null,
+          status: 'approved',
+          due_date: null,
+          brief: null,
+        },
       ],
       created_at: '2026-10-07T10:00:00Z',
       can_edit: true,

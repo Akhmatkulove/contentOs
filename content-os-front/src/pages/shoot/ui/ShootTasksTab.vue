@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VSearch } from '@/shared/ui/search'
@@ -117,6 +117,7 @@ const empty = computed(() => {
             <tr class="h-10 border-b border-subtle">
               <th scope="col" :class="[headCell, 'w-10']">#</th>
               <th scope="col" :class="[headCell, 'min-w-[166px]']">Task</th>
+              <th scope="col" :class="[headCell, 'min-w-16']">Type</th>
               <th scope="col" :class="[headCell, 'min-w-[174px]']">Product</th>
               <th scope="col" :class="[headCell, 'min-w-[74px]']">Reference</th>
               <th scope="col" :class="[headCell, 'min-w-[118px]']">Assigned to</th>
@@ -134,6 +135,9 @@ const empty = computed(() => {
               <th scope="row" class="py-2 pr-4 text-left text-p2 font-medium text-primary">
                 <div class="max-w-80 whitespace-normal break-words">{{ task.name }}</div>
               </th>
+              <td class="pr-4 text-p3 font-medium text-secondary">
+                {{ deliverableTypes[task.type] }}
+              </td>
               <td class="pr-4">
                 <div class="flex items-center gap-2">
                   <VThumbnail

@@ -1,8 +1,16 @@
-export type { Assignee, Deliverable, DeliverableStatus, DueHint } from './model/deliverable'
+export type {
+  Assignee,
+  Deliverable,
+  DeliverableStatus,
+  DeliverableType,
+  DueHint,
+} from './model/deliverable'
 export {
   deliverablesLabel,
   deliverableStatuses,
   deliverableStatusOptions,
+  deliverableTypeOptions,
+  deliverableTypes,
   dueHint,
   formatDueDate,
   toDeliverable,

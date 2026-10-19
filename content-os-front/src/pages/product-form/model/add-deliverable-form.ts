@@ -2,13 +2,14 @@ import { useQuery } from '@pinia/colada'
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive } from 'vue'
-import type { DeliverableStatus } from '@/entities/deliverable'
+import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
 import type { SelectOption } from '@/shared/ui/select'
 import { fetchArtDirectors, type TeamMember } from '../api/team'
 import type { DeliverableDraft } from './deliverable-draft'
 
 export const deliverableSchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.nonEmpty('Enter the deliverable.')),
+  type: v.picklist(['video', 'image'], 'Select a type.'),
   assigneeId: v.pipe(v.string('Select an assignee.'), v.nonEmpty('Select an assignee.')),
   brief: v.pipe(v.string(), v.trim()),
 })
@@ -21,6 +22,7 @@ export function assigneeOptions(members: TeamMember[]): SelectOption[] {
 export function useAddDeliverableForm() {
   const form = reactive({
     name: '',
+    type: undefined as DeliverableType | undefined,
     assigneeId: undefined as string | undefined,
     status: 'to_shoot' as DeliverableStatus,
     dueDate: '',
@@ -31,6 +33,7 @@ export function useAddDeliverableForm() {
   const { r$ } = useRegleSchema(form, deliverableSchema, { rewardEarly: true })
   const errors = computed(() => ({
     name: r$.name.$errors[0] ?? '',
+    type: r$.type.$errors[0] ?? '',
     assigneeId: r$.assigneeId.$errors[0] ?? '',
   }))
 
@@ -50,6 +53,7 @@ export function useAddDeliverableForm() {
     return {
       id: crypto.randomUUID(),
       name: data.name,
+      type: data.type,
       assignee,
       status: form.status,
       dueDate: form.dueDate,

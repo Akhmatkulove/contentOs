@@ -1,13 +1,13 @@
 import { useRegleSchema } from '@regle/schemas'
 import * as v from 'valibot'
 import { computed, reactive } from 'vue'
-import type { DeliverableStatus } from '@/entities/deliverable'
+import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
 import type { SelectOption } from '@/shared/ui/select'
 import type { DeliverableContext } from './add-deliverable'
 import { toggleSelection, type ShootDeliverable } from './shoot-draft'
 import { membersByIds } from './shoot-team'
 
-// The deliverable and its product are required; assignees, references, date
+// The deliverable, its type and its product are required; assignees, references, date
 // and status are not. Without picked references the deliverable gets all of
 // the shoot's. Same rules as ShootDeliverableDraft on the backend.
 export const shootDeliverableSchema = v.object({
@@ -17,6 +17,7 @@ export const shootDeliverableSchema = v.object({
     v.nonEmpty('Enter the deliverable.'),
     v.maxLength(200, 'Keep the name under 200 characters.'),
   ),
+  type: v.picklist(['video', 'image'], 'Select a type.'),
   productId: v.pipe(v.string('Select a product.'), v.nonEmpty('Select a product.')),
 })
 
@@ -27,6 +28,7 @@ export function productOptions(context: DeliverableContext): SelectOption[] {
 export function useAddDeliverableForm(context: DeliverableContext) {
   const form = reactive({
     name: '',
+    type: undefined as DeliverableType | undefined,
     productId: undefined as string | undefined,
     assigneeIds: [] as string[],
     referenceIds: [] as string[],
@@ -38,6 +40,7 @@ export function useAddDeliverableForm(context: DeliverableContext) {
   const { r$ } = useRegleSchema(form, shootDeliverableSchema, { rewardEarly: true })
   const errors = computed(() => ({
     name: r$.name.$errors[0] ?? '',
+    type: r$.type.$errors[0] ?? '',
     productId: r$.productId.$errors[0] ?? '',
   }))
 
@@ -64,6 +67,7 @@ export function useAddDeliverableForm(context: DeliverableContext) {
     return {
       id: crypto.randomUUID(),
       name: data.name,
+      type: data.type,
       product,
       references: references.value.length ? references.value : context.references,
       assignees: assignees.value,

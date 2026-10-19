@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
@@ -32,9 +32,14 @@ const media = computed(() => [
     <div class="flex items-start gap-3">
       <div class="flex min-w-0 flex-1 flex-col items-start gap-2">
         <h3 class="w-full truncate text-p1 font-semibold text-primary">{{ deliverable.name }}</h3>
-        <VStatus :tone="deliverableStatuses[deliverable.status].tone" :size="24">
-          {{ deliverableStatuses[deliverable.status].label }}
-        </VStatus>
+        <div class="flex items-center gap-2">
+          <VStatus :tone="deliverableStatuses[deliverable.status].tone" :size="24">
+            {{ deliverableStatuses[deliverable.status].label }}
+          </VStatus>
+          <span class="text-p4 font-medium text-secondary">
+            {{ deliverableTypes[deliverable.type] }}
+          </span>
+        </div>
       </div>
       <VButton
         variant="ghost"

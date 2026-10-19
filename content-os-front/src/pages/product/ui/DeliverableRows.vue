@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { deliverableStatuses, formatDueDate, type Deliverable } from '@/entities/deliverable'
+import {
+  deliverableStatuses,
+  deliverableTypes,
+  formatDueDate,
+  type Deliverable,
+} from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 
 // Figma "Deliverable / …" rows of the mobile product page.
-// TODO(api): media type badge (Video, Photo) and the content thumbnail — deliverables
-// have neither yet.
+// TODO(api): the content thumbnail — deliverables don't have one yet.
 const { deliverables } = defineProps<{ deliverables: Deliverable[] }>()
 </script>
 
@@ -26,6 +30,7 @@ const { deliverables } = defineProps<{ deliverables: Deliverable[] }>()
         </span>
         <div class="flex min-w-0 flex-1 flex-col gap-1.5">
           <p class="text-p2 font-semibold text-primary">{{ item.name }}</p>
+          <p class="text-p4 font-medium text-secondary">{{ deliverableTypes[item.type] }}</p>
           <p v-if="item.brief" class="line-clamp-2 text-p3 font-medium text-secondary">
             {{ item.brief }}
           </p>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import { deliverableStatusOptions } from '@/entities/deliverable'
+import { deliverableStatusOptions, deliverableTypeOptions } from '@/entities/deliverable'
 import { VButton } from '@/shared/ui/button'
 import { VInput } from '@/shared/ui/input'
 import { VModal } from '@/shared/ui/modal'
@@ -31,15 +31,22 @@ const formId = useId()
   <!-- Figma: 704px content, 32px padding, 20px gaps and radius. -->
   <VModal title="Add deliverable" class="md:max-w-192 md:gap-5 md:rounded-[20px] md:p-8">
     <form :id="formId" class="flex flex-col gap-3.5 md:gap-5" @submit.prevent="onSubmit">
-      <VInput
-        v-model="form.name"
-        label="Deliverable"
-        required
-        placeholder="Enter deliverable"
-        :error="errors.name"
-      />
-
       <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-5">
+        <VInput
+          v-model="form.name"
+          label="Deliverable"
+          required
+          placeholder="Enter deliverable"
+          :error="errors.name"
+        />
+        <VSelect
+          v-model="form.type"
+          :options="deliverableTypeOptions"
+          label="Type"
+          required
+          placeholder="Select type"
+          :error="errors.type"
+        />
         <!-- Taken from the product, so not editable here. -->
         <VInput :model-value="context.product" label="Product" disabled />
         <VSelect

@@ -2,6 +2,7 @@ import type { Schemas } from '@/shared/api'
 import type { SelectOption } from '@/shared/ui/select'
 
 export type DeliverableStatus = Schemas['DeliverableStatus']
+export type DeliverableType = Schemas['DeliverableType']
 // The assigned art director: name and photo for the avatar.
 export type Assignee = Schemas['TeamMember']
 
@@ -9,6 +10,7 @@ export type Assignee = Schemas['TeamMember']
 export interface Deliverable {
   id: string
   name: string
+  type: DeliverableType
   // Null once the assignee is unassigned (the brand–art director link was removed).
   assignee: Assignee | null
   status: DeliverableStatus
@@ -21,12 +23,24 @@ export function toDeliverable(item: Schemas['DeliverableResponse']): Deliverable
   return {
     id: item.id,
     name: item.name,
+    type: item.type,
     assignee: item.assignee,
     status: item.status,
     dueDate: item.due_date ?? '',
     brief: item.brief ?? '',
   }
 }
+
+// What the deliverable is shot as.
+export const deliverableTypeOptions = [
+  { value: 'video', label: 'Video' },
+  { value: 'image', label: 'Image' },
+] as const satisfies readonly (SelectOption & { value: DeliverableType })[]
+
+export const deliverableTypes = {
+  video: 'Video',
+  image: 'Image',
+} as const satisfies Record<DeliverableType, string>
 
 // Figma workflow statuses, in the order of the progress summary.
 export const deliverableStatusOptions = [

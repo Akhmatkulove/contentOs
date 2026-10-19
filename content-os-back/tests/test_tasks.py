@@ -45,9 +45,16 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
             mobilographer_id=None,
             product_ids=[abaya, dress],
             deliverables=[
-                {"name": "Walking", "product_id": abaya, "assignee_ids": [lana], "due_date": LATER},
+                {
+                    "name": "Walking",
+                    "type": "video",
+                    "product_id": abaya,
+                    "assignee_ids": [lana],
+                    "due_date": LATER,
+                },
                 {
                     "name": "Close-up",
+                    "type": "video",
                     "product_id": dress,
                     "assignee_ids": [lana, odina],
                     "due_date": SOON,
@@ -66,6 +73,7 @@ async def two_shoots(client: AsyncClient) -> dict[str, str]:
             deliverables=[
                 {
                     "name": "Portrait",
+                    "type": "video",
                     "product_id": abaya,
                     "assignee_ids": [odina],
                     "status": "needs_changes",
@@ -180,6 +188,7 @@ async def test_shows_the_first_references_and_how_many(client: AsyncClient) -> N
             deliverables=[
                 {
                     "name": "Walking",
+                    "type": "video",
                     "product_id": abaya,
                     "assignee_ids": [lana],
                     "reference_ids": list(reversed(refs)),

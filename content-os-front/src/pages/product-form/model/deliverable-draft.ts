@@ -14,6 +14,7 @@ export interface DeliverableDraft extends Deliverable {
 export function toRequest(draft: DeliverableDraft): Schemas['DeliverableDraft'] {
   return {
     name: draft.name,
+    type: draft.type,
     assignee_id: draft.assignee.id,
     status: draft.status,
     due_date: draft.dueDate || null,

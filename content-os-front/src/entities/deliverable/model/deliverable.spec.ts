@@ -17,12 +17,21 @@ describe('toDeliverable', () => {
       toDeliverable({
         id: 'd',
         name: 'Walk',
+        type: 'video',
         assignee: null,
         status: 'approved',
         due_date: null,
         brief: null,
       }),
-    ).toEqual({ id: 'd', name: 'Walk', assignee: null, status: 'approved', dueDate: '', brief: '' })
+    ).toEqual({
+      id: 'd',
+      name: 'Walk',
+      type: 'video',
+      assignee: null,
+      status: 'approved',
+      dueDate: '',
+      brief: '',
+    })
   })
 })
 

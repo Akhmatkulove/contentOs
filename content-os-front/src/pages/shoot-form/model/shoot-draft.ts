@@ -1,4 +1,4 @@
-import type { DeliverableStatus } from '@/entities/deliverable'
+import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
 import type { ProductListItem } from '@/entities/product'
 import type { TeamMember } from '../api/team'
 
@@ -36,6 +36,7 @@ export interface ShootDeliverable {
   // Already on the server (editing a shoot): keeps its id when the shoot is saved.
   saved?: boolean
   name: string
+  type: DeliverableType
   product: ShootProduct
   // The shoot's references to follow; may be none.
   references: DeliverableReference[]

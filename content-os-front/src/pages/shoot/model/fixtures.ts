@@ -62,6 +62,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
       {
         id: 'd1',
         name: 'Fabric close-up',
+        type: 'image',
         product_id: 'p1',
         assignees: [member('odina', 'Odina')],
         reference_ids: ['r1'],
@@ -71,6 +72,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
       {
         id: 'd2',
         name: 'Detail movement',
+        type: 'image',
         product_id: 'p1',
         assignees: [member('amina', 'Amina'), member('odina', 'Odina')],
         reference_ids: [],
@@ -80,6 +82,7 @@ export function shootDetails(overrides: Partial<ShootDetails> = {}): ShootDetail
       {
         id: 'd3',
         name: 'Story clips',
+        type: 'video',
         product_id: 'p2',
         assignees: [],
         reference_ids: [],

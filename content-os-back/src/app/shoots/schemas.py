@@ -5,7 +5,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
-from app.deliverables.models import DeliverableStatus
+from app.deliverables.models import DeliverableStatus, DeliverableType
 from app.files.schemas import FileResponse
 from app.references.schemas import ReferenceResponse
 from app.shoots.models import NoteType, NoteVisibility
@@ -27,6 +27,7 @@ class ShootDeliverableDraft(BaseModel):
     # Уже сохранённый deliverable при редактировании; без id — новый.
     id: uuid.UUID | None = None
     name: Name
+    type: DeliverableType
     # Один из продуктов съёмки.
     product_id: uuid.UUID
     # Из команды съёмки: креаторы и мобилограф. Увидят deliverable в My tasks.
@@ -153,6 +154,7 @@ class ShootProductItem(BaseModel):
 class ShootDeliverableResponse(BaseModel):
     id: uuid.UUID
     name: str
+    type: DeliverableType
     product_id: uuid.UUID
     assignees: list[TeamMember]
     # Из references съёмки, в порядке выбора.

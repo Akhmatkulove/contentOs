@@ -6,7 +6,7 @@ from sqlalchemy import Date, DateTime, ForeignKey, String, Text, Time, UniqueCon
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, string_enum
-from app.deliverables.models import DeliverableStatus
+from app.deliverables.models import DeliverableStatus, DeliverableType
 
 
 class Shoot(Base):
@@ -93,6 +93,9 @@ class ShootDeliverable(Base):
         ForeignKey("products.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(200))
+    type: Mapped[DeliverableType] = mapped_column(
+        string_enum(DeliverableType, "shoot_deliverable_type")
+    )
     status: Mapped[DeliverableStatus] = mapped_column(
         string_enum(DeliverableStatus, "shoot_deliverable_status"),
         default=DeliverableStatus.TO_SHOOT,

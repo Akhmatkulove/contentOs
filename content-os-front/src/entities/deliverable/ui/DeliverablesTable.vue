@@ -3,10 +3,15 @@ import { computed } from 'vue'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
-import { deliverableStatuses, formatDueDate, type Deliverable } from '../model/deliverable'
+import {
+  deliverableStatuses,
+  deliverableTypes,
+  formatDueDate,
+  type Deliverable,
+} from '../model/deliverable'
 
-// Figma "Card / Deliverables" table (desktop) without the Type and Reference
-// columns. The screen may add a last column of row actions through the slot.
+// Figma "Card / Deliverables" table (desktop) without the Reference column.
+// The screen may add a last column of row actions through the slot.
 // Header and rows share one grid (rows are subgrids): headers line up with the
 // cells and every gap is the same. Columns take the width their content needs
 // and nothing is cut off; the first column takes what is left. If the card is
@@ -17,8 +22,8 @@ const slots = defineSlots<{ action?: (props: { deliverable: Deliverable }) => un
 
 const columns = computed(() =>
   slots.action
-    ? 'grid-cols-[minmax(200px,1fr)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)_28px]'
-    : 'grid-cols-[minmax(200px,1fr)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)]',
+    ? 'grid-cols-[minmax(200px,1fr)_minmax(64px,auto)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)_28px]'
+    : 'grid-cols-[minmax(200px,1fr)_minmax(64px,auto)_minmax(150px,auto)_minmax(118px,auto)_minmax(96px,auto)]',
 )
 const row = 'col-span-full grid grid-cols-subgrid items-center'
 const headCell = 'text-left text-p3 font-medium text-secondary'
@@ -35,6 +40,7 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
     >
       <div role="row" :class="[row, 'h-10']">
         <span role="columnheader" :class="headCell">Deliverable</span>
+        <span role="columnheader" :class="headCell">Type</span>
         <span role="columnheader" :class="headCell">Assigned to</span>
         <span role="columnheader" :class="headCell">Status</span>
         <span role="columnheader" :class="headCell">Due date</span>
@@ -63,6 +69,9 @@ const headCell = 'text-left text-p3 font-medium text-secondary'
               {{ item.brief }}
             </p>
           </div>
+        </div>
+        <div role="cell" class="text-p3 font-medium text-secondary">
+          {{ deliverableTypes[item.type] }}
         </div>
         <div role="cell" class="min-w-0">
           <div v-if="item.assignee" class="flex items-center gap-2">

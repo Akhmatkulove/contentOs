@@ -6,6 +6,7 @@ const deliverables: DeliverableDraft[] = [
   {
     id: '1',
     name: 'Walking transition',
+    type: 'video',
     assignee: { id: 'a', name: 'Amina', photo_url: '/amina.webp' },
     status: 'to_shoot',
     dueDate: '2024-09-18',
@@ -14,6 +15,7 @@ const deliverables: DeliverableDraft[] = [
   {
     id: '2',
     name: 'Fabric close-up',
+    type: 'video',
     assignee: { id: 'b', name: 'Odina', photo_url: null },
     status: 'approved',
     dueDate: '',
@@ -22,6 +24,7 @@ const deliverables: DeliverableDraft[] = [
   {
     id: '3',
     name: 'Detail',
+    type: 'video',
     assignee: { id: 'c', name: null, photo_url: null },
     status: 'needs_changes',
     dueDate: '',
@@ -36,10 +39,11 @@ const rows = (wrapper: ReturnType<typeof mount>) =>
     .map((row) => row.findAll('[role="cell"]').map((cell) => cell.text()))
 
 describe('DeliverablesList', () => {
-  it('has no Type and Reference columns', () => {
+  it('has no Reference column', () => {
     const wrapper = mount(DeliverablesList, { props: { deliverables } })
     expect(wrapper.findAll('[role="columnheader"]').map((th) => th.text())).toEqual([
       'Deliverable',
+      'Type',
       'Assigned to',
       'Status',
       'Due date',
@@ -50,9 +54,16 @@ describe('DeliverablesList', () => {
   it('shows a row per deliverable', () => {
     const wrapper = mount(DeliverablesList, { props: { deliverables } })
     expect(rows(wrapper)).toEqual([
-      ['Walking transitionProduct movement video', 'Amina', 'To shoot', 'Sep 18, 2024', ''],
-      ['Fabric close-up', 'OOdina', 'Approved', '—', ''],
-      ['Detail', 'UUnnamed', 'Needs changes', '—', ''],
+      [
+        'Walking transitionProduct movement video',
+        'Video',
+        'Amina',
+        'To shoot',
+        'Sep 18, 2024',
+        '',
+      ],
+      ['Fabric close-up', 'Video', 'OOdina', 'Approved', '—', ''],
+      ['Detail', 'Video', 'UUnnamed', 'Needs changes', '—', ''],
     ])
     expect(wrapper.find('img').attributes('src')).toBe('/amina.webp')
   })
@@ -62,7 +73,7 @@ describe('DeliverablesList', () => {
     const cards = wrapper.findAll('li')
     expect(cards).toHaveLength(3)
     expect(cards[0]!.text()).toBe(
-      'Walking transitionProduct movement videoTo shootAssigneeAminaDue date Sep 18, 2024',
+      'Walking transitionProduct movement videoTo shootVideoAssigneeAminaDue date Sep 18, 2024',
     )
     expect(wrapper.find('li input[type="checkbox"]').exists()).toBe(false)
     expect(cards[0]!.find('[aria-label="Remove Walking transition"]').exists()).toBe(true)

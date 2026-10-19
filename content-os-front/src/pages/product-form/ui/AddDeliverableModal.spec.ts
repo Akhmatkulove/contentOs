@@ -34,11 +34,12 @@ const input = (label: string) => {
   return document.getElementById(el.htmlFor) as HTMLInputElement
 }
 
-async function pickAssignee() {
-  input('Assignee').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+// Opens the select and picks its option by text.
+async function pick(label: string, text: string) {
+  input(label).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
   await flushPromises()
-  document
-    .querySelector('[role="option"]')!
+  ;[...document.querySelectorAll('[role="option"]')]
+    .find((el) => el.textContent?.trim() === text)!
     .dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))
   await flushPromises()
 }
@@ -70,11 +71,12 @@ describe('AddDeliverableModal', () => {
     expect(options.map((option) => option.textContent?.trim())).toEqual(['Amina'])
   })
 
-  it('asks for a name and an assignee before adding', async () => {
+  it('asks for a name, a type and an assignee before adding', async () => {
     await open()
     button('Add deliverable').click()
     await flushPromises()
     expect(document.body.textContent).toContain('Enter the deliverable.')
+    expect(document.body.textContent).toContain('Select a type.')
     expect(document.body.textContent).toContain('Select an assignee.')
     expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   })
@@ -87,13 +89,15 @@ describe('AddDeliverableModal', () => {
     const brief = input('Brief')
     brief.value = 'Slow walk to the window'
     brief.dispatchEvent(new Event('input'))
-    await pickAssignee()
+    await pick('Type', 'Image')
+    await pick('Assignee', 'Amina')
     button('Add deliverable').click()
     await flushPromises()
 
     expect(await result).toEqual({
       id: expect.any(String),
       name: 'Walking transition',
+      type: 'image',
       assignee: { id: 'ad-1', name: 'Amina', photo_url: null },
       status: 'to_shoot',
       dueDate: '',

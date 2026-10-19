@@ -36,6 +36,7 @@ const shoot: ShootDetails = {
     {
       id: 'd1',
       name: 'Walk',
+      type: 'video',
       product_id: 'p1',
       assignees: [member('lana')],
       reference_ids: ['gone'],

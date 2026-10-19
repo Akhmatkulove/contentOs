@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import { deliverableStatusOptions } from '@/entities/deliverable'
+import { deliverableStatusOptions, deliverableTypeOptions } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VButton } from '@/shared/ui/button'
 import { VDatePicker } from '@/shared/ui/date-picker'
@@ -49,15 +49,22 @@ const referencesId = useId()
   <!-- Figma: 704px content, 28px padding, 20px gaps and radius. -->
   <VModal title="Add deliverable" class="md:max-w-190 md:gap-5 md:rounded-[20px] md:p-7">
     <form :id="formId" class="flex flex-col gap-3.5 md:gap-5" @submit.prevent="onSubmit">
-      <VInput
-        v-model="form.name"
-        label="Deliverable"
-        required
-        placeholder="Enter here"
-        :error="errors.name"
-      />
-
       <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-5">
+        <VInput
+          v-model="form.name"
+          label="Deliverable"
+          required
+          placeholder="Enter here"
+          :error="errors.name"
+        />
+        <VSelect
+          v-model="form.type"
+          :options="deliverableTypeOptions"
+          label="Type"
+          required
+          placeholder="Select"
+          :error="errors.type"
+        />
         <VSelect
           v-model="form.productId"
           :options="productOptions(context)"

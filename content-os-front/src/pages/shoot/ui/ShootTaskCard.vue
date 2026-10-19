@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { deliverableStatuses, formatDueDate } from '@/entities/deliverable'
+import { deliverableStatuses, deliverableTypes, formatDueDate } from '@/entities/deliverable'
 import { VAvatar } from '@/shared/ui/avatar'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
@@ -17,9 +17,12 @@ const { task } = defineProps<{ task: ShootTask }>()
   >
     <div class="flex flex-col items-start gap-2">
       <h3 class="text-p1 font-semibold break-words text-primary">{{ task.name }}</h3>
-      <VStatus :tone="deliverableStatuses[task.status].tone">
-        {{ deliverableStatuses[task.status].label }}
-      </VStatus>
+      <div class="flex items-center gap-2">
+        <VStatus :tone="deliverableStatuses[task.status].tone">
+          {{ deliverableStatuses[task.status].label }}
+        </VStatus>
+        <span class="text-p4 font-medium text-secondary">{{ deliverableTypes[task.type] }}</span>
+      </div>
     </div>
 
     <dl class="flex flex-col gap-3 rounded-xl bg-subtle p-3">

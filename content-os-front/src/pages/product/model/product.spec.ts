@@ -21,6 +21,7 @@ const odina = { id: 'o', name: 'Odina', photo_url: '/odina.webp' }
 const deliverable = (fields: Partial<Deliverable>): Deliverable => ({
   id: crypto.randomUUID(),
   name: 'Walk',
+  type: 'video',
   assignee: amina,
   status: 'to_shoot',
   dueDate: '',

@@ -365,7 +365,7 @@ async def art_director(
 
 
 def deliverable(assignee_id: str, **fields: Any) -> dict[str, Any]:
-    return {"name": "Walking transition", "assignee_id": assignee_id, **fields}
+    return {"name": "Walking transition", "type": "video", "assignee_id": assignee_id, **fields}
 
 
 async def test_creates_deliverables_in_order(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -378,23 +378,33 @@ async def test_creates_deliverables_in_order(client: AsyncClient, db_session: As
             [photo["id"]],
             deliverables=[
                 deliverable(amina, due_date="2024-09-18", brief="  Slow walk "),
-                deliverable(amina, name=" Fabric close-up ", status="approved", brief=""),
+                deliverable(
+                    amina, name=" Fabric close-up ", type="image", status="approved", brief=""
+                ),
             ],
         ),
     )
 
     assert [
-        (d["name"], d["assignee"]["id"], d["status"], d["due_date"], d["brief"])
+        (d["name"], d["type"], d["assignee"]["id"], d["status"], d["due_date"], d["brief"])
         for d in body["deliverables"]
     ] == [
-        ("Walking transition", amina, "to_shoot", "2024-09-18", "Slow walk"),
-        ("Fabric close-up", amina, "approved", None, None),
+        ("Walking transition", "video", amina, "to_shoot", "2024-09-18", "Slow walk"),
+        ("Fabric close-up", "image", amina, "approved", None, None),
     ]
 
 
-async def test_deliverable_needs_name_and_assignee(client: AsyncClient) -> None:
+async def test_deliverable_needs_name_type_and_assignee(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    amina = await art_director(client, db_session, "amina@example.com", "Amina")
     photo = await upload(client, image_bytes())
-    for draft in ({"name": "Walk"}, {"name": " ", "assignee_id": str(uuid.uuid4())}):
+    for draft in (
+        {"name": "Walk", "type": "video"},
+        {"name": " ", "type": "video", "assignee_id": amina},
+        {"name": "Walk", "assignee_id": amina},
+        {"name": "Walk", "type": "audio", "assignee_id": amina},
+    ):
         response = await client.post(
             "/api/products", json=product([photo["id"]], deliverables=[draft])
         )
