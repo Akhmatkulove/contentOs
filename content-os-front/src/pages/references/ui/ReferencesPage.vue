@@ -22,6 +22,8 @@ import {
   useReferencesList,
 } from '../model/references-list'
 import CollectionRow from './CollectionRow.vue'
+import CollectionRowSkeleton from './CollectionRowSkeleton.vue'
+import ReferenceCardSkeleton from './ReferenceCardSkeleton.vue'
 
 const {
   scope,
@@ -209,7 +211,19 @@ function setSort(value: string | undefined) {
       <VClearFilters :count="activeFilters" @clear="clearFilters" />
     </div>
 
-    <p v-if="loading" class="py-10 text-center text-p2 font-medium text-secondary">Loading…</p>
+    <!-- First load: placeholders in the layout the cards will take. -->
+    <div v-if="loading" aria-busy="true" class="flex flex-col gap-8 md:gap-10">
+      <span class="sr-only">Loading…</span>
+      <template v-if="grouped">
+        <CollectionRowSkeleton v-for="n in 3" :key="n" />
+      </template>
+      <div
+        v-else
+        class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-x-5 md:gap-y-6"
+      >
+        <ReferenceCardSkeleton v-for="n in REFERENCES_PER_PAGE" :key="n" />
+      </div>
+    </div>
 
     <template v-else-if="grouped ? collections.length : references.length">
       <!-- Old cards stay dimmed while the next page or filter loads. -->
