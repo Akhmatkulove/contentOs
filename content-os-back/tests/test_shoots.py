@@ -191,6 +191,27 @@ async def test_rejects_what_the_art_director_does_not_have(
     assert await db_session.scalar(select(func.count()).select_from(Shoot)) == 0
 
 
+async def test_archived_products_stay_out_of_new_shoots(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    named = await products(client)
+    body = await shoot(client)
+    created = await post(client, body)
+    await log_in(client, "brand@example.com")
+    for name in ("Abaya", "Dress"):
+        archived = await client.patch(f"/api/products/{named[name]}", json={"status": "archived"})
+        assert archived.status_code == 200
+    await log_in(client, "amina@example.com")
+
+    response = await client.post("/api/shoots", json=body)
+    assert (response.status_code, response.json()["detail"]) == (422, "Product is archived")
+    # A shoot keeps the product it already has, but can't take another archived one.
+    url = f"/api/shoots/{created['id']}"
+    assert (await client.put(url, json={**body, "name": "Renamed"})).status_code == 200
+    with_dress = {**body, "product_ids": [*body["product_ids"], named["Dress"]]}
+    assert (await client.put(url, json=with_dress)).status_code == 422
+
+
 async def test_status_follows_date_and_deliverables(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:

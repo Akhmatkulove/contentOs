@@ -32,7 +32,7 @@ from app.core.text import escape_like
 from app.deliverables.models import Deliverable, DeliverableStatus
 from app.files.models import StoredFile
 from app.files.schemas import FileResponse
-from app.products.models import Product, ProductPhoto
+from app.products.models import Product, ProductPhoto, ProductStatus
 from app.references import service as references
 from app.references.models import Reference
 from app.shoots.models import (
@@ -90,6 +90,11 @@ async def _require_assigned_products(
     )
     if assigned != ids:
         raise _unprocessable("Product not found")
+    # Архивный продукт в новые съёмки не берётся (docs/adr/0005).
+    if await db.scalar(
+        select(exists().where(Product.id.in_(ids), Product.status == ProductStatus.ARCHIVED))
+    ):
+        raise _unprocessable("Product is archived")
 
 
 async def _check(
@@ -98,7 +103,8 @@ async def _check(
     """Команда, продукты и референсы — те, что арт-директор может взять в съёмку.
 
     При редактировании уже стоящие в съёмке проходят без проверки: связку с
-    креатором или назначение на продукт могли снять после создания.
+    креатором или назначение на продукт могли снять, а продукт — отправить в
+    архив после создания.
     """
     members: set[uuid.UUID] = set()
     products: set[uuid.UUID] = set()

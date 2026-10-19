@@ -6,8 +6,9 @@ import { toShootProduct, type ShootProduct } from './shoot-draft'
 
 export const PRODUCTS_PAGE_SIZE = 30
 
-// What "Browse all products" shows: the products the art director sees,
-// searched and loaded page by page, and which of them are picked. The pick
+// What "Browse all products" shows: the active products the art director sees
+// (an archived one can't join a shoot), searched and loaded page by page, and
+// which of them are picked. The pick
 // starts from what the shoot already has.
 export function useProductPicker(initial: ShootProduct[]) {
   const search = ref('')
@@ -19,6 +20,7 @@ export function useProductPicker(initial: ShootProduct[]) {
     query: ({ pageParam }) =>
       fetchProducts({
         search: search.value,
+        status: 'active',
         sort: 'newest',
         page: pageParam,
         perPage: PRODUCTS_PAGE_SIZE,

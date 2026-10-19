@@ -71,7 +71,13 @@ describe('BrowseProductsModal', () => {
 
     await open([{ id: 'p2', name: 'Cream Dress 011', collection: 'Autumn 26', photoUrl: null }])
 
-    expect(fetchProducts).toHaveBeenCalledWith({ search: '', sort: 'newest', page: 1, perPage: 30 })
+    expect(fetchProducts).toHaveBeenCalledWith({
+      search: '',
+      status: 'active',
+      sort: 'newest',
+      page: 1,
+      perPage: 30,
+    })
     expect(names()).toEqual(['Black Abaya 042', 'Cream Dress 011'])
     expect(box('Black Abaya 042').getAttribute('aria-checked')).toBe('false')
     expect(box('Cream Dress 011').getAttribute('aria-checked')).toBe('true')
@@ -117,6 +123,7 @@ describe('BrowseProductsModal', () => {
 
     expect(fetchProducts).toHaveBeenLastCalledWith({
       search: '',
+      status: 'active',
       sort: 'newest',
       page: 2,
       perPage: 30,
