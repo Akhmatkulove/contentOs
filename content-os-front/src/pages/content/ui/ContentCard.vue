@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { durationLabel } from '@/entities/deliverable'
-import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
 import type { ContentItemResponse } from '../api/content'
 import { contentStatusChip } from '../model/content-item'
 
 const { item } = defineProps<{ item: ContentItemResponse }>()
-const emit = defineEmits<{ open: [] }>()
 
 const video = computed(() => item.file.kind === 'video')
 const status = computed(() => contentStatusChip[item.status])
@@ -25,11 +23,11 @@ const duration = shallowRef<number | null>(null)
   <article
     class="flex min-w-0 flex-col gap-2 overflow-hidden rounded-xl border border-default bg-card p-2.5 md:gap-3 md:rounded-none md:border-0 md:bg-transparent md:p-0"
   >
-    <VButton
-      variant="ghost"
+    <!-- The content page of the deliverable, opening on this file. -->
+    <RouterLink
+      :to="{ name: 'content-item', params: { id: item.deliverable_id }, query: { file: item.id } }"
       :aria-label="`Open ${item.name}`"
-      class="group relative block aspect-[9/16] h-auto w-full cursor-zoom-in overflow-hidden rounded-lg bg-muted p-0 md:rounded-2xl"
-      @click="emit('open')"
+      class="group relative block aspect-[9/16] w-full overflow-hidden rounded-lg bg-muted outline-none focus-visible:ring-2 focus-visible:ring-violet-300 md:rounded-2xl"
     >
       <img
         v-if="!video"
@@ -59,7 +57,7 @@ const duration = shallowRef<number | null>(null)
         </template>
         <span v-else>Video</span>
       </span>
-    </VButton>
+    </RouterLink>
 
     <div class="flex min-w-0 flex-col gap-2 md:gap-1.5">
       <h3 class="truncate text-p2 font-semibold text-primary md:text-p1">{{ item.name }}</h3>

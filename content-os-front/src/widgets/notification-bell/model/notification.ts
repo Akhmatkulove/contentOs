@@ -31,6 +31,8 @@ export function timeAgo(iso: string, now: Date): string {
 
 export function toNotification(item: NotificationItem, now: Date): Notification {
   if (item.type === 'content_sent') return contentSent(item, now)
+  if (item.type === 'content_commented') return contentCommented(item, now)
+  if (item.type === 'content_approved') return contentApproved(item, now)
   const who = item.actor?.name || 'A brand'
   const what = `${item.count} ${item.count === 1 ? 'deliverable' : 'deliverables'}`
   const product = item.product
@@ -47,24 +49,56 @@ export function toNotification(item: NotificationItem, now: Date): Notification 
   }
 }
 
-// To the brand: the art director sent a deliverable's approved files (docs/adr/0025).
-// Opens the content page narrowed to that product.
-function contentSent(item: NotificationItem, now: Date): Notification {
-  const product = item.product
+// "Close-up for Black Abaya", or whichever of the two is left.
+function contentName(item: NotificationItem): string {
   const deliverable = item.deliverable?.name
-  // "Close-up for Black Abaya", or whichever of the two is left.
-  const order = deliverable
-    ? product
-      ? `${deliverable} for ${product.name}`
-      : deliverable
-    : (product?.name ?? '')
-  const files = `${item.count} ${item.count === 1 ? 'file' : 'files'}`
+  const product = item.product?.name
+  if (deliverable && product) return `${deliverable} for ${product}`
+  return deliverable ?? product ?? ''
+}
+
+// The content page of the deliverable (docs/adr/0026); without it, Content
+// narrowed to the product.
+function contentRoute(item: NotificationItem): RouteLocationRaw {
+  if (item.deliverable) return { name: 'content-item', params: { id: item.deliverable.id } }
+  return { name: 'content', query: item.product ? { product: item.product.id } : {} }
+}
+
+function contentNotification(item: NotificationItem, text: string, now: Date): Notification {
   return {
     id: item.id,
-    text: order ? `Your order is ready: ${order} (${files})` : `Your order is ready (${files})`,
+    text,
     time: timeAgo(item.created_at, now),
     read: item.read,
-    photoUrl: product?.photo?.url ?? null,
-    to: { name: 'content', query: product ? { product: product.id } : {} },
+    photoUrl: item.product?.photo?.url ?? null,
+    to: contentRoute(item),
   }
+}
+
+// To the brand: the art director sent a deliverable's approved files (docs/adr/0025).
+function contentSent(item: NotificationItem, now: Date): Notification {
+  const order = contentName(item)
+  const files = `${item.count} ${item.count === 1 ? 'file' : 'files'}`
+  return contentNotification(
+    item,
+    order ? `Your order is ready: ${order} (${files})` : `Your order is ready (${files})`,
+    now,
+  )
+}
+
+// To everyone involved but the author: comments on the content page, the unread
+// ones counted together (docs/adr/0026).
+function contentCommented(item: NotificationItem, now: Date): Notification {
+  const what = contentName(item) || 'your content'
+  const text =
+    item.count > 1
+      ? `${item.count} new comments on ${what}`
+      : `${item.actor?.name || 'Someone'} commented on ${what}`
+  return contentNotification(item, text, now)
+}
+
+// To the art director and the creators: the brand approved the content (docs/adr/0026).
+function contentApproved(item: NotificationItem, now: Date): Notification {
+  const what = contentName(item) || 'your content'
+  return contentNotification(item, `${item.actor?.name || 'The brand'} approved ${what}`, now)
 }

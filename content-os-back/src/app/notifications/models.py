@@ -13,6 +13,10 @@ class NotificationType(enum.StrEnum):
     DELIVERABLES_ASSIGNED = "deliverables_assigned"
     # Арт-директор отправил бренду готовый deliverable (docs/adr/0025).
     CONTENT_SENT = "content_sent"
+    # Комментарий на странице контента (docs/adr/0026); непрочитанные склеиваются.
+    CONTENT_COMMENTED = "content_commented"
+    # Бренд одобрил отправленный контент (docs/adr/0026).
+    CONTENT_APPROVED = "content_approved"
 
 
 class Notification(Base):
@@ -37,11 +41,11 @@ class Notification(Base):
     product_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"), index=True
     )
-    # Отправленный deliverable съёмки (content_sent).
+    # Отправленный deliverable съёмки (content_sent, content_commented, content_approved).
     deliverable_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("shoot_deliverables.id", ondelete="CASCADE"), index=True
     )
-    # Сколько deliverables назначено или сколько файлов отправлено.
+    # Сколько deliverables назначено, файлов отправлено или комментариев оставлено.
     count: Mapped[int]
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.clock_timestamp()

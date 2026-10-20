@@ -293,7 +293,8 @@ export interface paths {
      * List Content
      * @description Поиск по deliverable, продукту, съёмке и креатору, без учёта регистра.
      *
-     *     `scope=mine` — My content; `counts` — размеры обеих вкладок.
+     *     `scope=mine` — My content, `scope=favorites` — избранное бренда;
+     *     `counts` — размеры всех вкладок.
      */
     get: operations['list_content_api_content_get']
     put?: never
@@ -319,6 +320,90 @@ export interface paths {
     put?: never
     post?: never
     delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/content/{deliverable_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Content
+     * @description Страница контента: отправленный deliverable целиком (docs/adr/0026).
+     */
+    get: operations['get_content_api_content__deliverable_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/content/{deliverable_id}/comments': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Add Comment
+     * @description Пишут бренд продукта и арт-директор съёмки; остальным, кого касается, — уведомление.
+     */
+    post: operations['add_comment_api_content__deliverable_id__comments_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/content/{deliverable_id}/approve': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Approve
+     * @description Бренд одобряет контент; повторный вызов ничего не меняет.
+     */
+    post: operations['approve_api_content__deliverable_id__approve_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/content/{deliverable_id}/favorite': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Add Favorite
+     * @description В избранное бренда; повторный вызов ничего не меняет.
+     */
+    put: operations['add_favorite_api_content__deliverable_id__favorite_put']
+    post?: never
+    /**
+     * Remove Favorite
+     * @description Убрать из избранного; если его там нет, ничего не меняет.
+     */
+    delete: operations['remove_favorite_api_content__deliverable_id__favorite_delete']
     options?: never
     head?: never
     patch?: never
@@ -1280,6 +1365,28 @@ export interface components {
       /** Name */
       name: string
     }
+    /** ContentCommentCreate */
+    ContentCommentCreate: {
+      /** Body */
+      body: string
+    }
+    /** ContentCommentResponse */
+    ContentCommentResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      author: components['schemas']['TeamMember']
+      role: components['schemas']['Role']
+      /** Body */
+      body: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
     /**
      * ContentCounts
      * @description Сколько файлов на каждой вкладке под текущими поиском и фильтрами.
@@ -1289,6 +1396,54 @@ export interface components {
       all: number
       /** Mine */
       mine: number
+      /** Favorites */
+      favorites: number
+    }
+    /**
+     * ContentDetails
+     * @description Страница контента (docs/adr/0026): отправленный бренду deliverable целиком.
+     */
+    ContentDetails: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      type: components['schemas']['DeliverableType']
+      status: components['schemas']['ContentStatus']
+      /**
+       * Sent At
+       * Format: date-time
+       */
+      sent_at: string
+      /** Approved At */
+      approved_at: string | null
+      product: components['schemas']['ContentProduct']
+      shoot: components['schemas']['ContentShoot'] | null
+      /** People */
+      people: components['schemas']['ContentPerson'][]
+      /** Materials */
+      materials: components['schemas']['ContentMaterial'][]
+      /** References */
+      references: components['schemas']['ReferenceResponse'][]
+      /** Versions */
+      versions: components['schemas']['ContentVersion'][] | null
+      /** Comments */
+      comments: components['schemas']['ContentCommentResponse'][]
+      /** Favorite */
+      favorite: boolean
+      /** Can Favorite */
+      can_favorite: boolean
+      /** Can Comment */
+      can_comment: boolean
+      /** Can Approve */
+      can_approve: boolean
+      /** Previous Id */
+      previous_id: string | null
+      /** Next Id */
+      next_id: string | null
     }
     /**
      * ContentFilters
@@ -1309,6 +1464,11 @@ export interface components {
        * Format: uuid
        */
       id: string
+      /**
+       * Deliverable Id
+       * Format: uuid
+       */
+      deliverable_id: string
       file: components['schemas']['FileResponse']
       /** Name */
       name: string
@@ -1330,6 +1490,20 @@ export interface components {
       total: number
       counts: components['schemas']['ContentCounts']
     }
+    /** ContentMaterial */
+    ContentMaterial: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      file: components['schemas']['FileResponse']
+      /**
+       * Author Id
+       * Format: uuid
+       */
+      author_id: string
+    }
     /** ContentOption */
     ContentOption: {
       /**
@@ -1341,10 +1515,46 @@ export interface components {
       name: string
     }
     /**
+     * ContentPerson
+     * @description Исполнитель, чьи файлы на странице, и его роль в съёмке.
+     */
+    ContentPerson: {
+      member: components['schemas']['TeamMember']
+      role: components['schemas']['ShootRole'] | null
+    }
+    /** ContentProduct */
+    ContentProduct: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      photo: components['schemas']['FileResponse'] | null
+    }
+    /**
      * ContentScope
      * @enum {string}
      */
-    ContentScope: 'all' | 'mine'
+    ContentScope: 'all' | 'mine' | 'favorites'
+    /** ContentShoot */
+    ContentShoot: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /** Location */
+      location: string | null
+    }
     /**
      * ContentSort
      * @enum {string}
@@ -1355,6 +1565,30 @@ export interface components {
      * @enum {string}
      */
     ContentStatus: 'new' | 'approved'
+    /**
+     * ContentVersion
+     * @description Отправленная версия исполнителя: только арт-директору съёмки.
+     */
+    ContentVersion: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Number */
+      number: number
+      /** Title */
+      title: string | null
+      author: components['schemas']['TeamMember']
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string
+      review: components['schemas']['VersionReview'] | null
+      /** Size */
+      size: number
+    }
     /**
      * DeliverableCounts
      * @description Deliverables съёмки по статусам: прогресс продукта или всей съёмки.
@@ -1628,7 +1862,8 @@ export interface components {
      * NotificationType
      * @enum {string}
      */
-    NotificationType: 'deliverables_assigned' | 'content_sent'
+    NotificationType:
+      'deliverables_assigned' | 'content_sent' | 'content_commented' | 'content_approved'
     /**
      * OnboardingUpdate
      * @description Ответы шага онбординга. Неуказанные поля не меняются.
@@ -3279,6 +3514,169 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ContentFilters']
         }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_content_api_content__deliverable_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContentDetails']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  add_comment_api_content__deliverable_id__comments_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContentCommentCreate']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ContentCommentResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  approve_api_content__deliverable_id__approve_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  add_favorite_api_content__deliverable_id__favorite_put: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  remove_favorite_api_content__deliverable_id__favorite_delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Validation Error */
       422: {

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.admin.models import AdminAction  # noqa: F401
 from app.auth.models import User, UserSession  # noqa: F401  # регистрирует модели в Base.metadata
 from app.collections.models import Collection  # noqa: F401
-from app.content.models import ContentItem  # noqa: F401
+from app.content.models import ContentComment, ContentFavorite, ContentItem  # noqa: F401
 from app.core.config import get_settings
 from app.core.db import Base
 from app.core.rate_limit import RateLimitCounter  # noqa: F401

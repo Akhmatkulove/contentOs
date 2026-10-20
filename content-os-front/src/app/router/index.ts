@@ -102,6 +102,13 @@ export const router = createRouter({
           meta: { title: 'Content' },
         },
         {
+          path: 'content/:id',
+          name: 'content-item',
+          component: () => import('@/pages/content').then((m) => m.ContentItemPage),
+          props: true,
+          meta: { section: 'content' },
+        },
+        {
           path: 'references',
           name: 'references',
           component: () => import('@/pages/references').then((m) => m.ReferencesPage),

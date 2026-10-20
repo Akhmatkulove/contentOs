@@ -6,4 +6,6 @@ export const contentKeys = {
   list: (query: object) => [...contentKeys.lists, query] as const,
   // Products, shoots and creators of the visible content.
   filters: ['content', 'filters'] as const,
+  // The content page of a sent deliverable (docs/adr/0026).
+  detail: (id: string) => ['content', 'detail', id] as const,
 }

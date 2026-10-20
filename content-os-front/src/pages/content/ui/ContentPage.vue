@@ -37,7 +37,6 @@ const {
   openFilters,
   activeFilters,
   clearFilters,
-  open,
 } = useContentList()
 useActiveTabInView(useTemplateRef('tabList'), scope)
 
@@ -181,7 +180,7 @@ function setSort(value: string | undefined) {
         ]"
       >
         <li v-for="item in items" :key="item.id">
-          <ContentCard :item="item" @open="open(item)" />
+          <ContentCard :item="item" />
         </li>
       </ul>
       <VPagination
@@ -199,6 +198,14 @@ function setSort(value: string | undefined) {
         No content matches your search or filters.
       </p>
       <VClearFilters :count="activeFilters" @clear="clearFilters" />
+    </div>
+    <div v-else-if="scope === 'favorites'" class="flex flex-col items-center gap-3 py-10">
+      <span class="flex size-11 items-center justify-center rounded-full bg-card text-secondary">
+        <VIcon name="star" :size="18" />
+      </span>
+      <p class="max-w-72 text-center text-p2 font-medium text-secondary">
+        No favorites yet. Star content on its page to keep it here.
+      </p>
     </div>
     <p v-else class="py-10 text-center text-p2 font-medium text-secondary">
       Approved files show up here once the art director sends them to the brand.

@@ -1,4 +1,4 @@
-"""Уведомления в колокольчике (docs/adr/0020, 0025). Коммитит вызывающий."""
+"""Уведомления в колокольчике (docs/adr/0020, 0025, 0026). Коммитит вызывающий."""
 
 import uuid
 from collections import Counter
@@ -81,6 +81,66 @@ async def content_sent(
             deliverable_id=deliverable.id,
             count=files,
         )
+    )
+    await db.flush()
+
+
+async def content_commented(
+    db: AsyncSession, author: User, deliverable: ShootDeliverable, recipients: set[uuid.UUID]
+) -> None:
+    """Новый комментарий на странице контента (docs/adr/0026).
+
+    Пока не прочитано, следующие комментарии к тому же контенту добавляются к нему:
+    одно уведомление на deliverable, автор — последний написавший.
+    """
+    for user_id in recipients:
+        bumped = await db.scalar(
+            update(Notification)
+            .where(
+                Notification.user_id == user_id,
+                Notification.type == NotificationType.CONTENT_COMMENTED,
+                Notification.deliverable_id == deliverable.id,
+                Notification.read_at.is_(None),
+            )
+            .values(
+                count=Notification.count + 1,
+                actor_id=author.id,
+                created_at=func.clock_timestamp(),
+            )
+            .returning(Notification.id)
+        )
+        if bumped is None:
+            db.add(
+                Notification(
+                    user_id=user_id,
+                    type=NotificationType.CONTENT_COMMENTED,
+                    actor_id=author.id,
+                    product_id=deliverable.product_id,
+                    deliverable_id=deliverable.id,
+                    count=1,
+                )
+            )
+    await db.flush()
+
+
+async def content_approved(
+    db: AsyncSession,
+    brand: User,
+    deliverable: ShootDeliverable,
+    recipients: set[uuid.UUID],
+    files: int,
+) -> None:
+    """Бренд одобрил отправленный контент: команде, которая его сделала (docs/adr/0026)."""
+    db.add_all(
+        Notification(
+            user_id=user_id,
+            type=NotificationType.CONTENT_APPROVED,
+            actor_id=brand.id,
+            product_id=deliverable.product_id,
+            deliverable_id=deliverable.id,
+            count=files,
+        )
+        for user_id in recipients
     )
     await db.flush()
 

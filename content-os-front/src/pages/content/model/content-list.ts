@@ -4,20 +4,19 @@ import { computed } from 'vue'
 import { contentKeys } from '@/entities/content'
 import { useSessionStore } from '@/entities/session'
 import { useQueryParams } from '@/shared/lib'
-import { openMediaViewer } from '@/shared/ui/media-viewer'
-import { fetchContent, fetchContentFilters, type ContentItemResponse } from '../api/content'
+import { fetchContent, fetchContentFilters } from '../api/content'
 import {
   ALL,
   activeFilterCount,
   clearableFields,
   contentQueryParams,
+  appliedScope,
   contentTabs,
   filterOptions,
   filterParams,
   isFiltered,
   pickFilters,
 } from './content-filters'
-import { toMediaFile } from './content-item'
 import { openFiltersSheet } from './filters-sheet'
 
 export const CONTENT_PER_PAGE = 20
@@ -27,8 +26,11 @@ export const CONTENT_PER_PAGE = 20
 export function useContentList() {
   const { state: filters, update, reset } = useQueryParams(contentQueryParams, { page: 'page' })
 
+  // Favorites are the brand's tab (docs/adr/0026).
+  const session = useSessionStore()
+  const showFavorites = computed(() => session.me?.role === 'brand')
   const scope = computed({
-    get: () => filters.scope,
+    get: () => appliedScope(filters.scope, showFavorites.value),
     set: (value) => (filters.scope = value),
   })
   const search = computed({
@@ -41,17 +43,16 @@ export function useContentList() {
   })
 
   // A brand doesn't see shoots: no shoot filter, and a ?shoot= from an old link is ignored.
-  const session = useSessionStore()
   const showShoots = computed(() => session.me?.role !== 'brand')
   const applied = computed(() =>
     showShoots.value ? pickFilters(filters) : { ...pickFilters(filters), shootId: ALL },
   )
 
   const list = useQuery({
-    key: () => contentKeys.list({ ...filters, ...applied.value }),
+    key: () => contentKeys.list({ ...filters, scope: scope.value, ...applied.value }),
     query: () =>
       fetchContent({
-        scope: filters.scope,
+        scope: scope.value,
         search: filters.search,
         ...filterParams(applied.value),
         page: filters.page,
@@ -69,7 +70,7 @@ export function useContentList() {
 
   const items = computed(() => list.data.value?.items ?? [])
   const total = computed(() => list.data.value?.total ?? 0)
-  const tabs = computed(() => contentTabs(list.data.value?.counts))
+  const tabs = computed(() => contentTabs(list.data.value?.counts, showFavorites.value))
   // Nothing to show yet: the first load.
   const loading = computed(() => list.isLoading.value && list.data.value === undefined)
   // Old cards on screen while the new page or filter loads: dimmed.
@@ -93,16 +94,6 @@ export function useContentList() {
     if (next) update(next)
   }
 
-  // The page's files fullscreen, starting at the tapped one. They come from
-  // different deliverables, so the viewer's title is the section's.
-  function open(item: ContentItemResponse) {
-    openMediaViewer({
-      files: items.value.map(toMediaFile),
-      start: items.value.indexOf(item),
-      title: 'Content',
-    })
-  }
-
   return {
     scope,
     tabs,
@@ -121,6 +112,5 @@ export function useContentList() {
     openFilters,
     activeFilters,
     clearFilters,
-    open,
   }
 }

@@ -24,7 +24,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import Role, User
-from app.content.models import ContentItem, ContentStatus
+from app.content.models import ContentFavorite, ContentItem, ContentStatus
 from app.content.schemas import (
     ContentCounts,
     ContentFilters,
@@ -62,6 +62,8 @@ class ContentSort(enum.StrEnum):
 class ContentScope(enum.StrEnum):
     ALL = "all"
     MINE = "mine"
+    # Избранное бренда (docs/adr/0026); у остальных пусто.
+    FAVORITES = "favorites"
 
 
 @dataclass(frozen=True)
@@ -111,7 +113,7 @@ async def add_sent(db: AsyncSession, deliverable_id: uuid.UUID) -> int:
     return len(items)
 
 
-def _joined(*columns: Any) -> Select[Any]:
+def joined(*columns: Any) -> Select[Any]:
     """Контент с deliverable, съёмкой, продуктом, файлом и автором: всё, что ищется."""
     return (
         select(*columns)
@@ -124,7 +126,7 @@ def _joined(*columns: Any) -> Select[Any]:
     )
 
 
-def _shoot_visible(user: User) -> ColumnElement[bool]:
+def shoot_visible(user: User) -> ColumnElement[bool]:
     """Съёмку видят её арт-директор и креаторы его команды (и автор файла); бренд — нет."""
     if user.role == Role.ART_DIRECTOR:
         return Shoot.art_director_id == user.id
@@ -136,7 +138,7 @@ def _shoot_visible(user: User) -> ColumnElement[bool]:
     return false()
 
 
-def _visible(user: User) -> ColumnElement[bool]:
+def visible(user: User) -> ColumnElement[bool]:
     if user.role == Role.BRAND:
         return Product.brand_id == user.id
     if user.role == Role.ART_DIRECTOR:
@@ -148,7 +150,7 @@ def _visible(user: User) -> ColumnElement[bool]:
             ),
         )
     if user.role == Role.CREATOR:
-        return _shoot_visible(user)
+        return shoot_visible(user)
     return false()
 
 
@@ -161,9 +163,19 @@ def _mine(user: User) -> ColumnElement[bool]:
     return true()
 
 
+def _favorite(user: User) -> ColumnElement[bool]:
+    """Вкладка Favorites: deliverables в избранном бренда."""
+    if user.role != Role.BRAND:
+        return false()
+    return exists().where(
+        ContentFavorite.user_id == user.id,
+        ContentFavorite.deliverable_id == ContentItem.deliverable_id,
+    )
+
+
 def _conditions(user: User, params: ContentQuery) -> list[ColumnElement[bool]]:
     """Видимый контент под поиском и фильтрами, без учёта вкладки."""
-    conditions = [_visible(user)]
+    conditions = [visible(user)]
     if params.search:
         pattern = f"%{escape_like(params.search)}%"
         conditions.append(
@@ -171,13 +183,13 @@ def _conditions(user: User, params: ContentQuery) -> list[ColumnElement[bool]]:
                 ContentItem.name.ilike(pattern, escape="\\"),
                 Product.name.ilike(pattern, escape="\\"),
                 User.name.ilike(pattern, escape="\\"),
-                _shoot_visible(user) & Shoot.name.ilike(pattern, escape="\\"),
+                shoot_visible(user) & Shoot.name.ilike(pattern, escape="\\"),
             )
         )
     if params.product_id is not None:
         conditions.append(Product.id == params.product_id)
     if params.shoot_id is not None:
-        conditions.append(_shoot_visible(user) & (Shoot.id == params.shoot_id))
+        conditions.append(shoot_visible(user) & (Shoot.id == params.shoot_id))
     if params.author_id is not None:
         conditions.append(ContentItem.author_id == params.author_id)
     if params.status is not None:
@@ -221,30 +233,32 @@ async def list_content(
     page: int,
     per_page: int,
 ) -> ContentList:
-    """Страница вкладки и размеры обеих вкладок. Три запроса на страницу."""
+    """Страница вкладки и размеры всех вкладок. Три запроса на страницу."""
     conditions = _conditions(user, params)
-    mine = _mine(user)
+    scopes = {ContentScope.MINE: _mine(user), ContentScope.FAVORITES: _favorite(user)}
     sizes = (
         await db.execute(
-            _joined(func.count().label("all"), func.count().filter(mine).label("mine")).where(
-                *conditions
-            )
+            joined(
+                func.count().label("all"),
+                func.count().filter(scopes[ContentScope.MINE]).label("mine"),
+                func.count().filter(scopes[ContentScope.FAVORITES]).label("favorites"),
+            ).where(*conditions)
         )
     ).one()
-    counts = ContentCounts(all=sizes.all, mine=sizes.mine)
-    if params.scope == ContentScope.MINE:
-        conditions.append(mine)
+    counts = ContentCounts(all=sizes.all, mine=sizes.mine, favorites=sizes.favorites)
+    if params.scope in scopes:
+        conditions.append(scopes[params.scope])
 
-    shoot_visible = _shoot_visible(user).label("shoot_visible")
+    shoot_shown = shoot_visible(user).label("shoot_visible")
     rows = (
         await db.execute(
-            _joined(
+            joined(
                 ContentItem,
                 Product.id.label("product_id"),
                 Product.name.label("product_name"),
                 Shoot.id.label("shoot_id"),
                 Shoot.name.label("shoot_name"),
-                shoot_visible,
+                shoot_shown,
                 StoredFile,
                 User,
             )
@@ -258,6 +272,7 @@ async def list_content(
         items=[
             ContentItemResponse(
                 id=row.ContentItem.id,
+                deliverable_id=row.ContentItem.deliverable_id,
                 file=FileResponse.of(row.StoredFile, storage),
                 name=row.ContentItem.name,
                 product=ContentOption(id=row.product_id, name=row.product_name),
@@ -272,29 +287,30 @@ async def list_content(
             )
             for row in rows
         ],
-        total=counts.mine if params.scope == ContentScope.MINE else counts.all,
+        total={
+            ContentScope.ALL: counts.all,
+            ContentScope.MINE: counts.mine,
+            ContentScope.FAVORITES: counts.favorites,
+        }[params.scope],
         counts=counts,
     )
 
 
 async def list_filters(db: AsyncSession, user: User, settings: Settings) -> ContentFilters:
     """Продукты, съёмки и авторы видимого контента: варианты для фильтров."""
-    visible = _visible(user)
+    seen = visible(user)
     products = await db.execute(
-        _joined(Product.id, Product.name)
-        .where(visible)
-        .distinct()
-        .order_by(Product.name, Product.id)
+        joined(Product.id, Product.name).where(seen).distinct().order_by(Product.name, Product.id)
     )
     shoots = await db.execute(
-        _joined(Shoot.id, Shoot.name)
-        .where(visible, _shoot_visible(user))
+        joined(Shoot.id, Shoot.name)
+        .where(seen, shoot_visible(user))
         .distinct()
         .order_by(Shoot.name, Shoot.id)
     )
     authors = await db.scalars(
         select(User)
-        .where(User.id.in_(_joined(ContentItem.author_id).where(visible).correlate(None)))
+        .where(User.id.in_(joined(ContentItem.author_id).where(seen).correlate(None)))
         .order_by(User.name, User.id)
     )
     return ContentFilters(

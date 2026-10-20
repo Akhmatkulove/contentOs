@@ -1,6 +1,7 @@
 import {
   ALL,
   activeFilterCount,
+  appliedScope,
   contentTabs,
   filterOptions,
   filterParams,
@@ -46,8 +47,19 @@ describe('content filters', () => {
   })
 
   it('labels the tabs and the found count', () => {
-    expect(contentTabs({ all: 3, mine: 1 }).map((tab) => tab.count)).toEqual([3, 1])
-    expect(contentTabs(undefined).map((tab) => tab.label)).toEqual(['All content', 'My content'])
+    expect(contentTabs({ all: 3, mine: 1, favorites: 2 }, false).map((tab) => tab.count)).toEqual([
+      3, 1,
+    ])
+    expect(contentTabs(undefined, false).map((tab) => tab.label)).toEqual([
+      'All content',
+      'My content',
+    ])
+    // Favorites only for the brand.
+    expect(contentTabs({ all: 3, mine: 3, favorites: 2 }, true).map((tab) => tab.count)).toEqual([
+      3, 3, 2,
+    ])
+    expect(appliedScope('favorites', false)).toBe('all')
+    expect(appliedScope('favorites', true)).toBe('favorites')
     expect([foundLabel(1), foundLabel(2)]).toEqual(['1 file', '2 files'])
   })
 })

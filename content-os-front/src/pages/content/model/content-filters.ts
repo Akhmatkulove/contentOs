@@ -13,7 +13,7 @@ export const ALL = 'all'
 
 // The page's state in the URL: /content?tab=mine&product=…&status=new&page=2.
 export const contentQueryParams = {
-  scope: queryParam.oneOf(['all', 'mine'], 'all', 'tab'),
+  scope: queryParam.oneOf(['all', 'mine', 'favorites'], 'all', 'tab'),
   search: queryParam.text(),
   productId: queryParam.text(ALL, 'product'),
   shootId: queryParam.text(ALL, 'shoot'),
@@ -121,10 +121,22 @@ export interface ContentTab {
   count: number
 }
 
-// Counts follow the current search and filters on both tabs.
-export function contentTabs(counts: { all: number; mine: number } | undefined): ContentTab[] {
-  return [
+// Counts follow the current search and filters on every tab. Favorites are the
+// brand's only (docs/adr/0026).
+export function contentTabs(
+  counts: { all: number; mine: number; favorites: number } | undefined,
+  favorites: boolean,
+): ContentTab[] {
+  const tabs: ContentTab[] = [
     { value: 'all', label: 'All content', count: counts?.all ?? 0 },
     { value: 'mine', label: 'My content', count: counts?.mine ?? 0 },
   ]
+  if (favorites)
+    tabs.push({ value: 'favorites', label: 'Favorites', count: counts?.favorites ?? 0 })
+  return tabs
+}
+
+// A ?tab=favorites from someone else's link falls back to All content for a non-brand.
+export function appliedScope(scope: ContentScope, favorites: boolean): ContentScope {
+  return scope === 'favorites' && !favorites ? 'all' : scope
 }
