@@ -253,3 +253,8 @@ async def mark_read(db: AsyncSession, user: User, notification_id: uuid.UUID | N
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Notification not found")
         query = query.where(Notification.id == notification_id)
     await db.execute(query.values(read_at=func.now()))
+
+
+async def clear(db: AsyncSession, user: User) -> None:
+    """Все уведомления пользователя, прочитанные и нет. Следующие придут как новые."""
+    await db.execute(delete(Notification).where(Notification.user_id == user.id))

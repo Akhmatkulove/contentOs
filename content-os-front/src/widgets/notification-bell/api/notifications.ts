@@ -15,3 +15,8 @@ export async function markNotificationRead(id: string): Promise<void> {
 export async function markAllNotificationsRead(): Promise<void> {
   await http.post('/notifications/read')
 }
+
+// Clear all: deletes every notification of the user, read or not.
+export async function clearNotifications(): Promise<void> {
+  await http.delete('/notifications')
+}

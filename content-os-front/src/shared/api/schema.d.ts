@@ -365,6 +365,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/content/{deliverable_id}/comments/{comment_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete Comment
+     * @description Удалить свой комментарий.
+     */
+    delete: operations['delete_comment_api_content__deliverable_id__comments__comment_id__delete']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/content/{deliverable_id}/approve': {
     parameters: {
       query?: never
@@ -490,7 +510,11 @@ export interface paths {
     get: operations['list_notifications_api_notifications_get']
     put?: never
     post?: never
-    delete?: never
+    /**
+     * Clear All
+     * @description Clear all: удаляет все уведомления пользователя.
+     */
+    delete: operations['clear_all_api_notifications_delete']
     options?: never
     head?: never
     patch?: never
@@ -3596,6 +3620,38 @@ export interface operations {
       }
     }
   }
+  delete_comment_api_content__deliverable_id__comments__comment_id__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        deliverable_id: string
+        comment_id: string
+      }
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   approve_api_content__deliverable_id__approve_post: {
     parameters: {
       query?: never
@@ -3811,6 +3867,35 @@ export interface operations {
         content: {
           'application/json': components['schemas']['NotificationList']
         }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  clear_all_api_notifications_delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Validation Error */
       422: {

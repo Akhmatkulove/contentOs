@@ -72,6 +72,21 @@ async def test_more_deliverables_add_up_until_read(client: AsyncClient) -> None:
     assert all(n["read"] for n in listing["items"])
 
 
+async def test_clear_all_deletes_only_the_users_own(client: AsyncClient) -> None:
+    await log_in(client, "lana@example.com")
+    lanas = len((await notifications(client))["items"])
+    await log_in(client, "amina@example.com")
+
+    assert (await client.delete("/api/notifications")).status_code == 204
+    assert await notifications(client) == {"items": [], "unread": 0}
+    # A new assignment comes as a new notification, not added to the cleared one.
+    await add_deliverables(client, (await products(client))["Abaya"], 2)
+    assert summary(await notifications(client)) == [("Abaya", 2, False)]
+
+    await log_in(client, "lana@example.com")
+    assert len((await notifications(client))["items"]) == lanas
+
+
 async def test_notifications_are_the_users_own(client: AsyncClient) -> None:
     mine = (await notifications(client))["items"][0]["id"]
     await log_in(client, "lana@example.com")

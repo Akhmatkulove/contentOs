@@ -32,6 +32,13 @@ async def read_all(user: ApprovedUser, db: SessionDep) -> None:
     await db.commit()
 
 
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_all(user: ApprovedUser, db: SessionDep) -> None:
+    """Clear all: удаляет все уведомления пользователя."""
+    await service.clear(db, user)
+    await db.commit()
+
+
 @router.post("/{notification_id}/read", status_code=status.HTTP_204_NO_CONTENT)
 async def read_one(notification_id: uuid.UUID, user: ApprovedUser, db: SessionDep) -> None:
     """Прочитано одно, например по клику; чужое — 404."""

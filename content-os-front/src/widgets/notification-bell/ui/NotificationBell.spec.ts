@@ -97,4 +97,33 @@ describe('NotificationBell', () => {
     await flushPromises()
     expect(post).toHaveBeenCalledWith('/notifications/read')
   })
+
+  it('clears all only after the question, and Cancel keeps them', async () => {
+    vi.spyOn(http, 'get').mockResolvedValue(listing(true))
+    const remove = vi.spyOn(http, 'delete').mockResolvedValue({})
+    await mountBell()
+    bell().click()
+    await flushPromises()
+    const button = (text: string) =>
+      [...document.querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === text || b.getAttribute('aria-label') === text,
+      )!
+
+    button('Clear all').click()
+    await flushPromises()
+    expect(document.body.textContent).toContain('Clear all notifications?')
+    expect(document.activeElement?.textContent?.trim()).toBe('Cancel')
+    button('Cancel').click()
+    await flushPromises()
+    expect(document.body.textContent).not.toContain('Clear all notifications?')
+    expect(remove).not.toHaveBeenCalled()
+
+    button('Clear all').click()
+    await flushPromises()
+    vi.spyOn(http, 'get').mockResolvedValue({ data: { unread: 0, items: [] } })
+    button('Clear all').click()
+    await flushPromises()
+    expect(remove).toHaveBeenCalledWith('/notifications')
+    expect(document.body.textContent).toContain('You’re all caught up.')
+  })
 })

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-import { computed, onScopeDispose, ref } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import {
+  clearNotifications,
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -14,7 +15,7 @@ import { useSessionStore } from '@/entities/session'
 export const REFRESH_MS = 60_000
 
 // The bell (docs/adr/0020): the user's latest notifications, the unread dot,
-// opening one and Mark all as read. Only an approved user has notifications.
+// opening one, Mark all as read and Clear all. Only an approved user has notifications.
 export function useNotificationBell() {
   const session = useSessionStore()
   const userId = computed(() => (session.me?.status === 'approved' ? session.me.id : ''))
@@ -53,6 +54,29 @@ export function useNotificationBell() {
     onSettled: refresh,
   })
 
+  // Clear all asks first, in the panel's header: a modal over the popover would
+  // close it. The list empties at once and comes back if deleting fails (the
+  // global handler shows the error toast).
+  const confirmingClear = ref(false)
+  watch(open, () => (confirmingClear.value = false))
+  const { mutate: clearAll, isLoading: clearing } = useMutation({
+    mutation: clearNotifications,
+    onMutate: () => {
+      const key = notificationKeys.list(userId.value)
+      const previous = queryCache.getQueryData<typeof data.value>(key)
+      queryCache.setQueryData(key, { items: [], unread: 0 })
+      return { key, previous }
+    },
+    onError: (_error, _vars, { key, previous }) => {
+      if (previous) queryCache.setQueryData(key, previous)
+    },
+    onSettled: refresh,
+  })
+  function confirmClear() {
+    confirmingClear.value = false
+    clearAll()
+  }
+
   // Opening one (its link goes where it points) reads it and closes the panel.
   function openNotification(notification: Notification) {
     if (!notification.read) readOne(notification.id)
@@ -67,5 +91,8 @@ export function useNotificationBell() {
     openNotification,
     readAll: () => readAll(),
     readingAll,
+    confirmingClear,
+    confirmClear,
+    clearing,
   }
 }

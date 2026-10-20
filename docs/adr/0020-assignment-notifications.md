@@ -26,12 +26,12 @@ notifications   id, user_id, type (deliverables_assigned), actor_id?, product_id
 
 - `GET /api/notifications?limit=` (до 50, по умолчанию 20) — последние уведомления, новые первыми, и `unread` — число непрочитанных всего. В строке: кто сделал (бренд), продукт с первым фото, `count`, `read`.
 - Видимость: уведомление о назначении видно, пока на пользователе есть deliverable этого продукта. Если связку с брендом сняли или бренд убрал все его deliverables, уведомление пропадает вместе с доступом к продукту.
-- `POST /api/notifications/{id}/read` — прочитано одно, чужое отвечает `404`. `POST /api/notifications/read` — Mark all as read. Оба отвечают `204`.
+- `POST /api/notifications/{id}/read` — прочитано одно, чужое отвечает `404`. `POST /api/notifications/read` — Mark all as read. `DELETE /api/notifications` — Clear all: удаляет все уведомления пользователя, следующие приходят как новые. Все отвечают `204`.
 
 ### Интерфейс
 
 - Виджет `widgets/notification-bell` (`NotificationBell`) заменил статичный `VNotificationButton unread` на всех страницах и в мобильном топбаре. Точка горит только при непрочитанных.
-- По клику открывается поповер в стиле выпадающих списков: «Acme assigned you 3 deliverables in Black Abaya», время («5 min ago», «Yesterday»), точка у непрочитанных, Mark all as read.
+- По клику открывается поповер в стиле выпадающих списков: «Acme assigned you 3 deliverables in Black Abaya», время («5 min ago», «Yesterday»), точка у непрочитанных, Mark all as read. Иконка корзины (Clear all) не удаляет сразу: шапка панели меняется на «Clear all notifications? Cancel / Clear all», список при этом бледнеет. Модалку не открываем — она закрыла бы поповер. Фокус встаёт на Cancel, Escape отменяет вопрос, а не закрывает панель. После подтверждения список пустеет сразу, при ошибке возвращается.
 - Клик по уведомлению отмечает его прочитанным и открывает бэклог с этим продуктом: `/tasks?view=brand&product=…`. Там видны именно эти заказы и сразу есть Plan shoot (ADR 0019).
 - Обновление: при возврате фокуса на вкладку и раз в минуту. Запрашивается только для одобренного пользователя.
 - API, ключи кэша и текст живут в самом виджете, отдельной сущности нет: у них один потребитель, а Steiger (`insignificant-slice`) требует не выделять такой слайс.
