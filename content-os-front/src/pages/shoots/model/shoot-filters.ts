@@ -45,7 +45,7 @@ export const shootQueryParams = {
 
 export type ShootTabValue = 'all' | 'upcoming' | 'in_progress' | 'completed'
 
-export interface ShootTab {
+interface ShootTab {
   value: ShootTabValue
   label: string
   count: number

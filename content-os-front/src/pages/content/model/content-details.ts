@@ -14,7 +14,7 @@ type ShootRole = Schemas['ShootRole']
 
 // Thumbnail slots under the stage, as in Figma: five across. With more files
 // the fifth turns into "+N", which opens the rest in the viewer.
-export const RAIL_SLOTS = 5
+const RAIL_SLOTS = 5
 
 export interface Rail {
   shown: ContentMaterial[]
@@ -42,7 +42,7 @@ export function startIndex(materials: ContentMaterial[], fileId: unknown): numbe
 }
 
 // "Creator", "Mobilographer"; someone no longer in the shoot's team shot it as a creator.
-export const shootRoleLabels = {
+const shootRoleLabels = {
   creator: 'Creator',
   mobilographer: 'Mobilographer',
 } as const satisfies Record<ShootRole, string>

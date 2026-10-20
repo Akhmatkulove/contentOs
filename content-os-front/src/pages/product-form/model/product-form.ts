@@ -53,7 +53,7 @@ export function splitBySizes<T>(items: T[], sizes: number[]): T[][] {
 
 // The brand's own references of the product: the only ones the form may remove.
 // References art directors added stay as they are (docs/adr/0005).
-export function ownReferences(product: ProductDetails, brandId: string | undefined) {
+function ownReferences(product: ProductDetails, brandId: string | undefined) {
   return product.references.filter((reference) => reference.author_id === brandId)
 }
 

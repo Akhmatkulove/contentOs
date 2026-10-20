@@ -91,7 +91,7 @@ const SWIPE_DISTANCE = 60
 const FLICK_SPEED = 0.4 // px per ms
 const CLOSE_DISTANCE = 120
 
-export type Swipe = 'next' | 'prev' | 'close' | 'none'
+type Swipe = 'next' | 'prev' | 'close' | 'none'
 
 // A finished one-finger drag over the unzoomed image: sideways leafs through
 // the files (a long drag or a quick flick), down closes the viewer.

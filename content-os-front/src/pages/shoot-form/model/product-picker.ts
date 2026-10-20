@@ -4,7 +4,7 @@ import { fetchProducts, productKeys } from '@/entities/product'
 import { nextPage } from './paging'
 import { toShootProduct, type ShootProduct } from './shoot-draft'
 
-export const PRODUCTS_PAGE_SIZE = 30
+const PRODUCTS_PAGE_SIZE = 30
 
 // What "Browse all products" shows: the active products the art director sees
 // (an archived one can't join a shoot), searched and loaded page by page, and

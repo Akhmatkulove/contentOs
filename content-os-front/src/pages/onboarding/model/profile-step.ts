@@ -18,7 +18,7 @@ export const profileSchema = v.object({
   ),
 }) satisfies v.GenericSchema<Schemas['OnboardingUpdate']>
 
-export function photoErrorMessage(error: unknown): string {
+function photoErrorMessage(error: unknown): string {
   switch (errorStatus(error)) {
     case 413:
       return 'This photo is larger than 5MB.'

@@ -11,7 +11,7 @@ import type { TaskCounts, TaskItem, TaskSort } from '../api/tasks'
 
 export type TaskRole = 'art_director' | 'creator'
 
-export interface TaskReference {
+interface TaskReference {
   id: string
   title: string
   kind: ReferenceKind
@@ -67,7 +67,7 @@ export function taskAction(role: TaskRole, status: DeliverableStatus): 'review' 
 
 export type TaskTabValue = 'all' | 'needs_review' | 'needs_changes' | 'to_shoot' | 'approved'
 
-export interface TaskTab {
+interface TaskTab {
   value: TaskTabValue
   label: string
   count: number

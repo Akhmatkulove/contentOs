@@ -22,7 +22,7 @@ export interface ModalEntry {
 }
 
 // Given to VModal by the host, one per open modal.
-export interface ModalContext {
+interface ModalContext {
   open: ComputedRef<boolean>
   dismiss: () => void
 }
@@ -48,8 +48,7 @@ export const modals = shallowReactive<ModalEntry[]>([])
 type PropsOf<C> = C extends new (...args: any) => { $props: infer P } ? P : never
 
 // What the modal passes to emit('close', result); undefined when dismissed.
-export type ModalResult<C> =
-  PropsOf<C> extends { onClose?: (...args: infer A) => any } ? A[0] : undefined
+type ModalResult<C> = PropsOf<C> extends { onClose?: (...args: infer A) => any } ? A[0] : undefined
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 type OpenProps<C> = Omit<PropsOf<C>, 'onClose' | keyof VNodeProps | keyof AllowedComponentProps>

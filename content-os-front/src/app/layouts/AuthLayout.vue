@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import billboardUrl from './assets/billboard.png'
+import billboard1280 from './assets/billboard-1280.webp'
+import billboard2560 from './assets/billboard-2560.webp'
 import logoMarkUrl from './assets/logo-mark.svg'
 import logoTextUrl from './assets/logo-text.svg'
 </script>
@@ -7,8 +8,12 @@ import logoTextUrl from './assets/logo-text.svg'
 <template>
   <main class="flex min-h-dvh flex-col bg-white lg:flex-row">
     <div class="relative h-[250px] shrink-0 lg:order-last lg:h-auto lg:w-3/5">
+      <!-- Full width on mobile, 60% of the screen from lg. -->
       <img
-        :src="billboardUrl"
+        :src="billboard1280"
+        :srcset="`${billboard1280} 1280w, ${billboard2560} 2560w`"
+        sizes="(min-width: 1024px) 60vw, 100vw"
+        fetchpriority="high"
         alt=""
         class="absolute inset-0 size-full object-cover lg:object-[52%_50%]"
       />

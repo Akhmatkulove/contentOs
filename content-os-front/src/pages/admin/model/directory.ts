@@ -16,9 +16,9 @@ export interface DirectoryEntry {
   creators: ManagedUser[]
 }
 
-export type Directory = Record<DirectoryTab, DirectoryEntry[]>
+type Directory = Record<DirectoryTab, DirectoryEntry[]>
 
-export function tabOf(user: ManagedUser): DirectoryTab {
+function tabOf(user: ManagedUser): DirectoryTab {
   return user.role ?? 'none'
 }
 

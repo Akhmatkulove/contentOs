@@ -12,7 +12,7 @@ export interface QueryParam<T> {
 }
 
 export type QueryParams = Record<string, QueryParam<string> | QueryParam<number>>
-export type QueryValues<D extends QueryParams> = {
+type QueryValues<D extends QueryParams> = {
   [K in keyof D]: D[K] extends QueryParam<infer T> ? T : never
 }
 

@@ -1,13 +1,13 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type ShootList = Schemas['ShootList']
+type ShootList = Schemas['ShootList']
 export type ShootListItem = Schemas['ShootListItem']
 export type ShootCounts = Schemas['ShootCounts']
 export type ShootStatus = Schemas['ShootStatus']
 export type ShootPeriod = Schemas['ShootPeriod']
 export type ShootSort = Schemas['ShootSort']
 
-export interface ShootsQuery {
+interface ShootsQuery {
   search?: string
   status?: ShootStatus
   period?: ShootPeriod

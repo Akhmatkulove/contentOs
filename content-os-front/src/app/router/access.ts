@@ -14,7 +14,7 @@ import { errorStatus, http } from '@/shared/api'
 //   review      — application sent: under review or rejected
 //   approved    — the product itself; `roles` narrows a section to some roles
 //   admin       — the admin panel; the admin sees nothing else
-export type Access = 'guest' | 'onboarding' | 'review' | 'approved' | 'admin'
+type Access = 'guest' | 'onboarding' | 'review' | 'approved' | 'admin'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -91,7 +91,11 @@ export function installSessionInterceptor(router: Router) {
       session.clear()
       await router.push({ name: 'login' })
     } else if (session.me !== null && status === 403) {
-      await router.push(homeRoute(await session.load()))
+      try {
+        await router.push(homeRoute(await session.load()))
+      } catch {
+        // /me failed too: the caller still gets the original 403.
+      }
     }
     return Promise.reject(error)
   })

@@ -13,7 +13,7 @@ import {
 } from '@/entities/reference'
 import { nextPage } from './paging'
 
-export const REFERENCES_PAGE_SIZE = 30
+const REFERENCES_PAGE_SIZE = 30
 
 // What "Browse reference bank" shows: the reference pool the art director sees,
 // searched, filtered as on the references page and loaded page by page, and

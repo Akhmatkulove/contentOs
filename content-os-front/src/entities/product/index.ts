@@ -1,7 +1,6 @@
 export { fetchProduct, patchProduct, type ProductDetails } from './api/product'
 export {
   fetchProducts,
-  type ProductList,
   type ProductListItem,
   type ProductSort,
   type ProductsQuery,

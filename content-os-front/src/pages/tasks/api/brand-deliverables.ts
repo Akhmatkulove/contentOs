@@ -1,13 +1,13 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type BrandDeliverableList = Schemas['BrandDeliverableList']
+type BrandDeliverableList = Schemas['BrandDeliverableList']
 export type BrandDeliverableItem = Schemas['BrandDeliverableItem']
 export type BrandDeliverableCounts = Schemas['BrandDeliverableCounts']
 export type BrandDeliverableStatus = Schemas['BrandDeliverableStatus']
 export type BrandDeliverableSort = Schemas['BrandDeliverableSort']
-export type BrandDeliverableFilterOptions = Schemas['BrandDeliverableFilters']
+type BrandDeliverableFilterOptions = Schemas['BrandDeliverableFilters']
 
-export interface BrandDeliverablesQuery {
+interface BrandDeliverablesQuery {
   search?: string
   status?: BrandDeliverableStatus
   productId?: string

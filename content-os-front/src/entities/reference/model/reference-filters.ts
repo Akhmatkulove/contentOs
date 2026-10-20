@@ -40,7 +40,7 @@ export const sortOptions = [
 ] as const satisfies readonly (SelectOption & { value: ReferenceSort })[]
 
 // A creator option keeps the photo: the mobile sheet shows avatars.
-export interface CreatorOption extends SelectOption {
+interface CreatorOption extends SelectOption {
   photoUrl: string | null
 }
 

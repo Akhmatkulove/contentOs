@@ -4,7 +4,7 @@ import { useSessionStore } from '@/entities/session'
 import { errorStatus } from '@/shared/api'
 import { submitApplication } from '../api/onboarding'
 
-export type ReviewView = 'draft' | 'sending' | 'sent' | 'error'
+type ReviewView = 'draft' | 'sending' | 'sent' | 'error'
 
 export function useSubmitApplication() {
   const session = useSessionStore()

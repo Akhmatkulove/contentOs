@@ -7,7 +7,7 @@ export const TAP_SLOP = 8
 // Pulling down at least this far closes the sheet.
 export const SWIPE_CLOSE_DISTANCE = 24
 
-export type GrabberGesture = 'tap' | 'swipe-down' | 'none'
+type GrabberGesture = 'tap' | 'swipe-down' | 'none'
 
 // dy: pointerup Y minus pointerdown Y, positive downwards.
 export function grabberGesture(dy: number): GrabberGesture {

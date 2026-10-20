@@ -1,8 +1,8 @@
 import { http, type Schemas } from '@/shared/api'
 
 export type ProductCreate = Schemas['ProductCreate']
-export type ProductUpdate = Schemas['ProductUpdate']
-export type SavedProduct = Schemas['ProductResponse']
+type ProductUpdate = Schemas['ProductUpdate']
+type SavedProduct = Schemas['ProductResponse']
 
 export async function createProduct(body: ProductCreate): Promise<SavedProduct> {
   return (await http.post<SavedProduct>('/products', body)).data

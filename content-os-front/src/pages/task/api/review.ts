@@ -2,7 +2,7 @@ import { http, type Schemas } from '@/shared/api'
 
 export type DeliverableReview = Schemas['DeliverableReviewResponse']
 export type ReviewCreator = Schemas['ReviewCreator']
-export type ReviewDecision = Schemas['VersionReviewCreate']
+type ReviewDecision = Schemas['VersionReviewCreate']
 
 // The deliverable as its art director reviews it: every assignee's status and
 // submitted versions, newest first; 404 to everyone else (docs/adr/0015).

@@ -1,7 +1,7 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { findArticle } from './topics'
 
-export type ArticleVote = 'yes' | 'no'
+type ArticleVote = 'yes' | 'no'
 
 export function useHelpArticle(slug: MaybeRefOrGetter<string>) {
   const topic = computed(() => findArticle(toValue(slug)))

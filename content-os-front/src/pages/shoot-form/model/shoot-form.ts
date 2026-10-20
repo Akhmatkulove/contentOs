@@ -56,7 +56,7 @@ export const shootSchema = v.pipe(
 )
 
 // Who is on the shoot, from useShootTeam().
-export interface ShootFormTeam {
+interface ShootFormTeam {
   // Creators and mobilographers: the assignees to pick from.
   members: MaybeRefOrGetter<TeamMember[]>
   creatorIds: Ref<string[]>

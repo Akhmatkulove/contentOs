@@ -5,7 +5,7 @@ import type { SelectOption } from '@/shared/ui/select'
 import type { ShootProduct } from './products-tab'
 import { ALL, matches } from './shoot'
 
-export type ShootReference = ShootDetails['references'][number]
+type ShootReference = ShootDetails['references'][number]
 
 export const referenceTypeOptions = [
   { value: ALL, label: 'All types' },

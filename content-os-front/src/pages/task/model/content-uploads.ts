@@ -5,7 +5,7 @@ import { isVideo, tooLarge, tooLargeMessage, usePickedFiles, type PickedFile } f
 import { toast } from '@/shared/ui/toast'
 import { uploadFailure, uploadPercent, type ContentFile, type UploadFailure } from './task'
 
-export interface Sending {
+interface Sending {
   // Sent share 0–1; `done` once the server has answered.
   share: number
   done: boolean

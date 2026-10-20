@@ -4,10 +4,10 @@ import { computed, ref } from 'vue'
 import { fetchLocationSuggestions } from '../api/locations'
 
 // The backend answers nothing below two letters, so neither do we ask.
-export const MIN_LOCATION_QUERY = 2
+const MIN_LOCATION_QUERY = 2
 
 // What the Location field's list says instead of suggestions, if anything.
-export type LocationSearchState = 'idle' | 'loading' | 'empty' | 'error' | 'results'
+type LocationSearchState = 'idle' | 'loading' | 'empty' | 'error' | 'results'
 
 export function locationSearchState(input: {
   query: string

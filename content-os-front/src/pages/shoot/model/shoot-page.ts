@@ -6,7 +6,7 @@ import { toProducts } from './products-tab'
 import { coverPhotos, shootCounts, shootFacts, shootPeople } from './shoot'
 import { taskFilterOptions, taskRoute, toTasks, type ShootTask } from './tasks-tab'
 
-export const shootTabValues = [
+const shootTabValues = [
   'overview',
   'products',
   'tasks',
@@ -17,7 +17,7 @@ export const shootTabValues = [
   'team',
   'notes',
 ] as const
-export type ShootTab = (typeof shootTabValues)[number]
+type ShootTab = (typeof shootTabValues)[number]
 
 // The tab lives in the URL (?tab=tasks), so a link or a reload opens it.
 // Overview is the default and leaves the URL clean.

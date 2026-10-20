@@ -1,6 +1,6 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type ProductList = Schemas['ProductList']
+type ProductList = Schemas['ProductList']
 export type ProductListItem = Schemas['ProductListItem']
 export type ProductSort = Schemas['ProductSort']
 

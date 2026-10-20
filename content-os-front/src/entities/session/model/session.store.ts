@@ -21,9 +21,16 @@ export const useSessionStore = defineStore('session', () => {
     loaded.value = true
   }
 
-  async function load() {
-    apply(await fetchMe())
-    return me.value
+  // Callers that ask at once (several requests answered 403) share one /me request.
+  let loading: Promise<Me | null> | null = null
+  function load() {
+    loading ??= fetchMe()
+      .then((next) => {
+        apply(next)
+        return me.value
+      })
+      .finally(() => (loading = null))
+    return loading
   }
 
   function set(value: Me) {

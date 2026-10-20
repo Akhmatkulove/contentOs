@@ -1,6 +1,6 @@
 import type { Schemas } from '@/shared/api'
 
-export type ShootStatus = Schemas['ShootStatus']
+type ShootStatus = Schemas['ShootStatus']
 
 // How each status looks in VStatus (Figma "CMS / Products / Status").
 export const shootStatuses = {

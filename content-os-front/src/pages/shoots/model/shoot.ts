@@ -3,7 +3,7 @@ import { progressPercent } from '@/entities/shoot'
 import type { Schemas } from '@/shared/api'
 import type { ShootListItem, ShootStatus } from '../api/shoots'
 
-export type TeamMember = Schemas['TeamMember']
+type TeamMember = Schemas['TeamMember']
 
 // What a shoot card shows.
 export interface Shoot {

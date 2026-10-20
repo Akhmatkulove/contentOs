@@ -27,7 +27,7 @@ import { useRemoveReference } from './remove-reference'
 export const REFERENCES_PER_PAGE = 20
 // The Collections tab: collections per page and cards in each one's row.
 export const COLLECTIONS_PER_PAGE = 6
-export const COLLECTION_PREVIEW = 10
+const COLLECTION_PREVIEW = 10
 
 // The user's reference pool: searched, filtered, sorted and paged on the backend.
 // The tab, search, filters, sort and page live in the URL, so a link, reload or

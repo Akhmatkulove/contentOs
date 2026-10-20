@@ -8,7 +8,7 @@ export interface PickedFile {
 }
 
 // Same file picked twice (name, size and modified time match) is skipped.
-export function fileKey(file: File): string {
+function fileKey(file: File): string {
   return `${file.name}:${file.size}:${file.lastModified}`
 }
 

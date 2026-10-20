@@ -10,7 +10,7 @@ export interface MediaFile {
   kind: 'image' | 'video'
 }
 
-export interface MediaViewerOptions {
+interface MediaViewerOptions {
   files: MediaFile[]
   // The file it opens on.
   start: number

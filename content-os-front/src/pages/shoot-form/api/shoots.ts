@@ -1,7 +1,7 @@
 import { http, type Schemas } from '@/shared/api'
 
 export type ShootCreate = Schemas['ShootCreate']
-export type CreatedShoot = Schemas['ShootListItem']
+type CreatedShoot = Schemas['ShootListItem']
 
 // The shoot with its team, products, references and deliverables in one request.
 export async function createShoot(body: ShootCreate): Promise<CreatedShoot> {
@@ -21,7 +21,7 @@ export async function fetchProductDeliverables(
     .data
 }
 
-export type SavedShoot = Schemas['ShootResponse']
+type SavedShoot = Schemas['ShootResponse']
 
 // The whole edit form: the shoot as it should be now (docs/adr/0008). Saved
 // deliverables come with their id, new ones without; the ones left out are removed.

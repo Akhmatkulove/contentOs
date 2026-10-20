@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { roleLabels, useSessionStore, type Me } from '@/entities/session'
 
-export interface ProfileField {
+interface ProfileField {
   label: string
   value: string
 }

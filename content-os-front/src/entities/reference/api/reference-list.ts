@@ -1,7 +1,7 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type ReferenceList = Schemas['ReferenceList']
-export type ReferenceCollectionList = Schemas['ReferenceCollectionList']
+type ReferenceList = Schemas['ReferenceList']
+type ReferenceCollectionList = Schemas['ReferenceCollectionList']
 export type ReferenceFilterOptions = Schemas['ReferenceFilters']
 export type ReferenceSort = Schemas['ReferenceSort']
 export type ReferenceScope = Schemas['ReferenceScope']
@@ -23,7 +23,7 @@ export interface ReferencesQuery {
   perPage: number
 }
 
-export type CollectionsQuery = Omit<ReferencesQuery, 'scope' | 'collection'> & {
+type CollectionsQuery = Omit<ReferencesQuery, 'scope' | 'collection'> & {
   // How many references each collection shows.
   preview: number
 }

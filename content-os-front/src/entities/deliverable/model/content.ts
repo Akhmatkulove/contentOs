@@ -3,7 +3,7 @@ import type { Schemas } from '@/shared/api'
 // Ready content of a shoot deliverable: the versions an assignee submits and
 // the art director reviews (docs/adr/0012, 0015).
 
-export type ContentFileResponse = Schemas['TaskFile']
+type ContentFileResponse = Schemas['TaskFile']
 export type ContentVersionResponse = Schemas['TaskVersionResponse']
 export type VersionReview = Schemas['VersionReview']
 

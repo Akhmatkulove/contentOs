@@ -16,7 +16,7 @@ export function referenceTitle(reference: ReferenceDetails): string {
 }
 
 // ISO timestamp → "Oct 19, 2026", in the viewer's timezone.
-export function addedLabel(iso: string): string {
+function addedLabel(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -61,7 +61,7 @@ export function linkIcon(link: string): IconName {
 
 // Columns of the gallery for its width: wide enough to make out details, never
 // more than there are files. A single file gets the whole width.
-export const MIN_COLUMN = 300
+const MIN_COLUMN = 300
 
 export function galleryColumns(width: number, count: number, gap: number): number {
   const fit = Math.floor((width + gap) / (MIN_COLUMN + gap))

@@ -11,7 +11,7 @@ import type { SelectOption } from '@/shared/ui/select'
 import type { ShootProduct } from './products-tab'
 import { ALL, matches, type ShootPerson, type TeamMember } from './shoot'
 
-export interface TaskReference {
+interface TaskReference {
   id: string
   title: string
   kind: ReferenceKind
@@ -36,7 +36,7 @@ export interface ShootTask {
 
 // Who opens the shoot's tasks: whether they review them (the shoot's art
 // director) and their user id.
-export interface TaskViewer {
+interface TaskViewer {
   reviews: boolean
   id: string | null
 }
@@ -89,7 +89,7 @@ export const taskSortOptions = [
   { value: 'name_asc', label: 'Name: A–Z' },
 ] as const
 
-export type TaskSort = (typeof taskSortOptions)[number]['value']
+type TaskSort = (typeof taskSortOptions)[number]['value']
 
 export interface TaskFilters {
   search: string

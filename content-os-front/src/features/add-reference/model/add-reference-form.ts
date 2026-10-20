@@ -14,8 +14,6 @@ import type { SelectOption } from '@/shared/ui/select'
 import { toast } from '@/shared/ui/toast'
 import type { ReferenceDraft, ReferenceSource, ReferenceType } from './reference-draft'
 
-export type { ReferenceSource } from './reference-draft'
-
 export const sourceOptions: SegmentedOption<ReferenceSource>[] = [
   { value: 'upload', label: 'Upload files', icon: 'upload-square-02' },
   { value: 'link', label: 'Paste link', icon: 'copy-link' },
@@ -55,7 +53,7 @@ export function rejectedFilesMessage(count: number): string {
 }
 
 // Same rule as the backend: http(s) only.
-export const linkSchema = v.pipe(
+const linkSchema = v.pipe(
   v.string(),
   v.trim(),
   v.nonEmpty('Paste a link.'),

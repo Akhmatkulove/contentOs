@@ -35,7 +35,7 @@ export interface BrandDeliverable {
 // Not scheduled: Plan shoot opens Create new shoot with the product ticked and
 // this deliverable ready in Add deliverable. Otherwise View opens its first
 // shoot, or the product when only another art director's shoot closes it.
-export function brandDeliverableAction(item: BrandDeliverableItem): BrandDeliverable['action'] {
+function brandDeliverableAction(item: BrandDeliverableItem): BrandDeliverable['action'] {
   if (item.shoots_total === 0) {
     return {
       kind: 'plan',

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
+import { useDocumentVisibility } from '@vueuse/core'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import {
   clearNotifications,
@@ -12,7 +13,7 @@ import { useSessionStore } from '@/entities/session'
 
 // How often an open app looks for new notifications; it also looks when the tab
 // gets focus again.
-export const REFRESH_MS = 60_000
+const REFRESH_MS = 60_000
 
 // The bell (docs/adr/0020): the user's latest notifications, the unread dot,
 // opening one, Mark all as read and Clear all. Only an approved user has notifications.
@@ -30,8 +31,10 @@ export function useNotificationBell() {
     // The bell stays quiet: no toast for a failed background refresh.
     meta: { toast: false },
   })
+  // A hidden tab doesn't ask: the query refreshes itself when the tab gets focus again.
+  const visibility = useDocumentVisibility()
   const timer = setInterval(() => {
-    if (userId.value) void refreshIfStale()
+    if (userId.value && visibility.value === 'visible') void refreshIfStale()
   }, REFRESH_MS)
   onScopeDispose(() => clearInterval(timer))
 

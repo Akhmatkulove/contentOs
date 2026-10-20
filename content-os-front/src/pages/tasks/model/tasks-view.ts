@@ -4,7 +4,7 @@ import { useNotScheduledCount } from '@/entities/deliverable'
 import { useSessionStore } from '@/entities/session'
 import { badgeLabel, queryParam, useQueryParams, type QueryParams } from '@/shared/lib'
 
-export type TasksView = 'shoot' | 'brand'
+type TasksView = 'shoot' | 'brand'
 
 const viewParams = {
   // brand: the art director's backlog of brands' deliverables (docs/adr/0019).

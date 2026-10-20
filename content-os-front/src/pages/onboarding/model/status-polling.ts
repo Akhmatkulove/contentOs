@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 
-export const POLL_INTERVAL_MS = 30_000
+const POLL_INTERVAL_MS = 30_000
 
 // No push channel: ask for the status every 30s and whenever the tab comes back,
 // until the application is approved.
@@ -20,10 +20,13 @@ export function useStatusPolling() {
     }
   }
 
-  const { pause } = useIntervalFn(refresh, POLL_INTERVAL_MS)
   const visibility = useDocumentVisibility()
+  // A hidden tab doesn't ask; it catches up as soon as it is visible again.
+  const { pause } = useIntervalFn(() => {
+    if (visibility.value === 'visible') void refresh()
+  }, POLL_INTERVAL_MS)
   watch(visibility, (value) => {
-    if (value === 'visible') refresh()
+    if (value === 'visible' && status.value !== 'approved') void refresh()
   })
   watch(status, (value) => {
     if (value === 'approved') pause()

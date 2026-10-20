@@ -4,7 +4,7 @@ import { openModal } from '@/shared/ui/modal'
 // The modal's code loads on first open.
 const VConfirmModal = defineAsyncComponent(() => import('./v-confirm-modal.vue'))
 
-export interface ConfirmOptions {
+interface ConfirmOptions {
   title: string
   description: string
   confirmLabel: string

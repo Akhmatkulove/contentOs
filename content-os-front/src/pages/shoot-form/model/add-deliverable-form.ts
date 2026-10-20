@@ -34,9 +34,7 @@ export const shootDeliverableSchema = v.object({
 
 // Approved means sent to the brand: only the review does that, after every
 // assignee's work is approved (docs/adr/0015).
-export const statusOptions = deliverableStatusOptions.filter(
-  (option) => option.value !== 'approved',
-)
+const statusOptions = deliverableStatusOptions.filter((option) => option.value !== 'approved')
 
 // A new deliverable of an archived product starts as To shoot: work on it
 // can't start around the archive (docs/adr/0022).

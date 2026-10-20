@@ -29,7 +29,7 @@ export const contentAccept = `${IMAGE_ACCEPT},${VIDEO_ACCEPT}`
 // Same limit as the backend (TaskDraftTitle.title).
 export const VERSION_TITLE_MAX = 100
 
-export function rejectedFilesMessage(count: number): string {
+function rejectedFilesMessage(count: number): string {
   return count === 1
     ? 'This file is not an image or a video.'
     : `${count} files are not images or videos.`

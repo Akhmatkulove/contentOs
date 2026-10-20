@@ -8,6 +8,7 @@ Vue 3 (`<script setup>`) + TypeScript, Vite, Pinia, Pinia Colada, Vue Router, Ta
 - `npm run type-check` · `npm run test:run` · `npm run lint` · `npm run lint:fsd`
 - `npm run gen:api`: типы API из OpenAPI-схемы бэкенда → `src/shared/api/schema.d.ts` (нужен `uv`). Запускай после изменения схем бэкенда и коммить результат: CI сверяет файл с бэкендом.
 - После изменений прогоняй `type-check`, `test:run` и `lint:fsd`. Pre-push hook запускает то же самое.
+- Production: `Dockerfile` (сборка + nginx из `nginx.conf`: SPA-fallback на `index.html`, `/assets/*` кэшируются навсегда, `index.html` — no-cache). Адрес API вшивается при сборке: `--build-arg VITE_API_URL=…` (по умолчанию `/api`, тот же origin). Открытая вкладка после деплоя сама перезагружается, если не нашла старый чанк (`app/router/chunk-reload.ts`).
 
 ## Архитектура: Feature-Sliced Design v2.1
 

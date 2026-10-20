@@ -71,7 +71,7 @@ export const sortOptions = [
 ] as const satisfies readonly (SelectOption & { value: ContentSort })[]
 
 // A creator option keeps the photo: the mobile sheet shows avatars.
-export interface CreatorOption extends SelectOption {
+interface CreatorOption extends SelectOption {
   photoUrl: string | null
 }
 
@@ -115,7 +115,7 @@ export function filterParams(
   }
 }
 
-export interface ContentTab {
+interface ContentTab {
   value: ContentScope
   label: string
   count: number

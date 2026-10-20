@@ -2,7 +2,7 @@ import { shallowReactive } from 'vue'
 
 export type ToastTone = 'error' | 'success'
 
-export interface ToastItem {
+interface ToastItem {
   id: number
   tone: ToastTone
   title: string

@@ -1,6 +1,6 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type NotificationList = Schemas['NotificationList']
+type NotificationList = Schemas['NotificationList']
 export type NotificationItem = Schemas['NotificationResponse']
 
 // The latest notifications, newest first, and how many are unread (docs/adr/0020).

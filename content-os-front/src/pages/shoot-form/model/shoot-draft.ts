@@ -26,7 +26,7 @@ export function toShootProduct(item: ProductListItem): ShootProduct {
   }
 }
 
-export interface LinkedProductDeliverable {
+interface LinkedProductDeliverable {
   id: string
   name: string
 }

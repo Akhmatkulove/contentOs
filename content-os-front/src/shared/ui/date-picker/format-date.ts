@@ -5,7 +5,7 @@
 // so the field showed today and the month heading never moved. A UTC
 // timestamp read back in UTC needs only Date.UTC and Intl, and can't shift a
 // day across time zones either.
-export interface CalendarDay {
+interface CalendarDay {
   year: number
   month: number
   day: number

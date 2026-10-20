@@ -4,7 +4,7 @@ import type { ReferenceCounts } from '../api/references'
 // The backend's scopes and the Collections tab: the same pool grouped by collection.
 export type ReferenceTabValue = ReferenceScope | 'collections'
 
-export interface ReferenceTab {
+interface ReferenceTab {
   value: ReferenceTabValue
   label: string
   count: number

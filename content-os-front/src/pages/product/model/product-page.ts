@@ -18,7 +18,7 @@ import {
 import { productQueryParams, type ProductTab } from './product-tabs'
 
 // Sections of the edit form that the page's "+" and Edit buttons open.
-export type EditSection = 'details' | 'photos' | 'references' | 'deliverables'
+type EditSection = 'details' | 'photos' | 'references' | 'deliverables'
 
 // The product page (Figma "Product / Overview" and its tabs). One request
 // brings everything; search and sort of the tabs run over it in the browser.

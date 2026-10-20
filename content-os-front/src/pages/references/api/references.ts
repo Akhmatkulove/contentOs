@@ -1,7 +1,7 @@
 import { http, type Schemas } from '@/shared/api'
 
 export type ReferenceCounts = Schemas['ReferenceCounts']
-export type ProductOption = Schemas['ProductOption']
+type ProductOption = Schemas['ProductOption']
 export type ReferenceDetails = Schemas['ReferenceResponse']
 
 // The reference page; 404 when the user doesn't see the reference.

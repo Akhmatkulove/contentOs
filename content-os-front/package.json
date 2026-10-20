@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
@@ -19,7 +22,6 @@
   "dependencies": {
     "@internationalized/date": "^3.12.4",
     "@pinia/colada": "^1.4.7",
-    "@regle/core": "^1.29.4",
     "@regle/schemas": "^1.29.4",
     "@vueuse/core": "^14.4.0",
     "axios": "^1.20.0",
@@ -50,7 +52,6 @@
     "lint-staged": "^17.6.0",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.9",
-    "sass-embedded": "^1.105.1",
     "shadcn-vue": "^2.8.2",
     "steiger": "^0.7.0",
     "tailwindcss": "^4.3.3",

@@ -1,12 +1,12 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type TaskList = Schemas['TaskList']
+type TaskList = Schemas['TaskList']
 export type TaskItem = Schemas['TaskItem']
 export type TaskCounts = Schemas['TaskCounts']
 export type TaskSort = Schemas['TaskSort']
-export type TaskFilterOptions = Schemas['TaskFilters']
+type TaskFilterOptions = Schemas['TaskFilters']
 
-export interface TasksQuery {
+interface TasksQuery {
   search?: string
   status?: Schemas['DeliverableStatus']
   shootId?: string

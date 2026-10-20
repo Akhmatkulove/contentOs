@@ -12,7 +12,7 @@ export function rejectedPhotosMessage(count: number): string {
 }
 
 // "Photo added", "3 photos added": saved with the product on Save.
-export function photosAddedMessage(count: number): string {
+function photosAddedMessage(count: number): string {
   return count === 1 ? 'Photo added' : `${count} photos added`
 }
 

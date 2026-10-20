@@ -9,7 +9,7 @@ import type { SelectOption } from '@/shared/ui/select'
 import type { ProductFilterOptions } from '../api/products'
 
 // Reka Select can't hold an empty value, so "All …" is this sentinel.
-export const ALL = 'all'
+const ALL = 'all'
 
 export interface ProductFilters {
   collection: string

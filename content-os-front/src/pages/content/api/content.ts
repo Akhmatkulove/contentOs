@@ -1,6 +1,6 @@
 import { http, type Schemas } from '@/shared/api'
 
-export type ContentList = Schemas['ContentList']
+type ContentList = Schemas['ContentList']
 export type ContentItemResponse = Schemas['ContentItemResponse']
 export type ContentFilterOptions = Schemas['ContentFilters']
 export type ContentStatus = Schemas['ContentStatus']
@@ -44,7 +44,6 @@ export async function fetchContentFilters(): Promise<ContentFilterOptions> {
 export type ContentDetails = Schemas['ContentDetails']
 export type ContentComment = Schemas['ContentCommentResponse']
 export type ContentMaterial = Schemas['ContentMaterial']
-export type ContentVersion = Schemas['ContentVersion']
 export type ContentReference = Schemas['ReferenceResponse']
 
 // The content page: a sent deliverable with all its files (docs/adr/0026).

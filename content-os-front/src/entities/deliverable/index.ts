@@ -19,7 +19,6 @@ export {
 } from './model/deliverable'
 export type {
   ContentFile,
-  ContentFileResponse,
   ContentVersionResponse,
   VersionReview,
   VersionStatus,
@@ -34,5 +33,5 @@ export {
   workWaits,
 } from './model/content'
 export { taskKeys } from './model/task-keys'
-export { attentionStatus, useNotScheduledCount, useTasksBadge } from './model/tasks-badge'
+export { useNotScheduledCount, useTasksBadge } from './model/tasks-badge'
 export { default as DeliverablesTable } from './ui/DeliverablesTable.vue'
