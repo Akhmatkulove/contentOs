@@ -21,6 +21,7 @@ PRESIGN_TTL_SECONDS = 60 * 60
 UPLOAD_TTL_SECONDS = 15 * 60
 # Ключи неизменяемые: файл по ключу не меняется, кэшировать можно навсегда.
 PRIVATE_CACHE = "private, max-age=31536000, immutable"
+PUBLIC_CACHE = "public, max-age=31536000, immutable"
 
 
 class Storage(Protocol):
@@ -103,7 +104,7 @@ class S3Storage:
             Key=key,
             Body=data,
             ContentType=content_type,
-            CacheControl=f"{'public' if public else 'private'}, max-age=31536000, immutable",
+            CacheControl=PUBLIC_CACHE if public else PRIVATE_CACHE,
         )
 
     async def delete(self, key: str) -> None:

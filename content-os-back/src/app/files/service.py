@@ -5,6 +5,7 @@
 """
 
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -32,18 +33,28 @@ class RejectedUploadError(HTTPException):
     """Файл не прошёл проверку: вызывающий удаляет и строку, и загруженное."""
 
 
-async def finish_upload(stored: StoredFile, storage: Storage) -> None:
+@dataclass(frozen=True)
+class CheckedUpload:
+    """Проверенный файл на постоянном ключе: что записать в строку вместо слов клиента."""
+
+    key: str
+    kind: FileKind
+    content_type: str
+    size: int
+
+
+async def finish_upload(uploaded_key: str, storage: Storage) -> CheckedUpload:
     """Проверяет то, что браузер положил по presigned URL, и переносит на постоянный ключ.
 
     Тип — по первым байтам, размер — по хранилищу, а не по словам клиента. Фото
-    перекодируется в WebP без EXIF, видео копируется внутри хранилища. Временный ключ
-    вызывающий удаляет после commit.
+    перекодируется в WebP без EXIF, видео копируется внутри хранилища. Строку не
+    трогает: её обновляет вызывающий, он же удаляет временный ключ после commit.
     """
-    size = await storage.size(stored.key)
+    size = await storage.size(uploaded_key)
     if size is None:
         # Строку не трогаем: браузер мог ещё не дослать файл и повторит.
         raise HTTPException(status.HTTP_409_CONFLICT, "The file has not been uploaded")
-    head = await storage.read(stored.key, 64)
+    head = await storage.read(uploaded_key, 64)
     video = sniff_video(head)
     if is_image(head):
         if size > MAX_IMAGE_BYTES:
@@ -51,24 +62,21 @@ async def finish_upload(stored: StoredFile, storage: Storage) -> None:
                 status.HTTP_413_CONTENT_TOO_LARGE, "Image must be at most 15 MB"
             )
         try:
-            prepared = await run_in_threadpool(prepare_image, await storage.read(stored.key))
+            prepared = await run_in_threadpool(prepare_image, await storage.read(uploaded_key))
         except InvalidFileError as exc:
             raise RejectedUploadError(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
         key = f"files/{uuid.uuid4()}.webp"
         await storage.put(key, prepared, "image/webp")
-        stored.kind, stored.content_type, stored.size = FileKind.IMAGE, "image/webp", len(prepared)
-    elif video is not None:
+        return CheckedUpload(key, FileKind.IMAGE, "image/webp", len(prepared))
+    if video is not None:
         if size > MAX_VIDEO_BYTES:
             raise RejectedUploadError(
                 status.HTTP_413_CONTENT_TOO_LARGE, "Video must be at most 100 MB"
             )
         key = f"files/{uuid.uuid4()}.{video.extension}"
-        await storage.copy(stored.key, key, video.content_type)
-        stored.kind, stored.content_type, stored.size = FileKind.VIDEO, video.content_type, size
-    else:
-        raise RejectedUploadError(status.HTTP_422_UNPROCESSABLE_CONTENT, ALLOWED_MESSAGE)
-    stored.key = key
-    stored.pending = False
+        await storage.copy(uploaded_key, key, video.content_type)
+        return CheckedUpload(key, FileKind.VIDEO, video.content_type, size)
+    raise RejectedUploadError(status.HTTP_422_UNPROCESSABLE_CONTENT, ALLOWED_MESSAGE)
 
 
 def _links() -> list[Column[Any]]:

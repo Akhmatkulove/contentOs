@@ -21,9 +21,16 @@ COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app migrations ./migrations
 
+# FORWARDED_ALLOW_IPS: адрес клиента — из X-Forwarded-For, который дописал reverse proxy
+# из частной сети Docker (rate limit по IP, см. CLAUDE.md). Не "*": тогда uvicorn берёт
+# самый левый адрес, а его присылает сам клиент.
+# UVICORN_TIMEOUT_KEEP_ALIVE дольше простоя соединений у прокси (Traefik — 90 с): иначе
+# прокси шлёт запрос в соединение, которое uvicorn уже закрыл, и отвечает 502.
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    ENVIRONMENT=production
+    ENVIRONMENT=production \
+    FORWARDED_ALLOW_IPS="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" \
+    UVICORN_TIMEOUT_KEEP_ALIVE=100
 USER app
 EXPOSE 8000
 

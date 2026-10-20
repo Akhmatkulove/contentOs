@@ -5,11 +5,12 @@
 
 import uuid
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import Subquery, case, distinct, func, select
+from sqlalchemy import Select, Subquery, case, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -64,8 +65,11 @@ async def require_linkable(
             raise _unprocessable("A deliverable's product deliverable is for another product")
 
 
-def derived() -> Subquery:
-    """Статус и число съёмок каждого запланированного заказа (docs/adr/0018).
+def derived(ids: Select[Any] | Collection[uuid.UUID]) -> Subquery:
+    """Статус и число съёмок запланированных заказов из ids (docs/adr/0018).
+
+    ids — id заказов или запрос, который их выбирает: без них GROUP BY шёл бы
+    по deliverables всех съёмок на каждый запрос.
 
     Статус — из статусов deliverables съёмок, которые закрывают заказ: хоть один
     отправлен бренду — approved, по заказу есть готовый контент. Иначе — как у
@@ -94,7 +98,7 @@ def derived() -> Subquery:
                 else_=DeliverableStatus.TO_SHOOT.value,
             ).label("status"),
         )
-        .where(ShootDeliverable.product_deliverable_id.is_not(None))
+        .where(ShootDeliverable.product_deliverable_id.in_(ids))
         .group_by(ShootDeliverable.product_deliverable_id)
         .subquery("derived")
     )
@@ -163,8 +167,7 @@ async def progress(db: AsyncSession, ids: Iterable[uuid.UUID]) -> dict[uuid.UUID
     wanted = set(ids)
     if not wanted:
         return {}
-    table = derived()
-    rows = await db.execute(select(table).where(table.c.id.in_(wanted)))
+    rows = await db.execute(select(derived(wanted)))
     return {row.id: Progress(DeliverableStatus(row.status), row.shoots) for row in rows}
 
 

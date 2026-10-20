@@ -73,7 +73,9 @@ def _visible(art_director: User) -> Select[Any]:
     """Заказы арт-директора в действующих продуктах: архивный в съёмку не взять
     (docs/adr/0005). Колонки `status`, `shoots` и `state` — вывод из съёмок и вкладка.
     """
-    table = derived()
+    table = derived(
+        select(Deliverable.id).where(Deliverable.assignee_id == art_director.id).correlate(None)
+    )
     shoots = func.coalesce(table.c.shoots, 0)
     order_status = func.coalesce(table.c.status, DeliverableStatus.TO_SHOOT.value)
     state = case(

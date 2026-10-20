@@ -62,12 +62,12 @@ async def client(
     """Одобренный арт-директор; Геосаджест настроен и подменён."""
     app = create_app(settings.model_copy(update={"yandex_geosuggest_api_key": SecretStr(API_KEY)}))
     app.dependency_overrides[get_session] = lambda: db_session
-    app.dependency_overrides[get_geosuggest] = lambda: Geosuggest(
-        API_KEY, transport=httpx.MockTransport(yandex.handle)
-    )
+    geosuggest = Geosuggest(API_KEY, transport=httpx.MockTransport(yandex.handle))
+    app.dependency_overrides[get_geosuggest] = lambda: geosuggest
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         await sign_up(client, db_session, "ad@example.com", Role.ART_DIRECTOR, "Risolat")
         yield client
+    await geosuggest.aclose()
 
 
 async def test_suggests_addresses_in_uzbekistan(client: AsyncClient, yandex: FakeYandex) -> None:

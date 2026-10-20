@@ -185,8 +185,7 @@ export interface paths {
     /** Upload Photo */
     put: operations['upload_photo_api_me_photo_put']
     post?: never
-    /** Delete Photo */
-    delete: operations['delete_photo_api_me_photo_delete']
+    delete?: never
     options?: never
     head?: never
     patch?: never
@@ -3203,37 +3202,6 @@ export interface operations {
         'multipart/form-data': components['schemas']['Body_upload_photo_api_me_photo_put']
       }
     }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['MeResponse']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  delete_photo_api_me_photo_delete: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: {
-        session?: string | null
-      }
-    }
-    requestBody?: never
     responses: {
       /** @description Successful Response */
       200: {

@@ -24,6 +24,9 @@ def make_avatar(data: bytes) -> bytes:
                 raise InvalidImageError("Only JPEG and PNG are allowed")
             if image.width * image.height > MAX_PIXELS:
                 raise InvalidImageError("Image resolution is too large")
+            # JPEG декодируется сразу в уменьшенном масштабе (не меньше нужного): снимок
+            # телефона на 48 Мп иначе занимает в памяти ~150 МБ ради картинки в разы меньше.
+            image.draft("RGB", (AVATAR_SIZE, AVATAR_SIZE))
             image.load()
             # Телефоны пишут поворот в EXIF, применяем его до того, как EXIF выбросим.
             oriented = ImageOps.exif_transpose(image)

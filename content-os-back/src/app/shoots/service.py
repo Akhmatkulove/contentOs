@@ -22,6 +22,7 @@ from sqlalchemy import (
     or_,
     select,
     text,
+    true,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -422,9 +423,10 @@ def _with_status(user: User) -> Select[Any]:
     completed; хоть один ждёт проверки — needs_review (docs/adr/0009); хоть один
     начат — in_progress; иначе upcoming, пока съёмка не началась, и to_shoot после.
     """
+    # LATERAL: счётчики только по deliverables этой съёмки. Подзапрос с GROUP BY по
+    # всей таблице Postgres считал бы целиком на каждый запрос, даже для одной съёмки.
     stats = (
         select(
-            ShootDeliverable.shoot_id,
             func.count().label("total"),
             func.count()
             .filter(ShootDeliverable.status == DeliverableStatus.APPROVED)
@@ -436,13 +438,16 @@ def _with_status(user: User) -> Select[Any]:
             .filter(ShootDeliverable.status == DeliverableStatus.NEEDS_REVIEW)
             .label("in_review"),
         )
-        .group_by(ShootDeliverable.shoot_id)
-        .subquery()
+        .where(ShootDeliverable.shoot_id == Shoot.id)
+        .lateral("stats")
     )
-    total = func.coalesce(stats.c.total, 0)
-    approved = func.coalesce(stats.c.approved, 0)
-    started = func.coalesce(stats.c.started, 0)
-    in_review = func.coalesce(stats.c.in_review, 0)
+    # Агрегат без GROUP BY всегда даёт строку: у съёмки без deliverables нули.
+    total, approved, started, in_review = (
+        stats.c.total,
+        stats.c.approved,
+        stats.c.started,
+        stats.c.in_review,
+    )
     starts_at = func.timezone(TIMEZONE, Shoot.date + Shoot.start_time)
     shoot_status = case(
         (and_(total > 0, approved == total), ShootStatus.COMPLETED.value),
@@ -458,7 +463,7 @@ def _with_status(user: User) -> Select[Any]:
             total.label("total"),
             approved.label("approved"),
         )
-        .outerjoin(stats, stats.c.shoot_id == Shoot.id)
+        .join(stats, true())
         .where(_visible(user))
     )
 

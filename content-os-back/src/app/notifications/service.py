@@ -189,6 +189,9 @@ async def list_notifications(
             .limit(limit)
         )
     )
+    # Колокольчик опрашивает список постоянно: без уведомлений остальные запросы не нужны.
+    if not notifications:
+        return NotificationList(items=[], unread=unread or 0)
     actor_ids = {n.actor_id for n in notifications if n.actor_id is not None}
     actors = {
         actor.id: TeamMember.of(actor, settings)

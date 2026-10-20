@@ -20,7 +20,7 @@ src/app/core/          config (Settings, SettingsDep), db (Base, engine, Session
                        body_limit (размер тела), rate_limit (счётчики попыток в Postgres)
 src/app/auth/          пользователи, сессии, signup/login/logout/me, зависимости доступа
 src/app/onboarding/    ответы онбординга, отправка и отзыв заявки
-src/app/profile/       фото профиля: PUT/DELETE /api/me/photo
+src/app/profile/       фото профиля: PUT /api/me/photo
 src/app/review/        проверка заявок: Telegram (webhook, кнопки), dev-эндпоинт POST /api/dev/review
 src/app/files/         прямая загрузка в хранилище (docs/adr/0013): POST /api/uploads выдаёт presigned PUT, POST /api/uploads/{id}/complete проверяет по содержимому, WebP, приватные ключи files/; claim_files — передача файлов в продукт или референс; delete_unused — уборка ничьих и брошенных загрузок
 src/app/products/      продукты: список, страница GET /api/products/{id}, создание POST и редактирование PUT вместе с фото, референсами и deliverables (docs/adr/0003, 0004, 0005; заказ в работе не удалить — 0021), PATCH status — архив, кроме продукта в работе (docs/adr/0022)
@@ -57,7 +57,7 @@ tests/                 pytest, по файлу на фичу: tests/test_<featur
 - Файлы контента (`files/…`) приватные: наружу только `storage.presigned_url(key)` (живёт час), не `public_url`. Публичный только префикс `avatars/` (`put(..., public=True)`). Тип файла определяй по содержимому (`app.files.media`), не по имени или `Content-Type`.
 - Файлы контента браузер кладёт в хранилище сам по presigned PUT, байты через API не идут (docs/adr/0013). Всё, что прислал клиент (тип, размер), проверяется после загрузки в `complete`; до неё файл `pending` и не годится для `claim_files`.
 - Дорогие или шумные действия (argon2, сообщения в Telegram) закрывай `rate_limit.check(...)` до самой работы.
-- `rate_limit.client_ip` берёт адрес из `request.client`. За reverse proxy запускай uvicorn с `--proxy-headers --forwarded-allow-ips=<адрес прокси>`, иначе у всех клиентов будет один IP и общий лимит.
+- `rate_limit.client_ip` берёт адрес из `request.client`. За reverse proxy uvicorn должен доверять его `X-Forwarded-For` (`FORWARDED_ALLOW_IPS`, в Dockerfile — частные сети Docker, где стоит прокси; порт 8000 на хосте не публикуй, иначе `X-Forwarded-For` можно подделать), иначе у всех клиентов будет один IP и общий лимит.
 
 ## База данных и миграции
 

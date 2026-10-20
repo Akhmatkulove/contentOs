@@ -2,7 +2,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 
 from app.auth.deps import ApprovedUser
 from app.core import rate_limit
@@ -73,9 +73,7 @@ async def complete_upload(
     проверку файл удаляется. Повтор для уже проверенного файла отдаёт его же.
     """
     stored = await db.scalar(
-        select(StoredFile)
-        .where(StoredFile.id == file_id, StoredFile.owner_id == user.id)
-        .with_for_update()
+        select(StoredFile).where(StoredFile.id == file_id, StoredFile.owner_id == user.id)
     )
     if stored is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Upload not found")
@@ -83,13 +81,47 @@ async def complete_upload(
         return FileResponse.of(stored, storage)
 
     uploaded_key = stored.key
+    # Проверка — секунды запросов в хранилище и перекодирования: соединение с БД на это
+    # время возвращается в пул, а не держится открытой транзакцией.
+    await db.commit()
+    still_pending = (StoredFile.id == file_id, StoredFile.pending.is_(True))
     try:
-        await service.finish_upload(stored, storage)
+        checked = await service.finish_upload(uploaded_key, storage)
     except service.RejectedUploadError as exc:
-        await db.delete(stored)
+        await db.execute(delete(StoredFile).where(*still_pending))
         await db.commit()
         await delete_quietly(storage, uploaded_key)
         raise HTTPException(exc.status_code, exc.detail) from exc
+
+    finished = await db.scalar(
+        update(StoredFile)
+        .where(*still_pending)
+        .values(
+            key=checked.key,
+            kind=checked.kind,
+            content_type=checked.content_type,
+            size=checked.size,
+            pending=False,
+        )
+        .returning(StoredFile.id)
+        .execution_options(synchronize_session=False)
+    )
     await db.commit()
+    if finished is None:
+        # Параллельный complete того же файла успел раньше: отдаём его результат.
+        await delete_quietly(storage, checked.key)
+        stored = await db.scalar(
+            select(StoredFile)
+            .where(StoredFile.id == file_id, StoredFile.pending.is_(False))
+            .execution_options(populate_existing=True)
+        )
+        if stored is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Upload not found")
+        return FileResponse.of(stored, storage)
     await delete_quietly(storage, uploaded_key)
-    return FileResponse.of(stored, storage)
+    return FileResponse(
+        id=file_id,
+        kind=checked.kind,
+        content_type=checked.content_type,
+        url=storage.presigned_url(checked.key),
+    )

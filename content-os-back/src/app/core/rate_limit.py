@@ -29,8 +29,8 @@ class RateLimitCounter(Base):
 
 
 def client_ip(request: Request) -> str:
-    # За reverse proxy uvicorn должен запускаться с --proxy-headers и
-    # --forwarded-allow-ips, иначе здесь будет адрес прокси и лимит станет общим на всех.
+    # За reverse proxy uvicorn должен доверять его X-Forwarded-For (FORWARDED_ALLOW_IPS,
+    # см. Dockerfile), иначе здесь будет адрес прокси и лимит станет общим на всех.
     return request.client.host if request.client else "unknown"
 
 

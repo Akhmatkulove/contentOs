@@ -15,6 +15,7 @@ from app.core.db import create_engine, create_sessionmaker
 from app.core.storage import build_storage
 from app.files.router import router as files_router
 from app.health.router import router as health_router
+from app.locations.geosuggest import build_geosuggest
 from app.locations.router import router as locations_router
 from app.notifications.router import router as notifications_router
 from app.onboarding.router import router as onboarding_router
@@ -37,6 +38,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.sessionmaker = create_sessionmaker(engine)
         yield
         await engine.dispose()
+        if app.state.geosuggest is not None:
+            await app.state.geosuggest.aclose()
 
     app = FastAPI(
         title="ContentOS API",
@@ -47,6 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.storage = build_storage(settings)
+    app.state.geosuggest = build_geosuggest(settings)
     app.middleware("http")(origin_check(settings.allowed_origins))
     app.add_middleware(BodyLimitMiddleware)
 

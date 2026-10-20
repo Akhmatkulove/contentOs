@@ -4,9 +4,9 @@ import logging
 from typing import Annotated, Any
 
 import httpx
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 
-from app.core.config import Settings, SettingsDep
+from app.core.config import Settings
 from app.locations.schemas import LocationSuggestion
 
 SUGGEST_URL = "https://suggest-maps.yandex.ru/v1/suggest"
@@ -58,24 +58,29 @@ def parse_results(body: dict[str, Any]) -> list[LocationSuggestion]:
 class Geosuggest:
     def __init__(self, api_key: str, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self._api_key = api_key
-        self._transport = transport  # тесты подставляют httpx.MockTransport
+        # Один клиент на приложение: подсказки идут на каждый ввод, и соединение с
+        # Яндексом переиспользуется, а не открывается заново (TLS) на каждый запрос.
+        # transport подставляют тесты (httpx.MockTransport).
+        self._client = httpx.AsyncClient(timeout=5, transport=transport)
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
     async def suggest(self, text: str) -> list[LocationSuggestion]:
         try:
-            async with httpx.AsyncClient(timeout=5, transport=self._transport) as client:
-                response = await client.get(
-                    SUGGEST_URL,
-                    params={
-                        "apikey": self._api_key,
-                        "text": text,
-                        "lang": "ru",
-                        "countries": COUNTRY_CODE,
-                        "print_address": 1,
-                        "results": MAX_RESULTS,
-                    },
-                )
-                response.raise_for_status()
-                body = response.json()
+            response = await self._client.get(
+                SUGGEST_URL,
+                params={
+                    "apikey": self._api_key,
+                    "text": text,
+                    "lang": "ru",
+                    "countries": COUNTRY_CODE,
+                    "print_address": 1,
+                    "results": MAX_RESULTS,
+                },
+            )
+            response.raise_for_status()
+            body = response.json()
         except httpx.HTTPError:
             # Без цепочки: в тексте ошибки httpx URL запроса, а в URL ключ — он попал бы в лог.
             raise GeosuggestError("Geosuggest request failed") from None
@@ -92,8 +97,8 @@ def build_geosuggest(settings: Settings) -> Geosuggest | None:
     return Geosuggest(settings.yandex_geosuggest_api_key.get_secret_value())
 
 
-def get_geosuggest(settings: SettingsDep) -> Geosuggest:
-    geosuggest = build_geosuggest(settings)
+def get_geosuggest(request: Request) -> Geosuggest:
+    geosuggest: Geosuggest | None = request.app.state.geosuggest
     if geosuggest is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location search is not configured")
     return geosuggest

@@ -105,15 +105,6 @@ async def test_replacing_photo_deletes_old_file(client: AsyncClient, storage: Fa
     assert list(storage.files) == [second["photo_url"].removeprefix(f"{PUBLIC_URL}/")]
 
 
-async def test_delete_photo(client: AsyncClient, storage: FakeStorage) -> None:
-    await upload(client, image_bytes())
-
-    response = await client.delete("/api/me/photo")
-
-    assert response.json()["photo_url"] is None
-    assert storage.files == {}
-
-
 @pytest.mark.parametrize(
     "data",
     [

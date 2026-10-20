@@ -21,6 +21,8 @@ async def upload_photo(
     settings: SettingsDep,
     storage: StorageDep,
 ) -> MeResponse:
+    # Транзакцию, открытую проверкой сессии, не держим, пока идёт обработка и загрузка.
+    await db.commit()
     data = await photo.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Photo must be at most 5 MB")
@@ -33,16 +35,6 @@ async def upload_photo(
     key = f"avatars/{uuid.uuid4()}.webp"
     await storage.put(key, avatar, "image/webp", public=True)
     old_key, user.photo_key = user.photo_key, key
-    await db.commit()
-    await delete_quietly(storage, old_key)
-    return MeResponse.of(user, settings)
-
-
-@router.delete("")
-async def delete_photo(
-    user: CurrentUser, db: SessionDep, settings: SettingsDep, storage: StorageDep
-) -> MeResponse:
-    old_key, user.photo_key = user.photo_key, None
     await db.commit()
     await delete_quietly(storage, old_key)
     return MeResponse.of(user, settings)
