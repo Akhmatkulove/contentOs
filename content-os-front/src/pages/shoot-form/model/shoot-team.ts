@@ -1,7 +1,7 @@
 import { useQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
 import { useSessionStore } from '@/entities/session'
-import { fetchCreators } from '../api/team'
+import { fetchCreators, teamKeys } from '@/entities/team'
 import type { TeamMember } from './shoot-draft'
 
 // The members with these ids, in the order they were picked.
@@ -31,7 +31,7 @@ export function useShootTeam(initial?: {
     return me ? { id: me.id, name: me.name, photo_url: me.photo_url } : null
   })
 
-  const { data, isLoading } = useQuery({ key: ['team', 'creators'], query: fetchCreators })
+  const { data, isLoading } = useQuery({ key: teamKeys.creators, query: fetchCreators })
   const pool = computed(() => {
     const linked = data.value ?? []
     const kept = (initial?.members ?? []).filter(

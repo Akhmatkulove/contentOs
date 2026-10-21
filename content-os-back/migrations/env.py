@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.activity.models import ActivityEvent  # noqa: F401
 from app.admin.models import AdminAction  # noqa: F401
 from app.auth.models import User, UserSession  # noqa: F401  # регистрирует модели в Base.metadata
 from app.collections.models import Collection  # noqa: F401

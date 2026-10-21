@@ -26,6 +26,7 @@ export const iconNames = [
   'filter-horizontal',
   'flag-02',
   'folder-01',
+  'folder-block',
   'grid-view',
   'help-circle',
   'home-01',

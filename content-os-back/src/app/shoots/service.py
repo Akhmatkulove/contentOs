@@ -26,6 +26,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import service as activity
+from app.activity.models import ActivityType
 from app.auth.models import Role, User
 from app.core.config import Settings
 from app.core.storage import Storage
@@ -262,6 +264,7 @@ async def create_shoot(db: AsyncSession, art_director: User, body: ShootCreate) 
     await db.flush()
     _add_links(db, shoot, body)
     await _write_deliverables(db, shoot, body.deliverables, {}, {})
+    activity.record(db, ActivityType.SHOOT_CREATED, art_director, shoot.id)
     await db.flush()
     return shoot
 

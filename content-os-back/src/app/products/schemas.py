@@ -108,6 +108,10 @@ class ProductListItem(BaseModel):
     created_at: datetime
     # По продукту идёт работа в съёмках: архив недоступен (docs/adr/0022).
     in_work: bool
+    # Прогресс карточки (docs/adr/0027): видимые пользователю deliverables и сколько
+    # из них approved.
+    deliverables: int
+    approved: int
 
 
 class ProductOption(BaseModel):

@@ -5,7 +5,7 @@ import { ProductActionsMenu } from '@/features/product-actions'
 import { VButton } from '@/shared/ui/button'
 import { VIcon } from '@/shared/ui/icon'
 import { VStatus } from '@/shared/ui/status'
-import { productSubtitle, type Product } from '../model/product'
+import { deliveryPercent, productSubtitle, type Product } from '../model/product'
 
 const { product, canEdit = false } = defineProps<{
   product: Product
@@ -15,6 +15,7 @@ const { product, canEdit = false } = defineProps<{
 
 const status = computed(() => productStatuses[product.status])
 const subtitle = computed(() => productSubtitle(product))
+const percent = computed(() => deliveryPercent(product.deliverables))
 </script>
 
 <!-- On mobile the photo runs edge to edge and only the text is padded.
@@ -64,8 +65,7 @@ const subtitle = computed(() => productSubtitle(product))
       </p>
     </div>
 
-    <!-- TODO(api): deliverables. Hidden until ProductListItem has their counts (deliveryPercent in model).
-    <div class="flex flex-col gap-2 px-3 md:px-0">
+    <div v-if="product.deliverables.total" class="flex flex-col gap-2 px-3 md:px-0">
       <div class="flex items-center justify-between gap-2 text-p3 font-medium">
         <span class="truncate text-secondary">
           {{ product.deliverables.done }} / {{ product.deliverables.total }} deliverables
@@ -83,6 +83,5 @@ const subtitle = computed(() => productSubtitle(product))
         <div class="h-full rounded-[3px] bg-violet-400" :style="{ width: `${percent}%` }" />
       </div>
     </div>
-    -->
   </article>
 </template>

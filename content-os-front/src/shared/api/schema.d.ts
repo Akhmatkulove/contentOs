@@ -559,6 +559,28 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/activity': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Activity
+     * @description Лента Activity (docs/adr/0027): события съёмок пользователя, новые первыми.
+     *
+     *     Следующая страница — с `cursor` из `next_cursor` предыдущей.
+     */
+    get: operations['list_activity_api_activity_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/products': {
     parameters: {
       query?: never
@@ -918,6 +940,8 @@ export interface paths {
      *
      *     Поиск по deliverable, продукту, съёмке и исполнителю без учёта регистра.
      *     `counts` — размеры вкладок по статусам под поиском и фильтрами (docs/adr/0011).
+     *     `sent_since` — только отправленные бренду с этого момента (docs/adr/0027): начало
+     *     месяца берёт клиент, в своём часовом поясе.
      */
     get: operations['list_tasks_api_tasks_get']
     put?: never
@@ -1247,6 +1271,62 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /** ActivityItem */
+    ActivityItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      type: components['schemas']['ActivityType']
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      actor: components['schemas']['TeamMember'] | null
+      subject: components['schemas']['TeamMember'] | null
+      shoot: components['schemas']['ActivityRef'] | null
+      product: components['schemas']['ActivityRef'] | null
+      deliverable: components['schemas']['ActivityRef'] | null
+      /** Comment */
+      comment: string | null
+      /** Count */
+      count: number
+    }
+    /**
+     * ActivityList
+     * @description Страница ленты, новые первыми.
+     */
+    ActivityList: {
+      /** Items */
+      items: components['schemas']['ActivityItem'][]
+      /** Next Cursor */
+      next_cursor: string | null
+    }
+    /** ActivityRef */
+    ActivityRef: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+    }
+    /**
+     * ActivityType
+     * @enum {string}
+     */
+    ActivityType:
+      | 'shoot_created'
+      | 'version_submitted'
+      | 'version_approved'
+      | 'changes_requested'
+      | 'content_sent'
+      | 'content_commented'
+      | 'content_approved'
+      | 'shoot_completed'
     /**
      * AdminUsersResponse
      * @description Все пользователи, кроме админов, новые первыми, и все связки между ними.
@@ -2000,6 +2080,10 @@ export interface components {
       created_at: string
       /** In Work */
       in_work: boolean
+      /** Deliverables */
+      deliverables: number
+      /** Approved */
+      approved: number
     }
     /**
      * ProductOption
@@ -3936,6 +4020,40 @@ export interface operations {
       }
     }
   }
+  list_activity_api_activity_get: {
+    parameters: {
+      query?: {
+        limit?: number
+        cursor?: string | null
+      }
+      header?: never
+      path?: never
+      cookie?: {
+        session?: string | null
+      }
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ActivityList']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
   list_products_api_products_get: {
     parameters: {
       query?: {
@@ -4854,6 +4972,7 @@ export interface operations {
         product_id?: string | null
         assignee_id?: string | null
         sort?: components['schemas']['TaskSort']
+        sent_since?: string | null
         page?: number
         per_page?: number
       }

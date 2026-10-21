@@ -21,6 +21,8 @@ function item(id: string, name: string) {
     photo: null,
     created_at: '2026-10-01T10:00:00Z',
     in_work: false,
+    deliverables: 0,
+    approved: 0,
   }
 }
 

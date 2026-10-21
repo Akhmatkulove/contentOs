@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
 
+from app.activity.router import router as activity_router
 from app.admin.router import router as admin_router
 from app.auth.deps import get_approved_user
 from app.auth.router import router as auth_router
@@ -72,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     product.include_router(files_router)
     product.include_router(locations_router)
     product.include_router(notifications_router)
+    product.include_router(activity_router)
     product.include_router(products_router)
     product.include_router(references_router)
     product.include_router(shoots_router)

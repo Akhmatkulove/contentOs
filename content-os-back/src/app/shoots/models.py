@@ -112,6 +112,8 @@ class ShootDeliverable(Base):
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # Send to brand (docs/adr/0025): с ним статус становится approved.
+    sent_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ShootDeliverableAssignee(Base):

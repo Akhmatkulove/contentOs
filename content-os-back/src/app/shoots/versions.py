@@ -13,6 +13,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import service as activity
+from app.activity.models import ActivityType
 from app.auth.models import User
 from app.core.config import Settings
 from app.core.storage import Storage
@@ -255,6 +257,15 @@ async def submit_draft(
     draft.submitted_at = await db.scalar(select(func.now()))
     assignee.status = DeliverableStatus.NEEDS_REVIEW
     await sync_status(db, deliverable)
+    files = await db.scalar(select(func.count()).where(TaskVersionFile.version_id == draft.id))
+    activity.record(
+        db,
+        ActivityType.VERSION_SUBMITTED,
+        user,
+        deliverable.shoot_id,
+        deliverable=deliverable,
+        count=files or 0,
+    )
     await db.flush()
 
 

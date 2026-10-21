@@ -11,9 +11,11 @@ import uuid
 from collections import defaultdict
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select, update
+from sqlalchemy import exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import service as activity
+from app.activity.models import ActivityType
 from app.auth.models import Role, User
 from app.content import service as content
 from app.core.config import Settings
@@ -21,6 +23,7 @@ from app.core.storage import Storage
 from app.deliverables.models import DeliverableStatus
 from app.notifications import service as notifications
 from app.shoots.models import (
+    Shoot,
     ShootDeliverable,
     ShootDeliverableAssignee,
     ShootMember,
@@ -142,6 +145,16 @@ async def decide(
     statuses = await work_statuses(db, [task_id])
     assignee.status = statuses[(task_id, version.author_id)]
     await sync_status(db, deliverable)
+    activity.record(
+        db,
+        ActivityType.VERSION_APPROVED
+        if body.decision == VersionReview.APPROVED
+        else ActivityType.CHANGES_REQUESTED,
+        user,
+        deliverable.shoot_id,
+        deliverable=deliverable,
+        subject_id=version.author_id,
+    )
     await db.flush()
 
 
@@ -157,6 +170,29 @@ async def send(db: AsyncSession, user: User, task_id: uuid.UUID) -> None:
     if not can_send(deliverable, await assignee_statuses(db, task_id)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Every assignee's work must be approved")
     deliverable.status = DeliverableStatus.APPROVED
+    deliverable.sent_at = await db.scalar(select(func.now()))
     await db.flush()
     files = await content.add_sent(db, task_id)
     await notifications.content_sent(db, user, deliverable, files)
+    activity.record(
+        db,
+        ActivityType.CONTENT_SENT,
+        user,
+        deliverable.shoot_id,
+        deliverable=deliverable,
+        count=files,
+    )
+    # Отправлен последний: съёмка завершена (docs/adr/0007). Строка съёмки блокируется:
+    # две одновременные отправки последних deliverables не пропустят событие.
+    await db.execute(select(Shoot.id).where(Shoot.id == deliverable.shoot_id).with_for_update())
+    unsent = await db.scalar(
+        select(
+            exists().where(
+                ShootDeliverable.shoot_id == deliverable.shoot_id,
+                ShootDeliverable.status != DeliverableStatus.APPROVED,
+            )
+        )
+    )
+    if not unsent:
+        activity.record(db, ActivityType.SHOOT_COMPLETED, user, deliverable.shoot_id)
+    await db.flush()

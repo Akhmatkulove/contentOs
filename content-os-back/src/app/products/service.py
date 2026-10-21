@@ -18,6 +18,7 @@ from sqlalchemy import (
     func,
     or_,
     select,
+    true,
     update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +28,7 @@ from app.collections import service as collections
 from app.core.config import Settings
 from app.core.storage import Storage
 from app.core.text import escape_like
-from app.deliverables.models import Deliverable
+from app.deliverables.models import Deliverable, DeliverableStatus
 from app.deliverables.schemas import DeliverableDraft, DeliverableResponse
 from app.files.models import FileKind, StoredFile
 from app.files.schemas import FileResponse
@@ -48,6 +49,7 @@ from app.references import service as references
 from app.references.models import Reference, ReferenceFile
 from app.references.schemas import ReferenceDraft
 from app.shoots import product_deliverables
+from app.shoots.models import ShootDeliverable
 from app.team import service as team
 from app.team.schemas import TeamMember
 
@@ -308,17 +310,12 @@ async def product_response(
             .order_by(Reference.created_at.desc(), Reference.id.desc())
         )
     )
-    # Арт-директор видит только свои deliverables, креатор — своих арт-директоров,
-    # бренд — все (docs/adr/0005, 0024).
-    deliverable_query = select(Deliverable).where(Deliverable.product_id == product.id)
-    if user.role == Role.ART_DIRECTOR:
-        deliverable_query = deliverable_query.where(Deliverable.assignee_id == user.id)
-    elif user.role == Role.CREATOR:
-        deliverable_query = deliverable_query.where(
-            Deliverable.assignee_id.in_(team.art_directors_of_creator(user.id))
-        )
     deliverables = list(
-        await db.scalars(deliverable_query.order_by(Deliverable.position, Deliverable.id))
+        await db.scalars(
+            select(Deliverable)
+            .where(Deliverable.product_id == product.id, _shown_deliverables(user))
+            .order_by(Deliverable.position, Deliverable.id)
+        )
     )
     assignee_ids = {d.assignee_id for d in deliverables if d.assignee_id is not None}
     assignees = (
@@ -356,6 +353,40 @@ async def product_response(
         in_work=bool(await product_deliverables.products_in_work(db, [product.id])),
         can_edit=product.brand_id == user.id,
     )
+
+
+def _shown_deliverables(user: User) -> ColumnElement[bool]:
+    """Deliverables продукта, которые видит пользователь: арт-директор — только свои,
+    креатор — своих арт-директоров, бренд — все (docs/adr/0005, 0024)."""
+    if user.role == Role.ART_DIRECTOR:
+        return Deliverable.assignee_id == user.id
+    if user.role == Role.CREATOR:
+        return Deliverable.assignee_id.in_(team.art_directors_of_creator(user.id))
+    return true()
+
+
+async def _delivery(
+    db: AsyncSession, user: User, product_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, tuple[int, int]]:
+    """Прогресс карточки продукта (docs/adr/0027): сколько видимых пользователю
+    deliverables и сколько из них approved — хоть один deliverable съёмки по нему
+    отправлен бренду (docs/adr/0018). Один запрос на страницу."""
+    if not product_ids:
+        return {}
+    sent = exists().where(
+        ShootDeliverable.product_deliverable_id == Deliverable.id,
+        ShootDeliverable.status == DeliverableStatus.APPROVED,
+    )
+    rows = await db.execute(
+        select(
+            Deliverable.product_id,
+            func.count().label("total"),
+            func.count().filter(sent).label("approved"),
+        )
+        .where(Deliverable.product_id.in_(product_ids), _shown_deliverables(user))
+        .group_by(Deliverable.product_id)
+    )
+    return {row.product_id: (row.total, row.approved) for row in rows}
 
 
 def _visible(user: User) -> ColumnElement[bool]:
@@ -467,6 +498,7 @@ async def list_products(
         )
     }
     in_work = await product_deliverables.products_in_work(db, (p.id for p in products))
+    delivery = await _delivery(db, user, [product.id for product in products])
     return ProductList(
         items=[
             ProductListItem(
@@ -480,6 +512,8 @@ async def list_products(
                 else None,
                 created_at=product.created_at,
                 in_work=product.id in in_work,
+                deliverables=delivery.get(product.id, (0, 0))[0],
+                approved=delivery.get(product.id, (0, 0))[1],
             )
             for product in products
         ],

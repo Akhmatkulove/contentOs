@@ -13,6 +13,8 @@ from sqlalchemy import and_, delete, exists, func, select, tuple_, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import service as activity
+from app.activity.models import ActivityType
 from app.auth.models import User
 from app.content.models import ContentComment, ContentFavorite, ContentItem, ContentStatus
 from app.content.schemas import (
@@ -307,6 +309,15 @@ async def add_comment(
     await db.refresh(comment, ["created_at"])
     recipients = await _related(db, deliverable_id, shoot, product) - {user.id}
     await notifications.content_commented(db, user, deliverable, recipients)
+    activity.record(
+        db,
+        ActivityType.CONTENT_COMMENTED,
+        user,
+        shoot.id,
+        deliverable=deliverable,
+        comment_id=comment.id,
+    )
+    await db.flush()
     return _comment(comment, user, settings)
 
 
@@ -361,6 +372,15 @@ async def approve(db: AsyncSession, user: User, deliverable_id: uuid.UUID) -> No
         select(func.count()).where(ContentItem.deliverable_id == deliverable_id)
     )
     await notifications.content_approved(db, user, deliverable, recipients, files or 0)
+    activity.record(
+        db,
+        ActivityType.CONTENT_APPROVED,
+        user,
+        shoot.id,
+        deliverable=deliverable,
+        count=files or 0,
+    )
+    await db.flush()
 
 
 async def set_favorite(

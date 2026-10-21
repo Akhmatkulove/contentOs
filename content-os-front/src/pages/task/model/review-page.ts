@@ -3,6 +3,7 @@ import { useRegleSchema } from '@regle/schemas'
 import { computed, reactive, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { contentKeys } from '@/entities/content'
 import { deliverableStatuses, dueHint, formatDueDate, taskKeys } from '@/entities/deliverable'
+import { productKeys } from '@/entities/product'
 import { shootKeys } from '@/entities/shoot'
 import { errorStatus, type ApiError } from '@/shared/api'
 import { queryParam, useQueryParams } from '@/shared/lib'
@@ -172,8 +173,10 @@ export function useReviewPage(id: MaybeRefOrGetter<string>) {
     mutation: () => sendToBrand(toValue(id)),
     onSuccess: (next) => {
       saved(next)
-      // The approved files are on the content page now (docs/adr/0025).
+      // The approved files are on the content page now (docs/adr/0025), and the
+      // product's order counts as sent on its card (docs/adr/0027).
       queryCache.invalidateQueries({ key: contentKeys.all })
+      queryCache.invalidateQueries({ key: productKeys.lists })
       toast.success('Sent to the brand')
     },
     onError: stale,

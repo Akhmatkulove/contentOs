@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import AwareDatetime
 
 from app.auth.deps import require_role
 from app.auth.models import Role, User
@@ -43,6 +44,7 @@ async def list_tasks(
     product_id: uuid.UUID | None = None,
     assignee_id: uuid.UUID | None = None,
     sort: tasks.TaskSort = tasks.TaskSort.PRIORITY,
+    sent_since: AwareDatetime | None = None,
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> TaskList:
@@ -50,8 +52,12 @@ async def list_tasks(
 
     Поиск по deliverable, продукту, съёмке и исполнителю без учёта регистра.
     `counts` — размеры вкладок по статусам под поиском и фильтрами (docs/adr/0011).
+    `sent_since` — только отправленные бренду с этого момента (docs/adr/0027): начало
+    месяца берёт клиент, в своём часовом поясе.
     """
-    params = tasks.TaskQuery(search.strip(), status, shoot_id, product_id, assignee_id, sort)
+    params = tasks.TaskQuery(
+        search.strip(), status, shoot_id, product_id, assignee_id, sort, sent_since
+    )
     return await tasks.list_tasks(db, user, storage, settings, params, page, per_page)
 
 

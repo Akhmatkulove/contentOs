@@ -383,3 +383,14 @@ async def test_only_the_author_deletes_a_comment(client: AsyncClient) -> None:
     await delete_comment(client, task_id, str(uuid.uuid4()), 404)
     await delete_comment(client, task_id, love_it["id"], 204)
     assert (await content_page(client, task_id))["comments"] == []
+
+
+async def test_product_cards_count_sent_deliverables(client: AsyncClient) -> None:
+    # The list card's progress (docs/adr/0027): the art director's orders of the
+    # product, and those a shoot sent to the brand.
+    await sent_close_up(client)
+    response = await client.get("/api/products")
+    assert response.status_code == 200, response.text
+    progress = {p["name"]: (p["approved"], p["deliverables"]) for p in response.json()["items"]}
+    assert progress["Dress"][0] == 1
+    assert progress["Dress"][1] >= 1

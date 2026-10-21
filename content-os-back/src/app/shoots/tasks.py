@@ -10,6 +10,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
@@ -96,6 +97,8 @@ class TaskQuery:
     product_id: uuid.UUID | None = None
     assignee_id: uuid.UUID | None = None
     sort: TaskSort = TaskSort.PRIORITY
+    # Отправлены бренду не раньше этого времени: «Deliverables this month» (docs/adr/0027).
+    sent_since: datetime | None = None
 
 
 # Строка исполнителя-пользователя в задачах креатора: алиас, чтобы подзапросы по
@@ -165,6 +168,8 @@ def _filtered(
         query = query.where(ShootDeliverable.product_id == params.product_id)
     if params.assignee_id is not None:
         query = query.where(_assigned(params.assignee_id))
+    if params.sent_since is not None:
+        query = query.where(ShootDeliverable.sent_at >= params.sent_since)
     return query
 
 

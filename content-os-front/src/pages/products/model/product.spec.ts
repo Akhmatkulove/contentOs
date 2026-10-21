@@ -10,8 +10,14 @@ describe('toProduct', () => {
       status: 'active' as const,
       created_at: '2026-10-04T10:00:00Z',
       in_work: true,
+      deliverables: 6,
+      approved: 4,
     }
-    expect(toProduct({ ...item, photo: null })).toMatchObject({ photoUrl: null, inWork: true })
+    expect(toProduct({ ...item, photo: null })).toMatchObject({
+      photoUrl: null,
+      inWork: true,
+      deliverables: { done: 4, total: 6 },
+    })
     expect(
       toProduct({
         ...item,

@@ -11,3 +11,4 @@ export {
 } from './uploads'
 export { useActiveTabInView } from './active-tab-in-view'
 export { badgeLabel } from './badge'
+export { timeAgo } from './time-ago'

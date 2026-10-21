@@ -1,6 +1,6 @@
 import type { DeliverableStatus, DeliverableType } from '@/entities/deliverable'
 import type { ProductListItem } from '@/entities/product'
-import type { TeamMember } from '../api/team'
+import type { TeamMember } from '@/entities/team'
 
 // What the shoot form shows. Shaped for the screen, not the API:
 // shoot-initial.ts maps a saved shoot in, shoot-request.ts maps the form out.

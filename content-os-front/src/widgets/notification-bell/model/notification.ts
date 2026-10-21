@@ -1,4 +1,5 @@
 import type { RouteLocationRaw } from 'vue-router'
+import { timeAgo } from '@/shared/lib'
 import type { NotificationItem } from '../api/notifications'
 
 // A notification as the bell shows it.
@@ -12,21 +13,6 @@ export interface Notification {
   read: boolean
   photoUrl: string | null
   to: RouteLocationRaw
-}
-
-const MINUTE = 60 * 1000
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
-
-// How long ago, in the bell's words.
-export function timeAgo(iso: string, now: Date): string {
-  const at = new Date(iso)
-  const passed = now.getTime() - at.getTime()
-  if (passed < MINUTE) return 'Just now'
-  if (passed < HOUR) return `${Math.floor(passed / MINUTE)} min ago`
-  if (passed < DAY) return `${Math.floor(passed / HOUR)} h ago`
-  if (passed < 2 * DAY) return 'Yesterday'
-  return at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export function toNotification(item: NotificationItem, now: Date): Notification {
