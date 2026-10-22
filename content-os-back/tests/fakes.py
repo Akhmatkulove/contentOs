@@ -2,6 +2,8 @@ import itertools
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
+from app.core.storage import is_public
+
 # Хранилища по номеру: тест кладёт файл по presigned URL, как браузер (put_presigned).
 _storages: dict[int, "FakeStorage"] = {}
 _numbers = itertools.count()
@@ -18,9 +20,9 @@ class FakeStorage:
     def __post_init__(self) -> None:
         _storages[self.number] = self
 
-    async def put(self, key: str, data: bytes, content_type: str, *, public: bool = False) -> None:
+    async def put(self, key: str, data: bytes, content_type: str) -> None:
         self.files[key] = (data, content_type)
-        if public:
+        if is_public(key):
             self.public.add(key)
 
     async def delete(self, key: str) -> None:

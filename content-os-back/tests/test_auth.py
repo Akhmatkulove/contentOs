@@ -188,6 +188,27 @@ async def test_mutating_request_from_frontend_origin_is_allowed(client: AsyncCli
     assert response.status_code == 201
 
 
+async def test_frontend_origin_may_call_api_with_cookies(client: AsyncClient) -> None:
+    response = await client.options(
+        "/api/auth/login",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+async def test_foreign_origin_gets_no_cors_headers(client: AsyncClient) -> None:
+    response = await client.get("/api/me", headers={"Origin": "https://evil.example"})
+
+    assert "access-control-allow-origin" not in response.headers
+
+
 @pytest.fixture
 async def guarded_client(
     settings: Settings, db_session: AsyncSession

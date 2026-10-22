@@ -6,6 +6,8 @@ export const http = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
+  // The session cookie must ride along when the API lives on its own host (api.<domain>).
+  withCredentials: true,
 })
 
 // Callers only ever see ApiError, never the axios internals.

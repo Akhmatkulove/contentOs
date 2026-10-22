@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Публичный только этот префикс: аватары. Остальное браузер читает по presigned URL.
+PUBLIC_PREFIX = "avatars/"
 # Приватные файлы (files/) читаются по presigned URL столько времени.
 PRESIGN_TTL_SECONDS = 60 * 60
 # Столько живёт ссылка, по которой браузер кладёт файл в хранилище сам (docs/adr/0013).
@@ -25,8 +27,8 @@ PUBLIC_CACHE = "public, max-age=31536000, immutable"
 
 
 class Storage(Protocol):
-    async def put(self, key: str, data: bytes, content_type: str, *, public: bool = False) -> None:
-        """public — файл из публичного префикса (avatars/), его можно кэшировать где угодно."""
+    async def put(self, key: str, data: bytes, content_type: str) -> None:
+        """Файл из PUBLIC_PREFIX уходит в публичный бакет, его можно кэшировать где угодно."""
         ...
 
     async def delete(self, key: str) -> None: ...
@@ -66,8 +68,12 @@ async def delete_quietly(storage: Storage, *keys: str | None) -> None:
             logger.exception("Could not delete %s", key)
 
 
+def is_public(key: str) -> bool:
+    return key.startswith(PUBLIC_PREFIX)
+
+
 def public_url(settings: Settings, key: str | None) -> str | None:
-    """URL файла из публичного префикса (например, avatars/)."""
+    """URL файла из публичного префикса (avatars/)."""
     if key is None or settings.s3_public_url is None:
         return None
     return f"{settings.s3_public_url.rstrip('/')}/{key}"
@@ -88,27 +94,31 @@ def _client(settings: Settings, endpoint_url: str | None) -> "S3Client":
 
 
 class S3Storage:
-    def __init__(self, settings: Settings, bucket: str) -> None:
+    def __init__(self, settings: Settings, bucket: str, public_bucket: str) -> None:
         self._bucket = bucket
+        self._public_bucket = public_bucket
         self._client = _client(settings, settings.s3_endpoint_url)
         # Подпись включает хост: ссылки для браузера подписываем его адресом хранилища.
         self._presign_client = _client(
             settings, settings.s3_presign_endpoint_url or settings.s3_endpoint_url
         )
 
+    def _bucket_for(self, key: str) -> str:
+        return self._public_bucket if is_public(key) else self._bucket
+
     # boto3 синхронный, поэтому вызовы уходят в пул потоков.
-    async def put(self, key: str, data: bytes, content_type: str, *, public: bool = False) -> None:
+    async def put(self, key: str, data: bytes, content_type: str) -> None:
         await run_in_threadpool(
             self._client.put_object,
-            Bucket=self._bucket,
+            Bucket=self._bucket_for(key),
             Key=key,
             Body=data,
             ContentType=content_type,
-            CacheControl=PUBLIC_CACHE if public else PRIVATE_CACHE,
+            CacheControl=PUBLIC_CACHE if is_public(key) else PRIVATE_CACHE,
         )
 
     async def delete(self, key: str) -> None:
-        await run_in_threadpool(self._client.delete_object, Bucket=self._bucket, Key=key)
+        await run_in_threadpool(self._client.delete_object, Bucket=self._bucket_for(key), Key=key)
 
     def presigned_url(self, key: str) -> str:
         return self._presign_client.generate_presigned_url(
@@ -162,7 +172,7 @@ class S3Storage:
 def build_storage(settings: Settings) -> Storage | None:
     if settings.s3_bucket is None:
         return None
-    return S3Storage(settings, settings.s3_bucket)
+    return S3Storage(settings, settings.s3_bucket, settings.s3_public_bucket or settings.s3_bucket)
 
 
 def get_storage(request: Request) -> Storage:

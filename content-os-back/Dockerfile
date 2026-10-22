@@ -34,4 +34,6 @@ ENV PATH="/app/.venv/bin:$PATH" \
 USER app
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+# Миграции перед стартом: деплой — это просто перезапуск контейнера. Один экземпляр API,
+# поэтому гонки двух alembic за схему нет. exec — сигналы остановки идут прямо uvicorn.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000"]

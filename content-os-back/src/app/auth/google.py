@@ -100,7 +100,7 @@ def build_google(settings: Settings) -> GoogleOAuth | None:
     return GoogleOAuth(
         settings.google_client_id,
         settings.google_client_secret.get_secret_value(),
-        redirect_uri=f"{settings.app_url}/api/auth/google/callback",
+        redirect_uri=f"{settings.public_api_url}/api/auth/google/callback",
     )
 
 

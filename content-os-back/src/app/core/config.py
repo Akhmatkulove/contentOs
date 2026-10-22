@@ -11,9 +11,13 @@ class Settings(BaseSettings):
 
     environment: Literal["local", "test", "production"] = "local"
     database_url: PostgresDsn
-    # Адрес фронта: туда возвращаем после входа через Google. API доступен под ним же (/api).
+    # Адрес фронта: туда возвращаем после входа через Google.
     app_url: str = "http://localhost:5173"
-    # Origin'ы, с которых браузер может слать изменяющие запросы (защита от CSRF).
+    # Адрес API для браузера, если он не под APP_URL (свой поддомен): туда Google
+    # возвращает после входа. None — API под APP_URL (/api), как локально через vite proxy.
+    api_url: str | None = None
+    # Origin'ы фронта: им открыт CORS с cookie, только с них принимаются изменяющие
+    # запросы (защита от CSRF).
     allowed_origins: list[str] = ["http://localhost:5173"]
     session_ttl_days: int = 30
     # Сессия админа короче и не продлевается: вход раз в рабочий день.
@@ -41,11 +45,18 @@ class Settings(BaseSettings):
     s3_access_key: SecretStr | None = None
     s3_secret_key: SecretStr | None = None
     s3_bucket: str | None = None
-    # Откуда браузер читает публичные файлы (аватары): адрес бакета или CDN перед ним.
+    # Отдельный публичный бакет для avatars/ (R2 открывает на чтение только бакет целиком).
+    # None — avatars/ лежат в S3_BUCKET, как в MinIO, где публичен один префикс.
+    s3_public_bucket: str | None = None
+    # Откуда браузер читает публичные файлы (аватары): адрес публичного бакета или CDN перед ним.
     s3_public_url: str | None = None
     # Адрес хранилища для браузера в presigned URL приватных файлов, если API ходит
     # в хранилище по внутреннему адресу (в compose: http://minio:9000). None — S3_ENDPOINT_URL.
     s3_presign_endpoint_url: str | None = None
+
+    @property
+    def public_api_url(self) -> str:
+        return self.api_url or self.app_url
 
     @property
     def docs_enabled(self) -> bool:

@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.activity.router import router as activity_router
 from app.admin.router import router as admin_router
@@ -54,6 +55,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.geosuggest = build_geosuggest(settings)
     app.middleware("http")(origin_check(settings.allowed_origins))
     app.add_middleware(BodyLimitMiddleware)
+    # Added last, so it runs first: answers preflights and puts CORS headers on every
+    # response, the 403/413 of the middlewares above included. Needed when the front
+    # calls the API on another host (api.<domain>).
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     api = APIRouter(prefix="/api")
     api.include_router(health_router)

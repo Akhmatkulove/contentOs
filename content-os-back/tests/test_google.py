@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.service import create_or_reset_admin
-from app.auth.google import GoogleOAuth, get_google
+from app.auth.google import GoogleOAuth, build_google, get_google
 from app.auth.models import User
 from app.core.config import Settings
 from app.core.db import get_session
@@ -249,3 +249,18 @@ async def test_admin_cannot_sign_in_with_google(
     assert admin is not None
     assert admin.google_sub is None
     assert admin.password_hash is not None
+
+
+def test_redirect_uri_points_at_api_host_when_it_has_its_own(settings: Settings) -> None:
+    google = build_google(
+        settings.model_copy(
+            update={
+                "google_client_id": "client-id",
+                "google_client_secret": SecretStr("s"),
+                "api_url": "https://api.example.com",
+            }
+        )
+    )
+
+    assert google is not None
+    assert google.redirect_uri == "https://api.example.com/api/auth/google/callback"
